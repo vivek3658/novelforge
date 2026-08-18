@@ -1,0 +1,189 @@
+# ============================================
+# NovaForge - Central Git Ignore
+# ============================================
+
+# --------------------------------------------
+# Operating System
+# --------------------------------------------
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.nfs*
+
+
+# --------------------------------------------
+# IDE / Editors
+# --------------------------------------------
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/.nb-gradle/
+
+
+# --------------------------------------------
+# Java / Spring Boot / Maven
+# --------------------------------------------
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Compiled Java
+*.class
+
+# Logs
+*.log
+
+# Spring Boot generated files
+spring-shell.log
+
+
+# --------------------------------------------
+# Node.js / React / Vite
+# --------------------------------------------
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Vite
+.vite/
+
+# npm
+npm-debug.log*
+npm-error.log*
+.npm/
+
+# Yarn
+yarn-debug.log*
+yarn-error.log*
+.yarn/
+.pnp.*
+
+# pnpm
+.pnpm-debug.log*
+
+# Bun
+.bun/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Coverage
+coverage/
+
+
+# --------------------------------------------
+# Environment Variables / Secrets
+# --------------------------------------------
+
+.env
+.env.*
+!.env.example
+!.env.development.example
+!.env.production.example
+
+# Spring environment files
+application-local.properties
+application-local.yml
+application-secret.properties
+application-secret.yml
+
+# Certificates / private keys
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+
+# --------------------------------------------
+# Database / Local Development
+# --------------------------------------------
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL dumps
+*.sql.gz
+*.dump
+
+
+# --------------------------------------------
+# Temporary / Generated Files
+# --------------------------------------------
+
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS/editor backups
+*.swp
+*.swo
+*.bak
+*.orig
+
+
+# --------------------------------------------
+# Test / Coverage generated files
+# --------------------------------------------
+
+*.exec
+*.gcda
+*.gcno
+
+
+# --------------------------------------------
+# Miscellaneous
+# --------------------------------------------
+
+.DS_Store
