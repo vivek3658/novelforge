@@ -1,0 +1,18 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /api/v1/notification
+spring:
+  application:
+    name: notification-service
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: vivekmakwana3697@gmail.com
+    password: wsqyymubbryzsenb
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
