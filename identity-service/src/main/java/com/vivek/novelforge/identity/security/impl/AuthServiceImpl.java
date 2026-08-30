@@ -1,9 +1,6 @@
 package com.vivek.novelforge.identity.security.impl;
 
-import com.vivek.novelforge.identity.dto.LoginRequestDto;
-import com.vivek.novelforge.identity.dto.LoginResponseDto;
-import com.vivek.novelforge.identity.dto.RegisterRequestDto;
-import com.vivek.novelforge.identity.dto.RegisterResponseDto;
+import com.vivek.novelforge.identity.dto.*;
 import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.exception.UsernameAlreadyExistsException;
 import com.vivek.novelforge.identity.repository.UserRepository;
@@ -26,24 +23,48 @@ public class AuthServiceImpl implements AuthService {
     private final AuthUtil authUtil;
 
     @Override
-    public LoginResponseDto login(LoginRequestDto loginRequestDto) {
+    public LoginResultDto login(LoginRequestDto loginRequestDto) {
+        String username;
+        if(loginRequestDto.getIdentifier().contains("@")){
+            User user = userRepository.findByEmail(loginRequestDto.getIdentifier()).orElseThrow();
+            username = user.getUsername();
+        }else{
+            username = loginRequestDto.getIdentifier();
+        }
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequestDto.getUsername(),loginRequestDto.getPassword())
+                new UsernamePasswordAuthenticationToken(username,loginRequestDto.getPassword())
         );
         User user = (User) authentication.getPrincipal();
-        String token = authUtil.generateAccessToken(user);
-        return new LoginResponseDto(user.getId(),token);
+        String accessToken = authUtil.generateAccessToken(user);
+        String refreshToken =
+                authUtil.generateRefreshToken(user);
+        return new LoginResultDto(
+                user.getId(),
+                user.getUsername(),
+                accessToken,
+                refreshToken
+        );
     }
-
-
 
     @Override
-    public String logout() {
-        return "";
+    public LoginResponseDto refreshAccessToken(String refreshToken) {
+
+        String username =
+                authUtil.getUsernameFromRefreshToken(refreshToken);
+
+        User user = userRepository
+                .findByUsername(username)
+                .orElseThrow();
+
+        String accessToken =
+                authUtil.generateAccessToken(user);
+
+        return new LoginResponseDto(
+                user.getId(),
+                user.getUsername(),
+                accessToken
+        );
     }
 
-    @Override
-    public String forgotPassword() {
-        return "";
-    }
+
 }

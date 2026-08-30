@@ -9,7 +9,7 @@ spring:
             - id: IDENTITY-SERVICE
               uri: lb://IDENTITY-SERVICE
               predicates:
-                - Path=/api/v1/auth/**
+                - Path=/api/v1/identity/**
             - id: NOTIFICATION-SERVICE
               uri: lb://NOTIFICATION-SERVICE
               predicates:

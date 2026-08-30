@@ -1,5 +1,6 @@
 package com.vivek.novelforge.identity.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data
@@ -9,6 +10,8 @@ import lombok.*;
 @Setter
 @Builder
 public class LoginRequestDto {
-    private String username;
+    @NotBlank
+    private String identifier;
+    @NotBlank
     private String password;
 }

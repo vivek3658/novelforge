@@ -2,11 +2,14 @@ package com.vivek.novelforge.identity.service.impl;
 
 import com.vivek.novelforge.identity.dto.RegisterRequestDto;
 import com.vivek.novelforge.identity.dto.RegisterResponseDto;
+import com.vivek.novelforge.identity.dto.RegistrationResultDto;
+import com.vivek.novelforge.identity.entity.ReaderProfile;
 import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.exception.EmailAlreadyExistsException;
 import com.vivek.novelforge.identity.exception.EmailNotVerfiedException;
 import com.vivek.novelforge.identity.exception.UsernameAlreadyExistsException;
 import com.vivek.novelforge.identity.redis.RegistrationRedisService;
+import com.vivek.novelforge.identity.repository.ReaderProfileRepository;
 import com.vivek.novelforge.identity.repository.UserRepository;
 import com.vivek.novelforge.identity.security.AuthUtil;
 import com.vivek.novelforge.identity.service.OtpService;
@@ -26,10 +29,12 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthUtil authUtil;
     private final RegistrationRedisService registrationRedisService;
+    private final ReaderProfileRepository readerProfileRepository;
 
     @Override
     public void sendVerificationOtp(String email) {
-        otpService.sendOtp(email);
+        String otp = otpService.generateOtp(email);
+        otpService.sendOtp(email,otp);
     }
 
     @Override
@@ -39,12 +44,11 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     @Transactional
-    public RegisterResponseDto register(RegisterRequestDto registerRequestDto) {
-        System.out.println("Marked");
+    public RegistrationResultDto register(RegisterRequestDto registerRequestDto) {
         if (!registrationRedisService.isEmailVerified(registerRequestDto.getEmail())) {
             throw new EmailNotVerfiedException("Email is not verified");
         }
-        if(!userRepository.findByUsername(registerRequestDto.getUsername()).isEmpty()){
+        if(userRepository.findByUsername(registerRequestDto.getUsername()).isPresent()){
             throw new UsernameAlreadyExistsException(
                     "Username Already Exists"
             );
@@ -61,15 +65,23 @@ public class RegistrationServiceImpl implements RegistrationService {
         user.setEmailVerified(true);
         user.setRoleType(RoleType.READER);
         user.setAccountStatus(AccountStatus.ACTIVE);
-        user.setProfileImageName(registerRequestDto.getProfileImageName());
+
         User savedUser = userRepository.save(user);
+
+        ReaderProfile readerProfile = ReaderProfile.builder()
+                .user(savedUser)
+                .profileImageName(null)
+                .build();
+
+        readerProfileRepository.save(readerProfile);
         registrationRedisService.deleteEmailVerified(registerRequestDto.getEmail());
-        String accessToken = authUtil.generateAccessToken(savedUser);
-        return RegisterResponseDto.builder()
-                .message("Registration Successful")
+        String accessToken = authUtil.generateAccessToken(user);
+        String refreshToken = authUtil.generateRefreshToken(user);
+        return RegistrationResultDto.builder()
                 .userId(savedUser.getId())
                 .username(savedUser.getUsername())
-                .accessTokem(accessToken)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 }

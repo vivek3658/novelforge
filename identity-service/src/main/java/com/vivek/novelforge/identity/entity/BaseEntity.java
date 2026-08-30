@@ -13,6 +13,8 @@ import java.time.Instant;
 @MappedSuperclass
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class BaseEntity {
 
     @CreationTimestamp

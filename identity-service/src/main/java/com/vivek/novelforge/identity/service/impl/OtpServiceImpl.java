@@ -14,11 +14,8 @@ public class OtpServiceImpl implements OtpService {
     private final RegistrationRedisService registrationRedisService;
     private final NotificationClient notificationClient;
     @Override
-    public void sendOtp(String email) {
-        String otp = String.valueOf(
-                ThreadLocalRandom.current()
-                        .nextInt(100000,1000000)
-        );
+    public void sendOtp(String email,String otp) {
+
         registrationRedisService.saveOtp(email,otp);
         notificationClient.sendOtp(email,otp);
     }
@@ -33,5 +30,14 @@ public class OtpServiceImpl implements OtpService {
 
         registrationRedisService.markEmailVerified(email);
         return true;
+    }
+
+    @Override
+    public String generateOtp(String email) {
+        String otp = String.valueOf(
+                ThreadLocalRandom.current()
+                        .nextInt(100000,1000000)
+        );
+        return otp;
     }
 }

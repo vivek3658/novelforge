@@ -17,6 +17,6 @@ public class EmailController {
     public String sendOtp(@RequestBody EmailRequestDto emailRequestDto){
         System.out.println("Calls Notification Service");
         emailService.sendOtp(emailRequestDto.getEmail(),emailRequestDto.getOtp());
-        return "Email Sended";
+        return "Email Sent";
     }
 }

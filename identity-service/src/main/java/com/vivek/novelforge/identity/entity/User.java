@@ -1,18 +1,22 @@
 package com.vivek.novelforge.identity.entity;
 
+import com.vivek.novelforge.identity.security.RolePermissions;
 import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.type.RoleType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -42,12 +46,33 @@ public class User extends BaseEntity implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false,length = 20)
     private AccountStatus accountStatus;
-    private String profileImageName;
+//    private String profileImageName;
     private String passwordHash;
+//    @OneToOne(
+//            mappedBy = "user",
+//            fetch = FetchType.LAZY,
+//            cascade = CascadeType.ALL,
+//            orphanRemoval = true
+//    )
+//    private ReaderProfile readerProfile;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(
+                new SimpleGrantedAuthority(
+                        "ROLE_" + roleType.name()
+                )
+        );
+        RolePermissions.getPermissions(roleType)
+                .forEach(permission ->
+                            authorities.add(
+                                    new SimpleGrantedAuthority(
+                                            permission.name()
+                                    )
+                            )
+                );
+        return authorities;
     }
 
     @Override

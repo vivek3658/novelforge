@@ -8,9 +8,9 @@ import lombok.*;
 @Getter
 @Setter
 @Builder
-public class RegisterResponseDto {
-    private String message;
+public class RegistrationResultDto {
     private Long userId;
     private String username;
     private String accessToken;
+    private String refreshToken;
 }
