@@ -29,9 +29,9 @@ public class AuthController {
         ResponseCookie refreshCookie = ResponseCookie
                 .from("refreshToken",result.getRefreshToken())
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .sameSite("Lax")
-                .path("/auth")
+                .path("/")
                 .maxAge(Duration.ofDays(30))
                 .build();
         LoginResponseDto loginResponseDto = new LoginResponseDto(
@@ -77,7 +77,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
-                .path("/api/v1/identity/auth/refresh")
+                .path("/")
                 .maxAge(0)
                 .build();
 

@@ -42,7 +42,7 @@ public class RegistrationController {
                 .httpOnly(true)
                 .secure(false) // false for localhost HTTP
                 .sameSite("Lax")
-                .path("/auth")
+                .path("/")
                 .maxAge(Duration.ofDays(30))
                 .build();
 
