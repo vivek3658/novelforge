@@ -1,10 +1,10 @@
-package com.vivek.novelforge.content_service;
+package com.vivek.novelforge.eureka;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ContentServiceApplicationTests {
+class EurekaServerApplicationTests {
 
 	@Test
 	void contextLoads() {
