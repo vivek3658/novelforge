@@ -38,6 +38,15 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
+    @ExceptionHandler(PasswordResetNotVerifiedException.class)
+    public ResponseEntity<ErrorDetails> handlePasswordResetNotVerifiedException(PasswordResetNotVerifiedException exception, WebRequest webRequest){
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),
+                exception.getMessage(),
+                webRequest.getDescription(false)
+        );
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
+    }
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorDetails> handleRuntimeException(RuntimeException exception, WebRequest webRequest){
         ErrorDetails errorDetails = new ErrorDetails(

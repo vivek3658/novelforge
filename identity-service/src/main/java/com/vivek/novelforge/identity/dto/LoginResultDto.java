@@ -7,10 +7,10 @@ import lombok.*;
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
-public class RegisterResponseDto {
-    private String message;
+public class LoginResultDto {
+
     private Long userId;
     private String username;
     private String accessToken;
+    private String refreshToken;
 }

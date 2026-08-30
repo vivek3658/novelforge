@@ -9,7 +9,8 @@ import lombok.*;
 @Setter
 @Builder
 public class LoginResponseDto {
-    private Long id;
-    private String token;
+    private Long userId;
+    private String username;
+    private String accessToken;
 
 }
