@@ -29,7 +29,7 @@ public class WebSecurityConfig {
                                 "/auth/login",
                                 "/register/**",
                                 "/auth/refresh",
-                                "/auth/forgot-password"
+                                "/auth/forgot-password/**"
                         ).permitAll()
 
                         .requestMatchers("/auth/me").authenticated()
