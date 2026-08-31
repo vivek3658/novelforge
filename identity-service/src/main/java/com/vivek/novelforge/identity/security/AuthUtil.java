@@ -1,6 +1,7 @@
 package com.vivek.novelforge.identity.security;
 
 import com.vivek.novelforge.identity.entity.User;
+import com.vivek.novelforge.identity.type.RoleType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -23,9 +25,14 @@ public class AuthUtil {
     }
 
     public String generateAccessToken(User user){
+        List<String> roles = user.getRoles()
+                .stream()
+                .map(RoleType::name)
+                .toList();
         return Jwts.builder()
                 .subject(user.getUsername())
                 .claim("userId",user.getId().toString())
+                .claim("roles",roles)
                 .claim("type","access")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000*60*10))

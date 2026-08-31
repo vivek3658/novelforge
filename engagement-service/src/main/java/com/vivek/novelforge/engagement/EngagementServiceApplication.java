@@ -1,4 +1,4 @@
-package com.vivek.novelforge.engagement_service;
+package com.vivek.novelforge.engagement;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

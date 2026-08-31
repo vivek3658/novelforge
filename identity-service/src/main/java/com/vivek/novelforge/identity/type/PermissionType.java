@@ -13,6 +13,8 @@ public enum PermissionType {
     CHAPTER_UPDATE,
     CHAPTER_DELETE,
 
+    BECOME_AUTHOR,
+
     USER_READ,
     USER_UPDATE,
     USER_DELETE,

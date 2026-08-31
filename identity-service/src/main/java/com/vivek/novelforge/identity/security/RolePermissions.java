@@ -13,7 +13,8 @@ public final class RolePermissions {
 
             case READER -> EnumSet.of(
                     PermissionType.NOVEL_READ,
-                    PermissionType.CHAPTER_READ
+                    PermissionType.CHAPTER_READ,
+                    PermissionType.BECOME_AUTHOR
             );
 
             case AUTHOR -> EnumSet.of(
