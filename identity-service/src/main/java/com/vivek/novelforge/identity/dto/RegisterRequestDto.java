@@ -1,5 +1,6 @@
 package com.vivek.novelforge.identity.dto;
 
+import com.vivek.novelforge.identity.type.ProfileVisibility;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -18,4 +19,7 @@ public class RegisterRequestDto {
     @NotBlank
     private String password;
     private String profileImageName;
+    private String bannerImageName;
+    private ProfileVisibility profileVisibility;
+
 }

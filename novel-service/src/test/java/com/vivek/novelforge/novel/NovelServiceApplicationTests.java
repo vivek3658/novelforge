@@ -1,10 +1,10 @@
-package com.vivek.novelforge.engagement_service;
+package com.vivek.novelforge.novel;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class EngagementServiceApplicationTests {
+class NovelServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

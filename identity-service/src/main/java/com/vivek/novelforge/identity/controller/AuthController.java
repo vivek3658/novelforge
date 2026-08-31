@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,6 +53,7 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ResponseEntity<UserMeResponseDto> me(
             @AuthenticationPrincipal User user
@@ -61,12 +63,13 @@ public class AuthController {
                         .id(user.getId())
                         .username(user.getUsername())
                         .email(user.getEmail())
-                        .roleType(user.getRoleType())
+                        .roles(user.getRoles())
                         .emailVerified(user.getEmailVerified())
                         .accountStatus(user.getAccountStatus())
                         .build()
         );
     }
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             HttpServletResponse response

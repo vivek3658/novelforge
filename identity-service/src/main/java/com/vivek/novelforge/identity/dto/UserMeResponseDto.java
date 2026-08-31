@@ -4,6 +4,8 @@ import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.type.RoleType;
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @Getter
 @Setter
@@ -14,7 +16,7 @@ public class UserMeResponseDto {
     private Long id;
     private String username;
     private String email;
-    private RoleType roleType;
+    private List<RoleType> roles;
     private Boolean emailVerified;
     private AccountStatus accountStatus;
 }
