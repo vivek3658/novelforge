@@ -1,4 +1,4 @@
-package com.vivek.novelforge.identity.entity;
+package com.vivek.novelforge.common.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
