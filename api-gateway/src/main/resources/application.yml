@@ -1,26 +1,64 @@
 spring:
   application:
     name: api-gateway
+
   cloud:
     gateway:
       server:
         webflux:
           routes:
+
+            - id: NOVEL-SERVICE-ROOT
+              uri: lb://NOVEL-SERVICE
+              predicates:
+                - Path=/api/v1/novels
+              filters:
+                - SetPath=/
+
+            - id: NOVEL-SERVICE
+              uri: lb://NOVEL-SERVICE
+              predicates:
+                - Path=/api/v1/novels/**
+              filters:
+                - RewritePath=/api/v1/novels(?<segment>/.*), ${segment}
+
+            - id: IDENTITY-SERVICE-ROOT
+              uri: lb://IDENTITY-SERVICE
+              predicates:
+                - Path=/api/v1/identity
+              filters:
+                - SetPath=/
+
             - id: IDENTITY-SERVICE
               uri: lb://IDENTITY-SERVICE
               predicates:
                 - Path=/api/v1/identity/**
+              filters:
+                - RewritePath=/api/v1/identity(?<segment>/.*), ${segment}
+
+
+            - id: NOTIFICATION-SERVICE-ROOT
+              uri: lb://NOTIFICATION-SERVICE
+              predicates:
+                - Path=/api/v1/notifications
+              filters:
+                - SetPath=/
+
             - id: NOTIFICATION-SERVICE
               uri: lb://NOTIFICATION-SERVICE
               predicates:
-                - Path=/api/v1/notification/**
+                - Path=/api/v1/notifications/**
+              filters:
+                - RewritePath=/api/v1/notifications(?<segment>/.*), ${segment}
 
 server:
   port: 8080
+
 eureka:
   client:
     service-url:
-      default-zone: http://localhost:8761/eureka/
+      defaultZone: http://localhost:8761/eureka/
+
 management:
   endpoints:
     web:
@@ -30,3 +68,7 @@ management:
   endpoint:
     gateway:
       access: read-only
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -34,6 +35,13 @@ public class AuthUtil {
                 .claim("userId",user.getId().toString())
                 .claim("roles",roles)
                 .claim("type","access")
+                .claim(
+                        "authorities",
+                        user.getAuthorities()
+                                .stream()
+                                .map(GrantedAuthority::getAuthority)
+                                .toList()
+                )
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000*60*10))
                 .signWith(getSecretKey())
@@ -70,4 +78,5 @@ public class AuthUtil {
                 .signWith(getSecretKey())
                 .compact();
     }
+
 }
