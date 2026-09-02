@@ -76,6 +76,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .profileImageName(registerRequestDto.getProfileImageName())
                 .bannerImageName(registerRequestDto.getProfileImageName())
                 .visibility(registerRequestDto.getProfileVisibility() != null ? registerRequestDto.getProfileVisibility() : ProfileVisibility.PUBLIC)
+                .displayName(savedUser.getUsername())
                 .build();
 
         userProfileRepository.save(userProfile);
