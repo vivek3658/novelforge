@@ -5,11 +5,14 @@ import com.vivek.novelforge.identity.repository.UserProfileRepository;
 import com.vivek.novelforge.identity.repository.UserRepository;
 import com.vivek.novelforge.identity.service.UserProfileService;
 import com.vivek.novelforge.identity.type.RoleType;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
+@RequiredArgsConstructor
 public class UserProfileServiceImpl implements UserProfileService {
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
     @Override
     public void becomeAuthor(String username) {
 

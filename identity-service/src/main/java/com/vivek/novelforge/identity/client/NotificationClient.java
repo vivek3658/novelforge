@@ -10,7 +10,7 @@ public class NotificationClient {
     private final WebClient webClient;
     public void sendOtp(String email,String otp){
         webClient.post()
-                .uri("http://localhost:8082/api/v1/notification/email")
+                .uri("http://localhost:8082/email")
                 .bodyValue(new EmailRequest(email,otp))
                 .retrieve()
                 .bodyToMono(String.class)
