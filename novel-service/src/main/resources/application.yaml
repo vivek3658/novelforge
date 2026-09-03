@@ -18,8 +18,7 @@ spring:
       mode: always
 server:
   port: 8083
-#jwt:
-#  secretKey: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+
 novelforge:
   security:
     jwt:
