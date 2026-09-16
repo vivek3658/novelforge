@@ -1,6 +1,9 @@
 package com.vivek.novelforge.identity.security;
 
 
+import com.vivek.novelforge.security.jwt.JwtAuthFilter;
+import com.vivek.novelforge.security.jwt.JwtProperties;
+import com.vivek.novelforge.security.jwt.JwtTokenValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -18,9 +21,24 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity
 public class WebSecurityConfig {
-    private final JwtAuthFilter jwtAuthFilter;
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
+    public JwtProperties jwtProperties() {
+        return new JwtProperties();
+    }
+    @Bean
+    public JwtTokenValidator jwtTokenValidator(
+            JwtProperties jwtProperties
+    ) {
+        return new JwtTokenValidator(jwtProperties);
+    }
+    @Bean
+    public JwtAuthFilter jwtAuthFilter(
+            JwtTokenValidator jwtTokenValidator
+    ) {
+        return new JwtAuthFilter(jwtTokenValidator);
+    }
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity,JwtAuthFilter jwtAuthFilter) throws Exception{
         httpSecurity
                 .csrf(csrfConfig -> csrfConfig.disable())
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
