@@ -1,6 +1,6 @@
 // API Configuration and Client
-const DEFAULT_GATEWAY_URL = 'http://localhost:8080/api/v1/identity';
-const DIRECT_IDENTITY_URL = 'http://localhost:8081/api/v1/identity';
+const DEFAULT_GATEWAY_URL = 'https://api-gateway-g43i.onrender.com/api/v1/identity';
+const DIRECT_IDENTITY_URL = 'https://identity-service-0jgj.onrender.com/api/v1/identity';
 
 export const getBaseUrl = () => {
   return (
