@@ -1,5 +1,6 @@
 package com.vivek.novelforge.identity.entity;
 
+import com.vivek.novelforge.common.entity.BaseEntity;
 import com.vivek.novelforge.identity.type.ProfileVisibility;
 import jakarta.persistence.*;
 import lombok.*;

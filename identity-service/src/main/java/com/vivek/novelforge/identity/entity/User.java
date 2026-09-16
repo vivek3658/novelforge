@@ -1,5 +1,6 @@
 package com.vivek.novelforge.identity.entity;
 
+import com.vivek.novelforge.common.entity.BaseEntity;
 import com.vivek.novelforge.identity.security.RolePermissions;
 import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.type.RoleType;
