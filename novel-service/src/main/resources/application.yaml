@@ -18,8 +18,7 @@ spring:
       mode: always
 server:
   port: 8083
-#jwt:
-#  secretKey: REDACTED_JWT_SECRET_KEY
+
 novelforge:
   security:
     jwt:
