@@ -17,9 +17,10 @@ import java.util.UUID;
 @Builder
 public class Chapter {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     private String chapterTitle;
     private Long chapterNo;
-    private List<ChapterContent> chapterContents;
+    // TODO: Map ChapterContent entity relationship (@OneToMany or @ElementCollection)
+    // private List<ChapterContent> chapterContents;
 }
