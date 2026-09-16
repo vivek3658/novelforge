@@ -1,0 +1,240 @@
+version: '3.8'
+
+networks:
+  novelforge-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
+services:
+  # -------------------------------------------------------------
+  # Infrastructure Services
+  # -------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: novelforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-365891}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+    networks:
+      - novelforge-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: novelforge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - novelforge-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------
+  # Service Discovery
+  # -------------------------------------------------------------
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    image: novelforge/eureka-server:latest
+    container_name: eureka-server
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # API Gateway
+  # -------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    image: novelforge/api-gateway:latest
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      - eureka-server
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # Identity Service
+  # -------------------------------------------------------------
+  identity-service:
+    build:
+      context: .
+      dockerfile: ./identity-service/Dockerfile
+    image: novelforge/identity-service:latest
+    container_name: identity-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/userDB
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-365891}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # Notification Service
+  # -------------------------------------------------------------
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    image: novelforge/notification-service:latest
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      - eureka-server
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # Novel Service
+  # -------------------------------------------------------------
+  novel-service:
+    build:
+      context: .
+      dockerfile: ./novel-service/Dockerfile
+    image: novelforge/novel-service:latest
+    container_name: novel-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novelDB
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-365891}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # Engagement Service
+  # -------------------------------------------------------------
+  engagement-service:
+    build:
+      context: ./engagement-service
+      dockerfile: Dockerfile
+    image: novelforge/engagement-service:latest
+    container_name: engagement-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SERVER_PORT: 8084
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      - eureka-server
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # AI Service
+  # -------------------------------------------------------------
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    image: novelforge/ai-service:latest
+    container_name: ai-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SERVER_PORT: 8085
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      - eureka-server
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # Analytics Service
+  # -------------------------------------------------------------
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    image: novelforge/analytics-service:latest
+    container_name: analytics-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SERVER_PORT: 8086
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      - eureka-server
+    networks:
+      - novelforge-network
+
+  # -------------------------------------------------------------
+  # Frontend Client
+  # -------------------------------------------------------------
+  novelforge-client:
+    build:
+      context: ./novelforge-client
+      dockerfile: Dockerfile
+    image: novelforge/novelforge-client:latest
+    container_name: novelforge-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - novelforge-network
