@@ -1,0 +1,26 @@
+# Git and IDE
+.git
+.gitignore
+.gitattributes
+.idea
+*.iml
+.vscode
+
+# Build outputs
+target/
+**/target/
+build/
+**/dist/
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Logs and temp
+*.log
+**/logs/
+tmp/
+*.tmp
+
+# Markdown documentation not needed for build
+*.md

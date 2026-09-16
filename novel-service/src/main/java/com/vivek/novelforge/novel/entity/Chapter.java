@@ -1,27 +1,25 @@
 package com.vivek.novelforge.novel.entity;
 
-import com.vivek.novelforge.common.entity.BaseEntity;
-import com.vivek.novelforge.novel.types.CategoryType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
 
+import java.util.List;
+import java.util.UUID;
+
 @Entity
-@Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 @Builder
-public class Novel extends BaseEntity{
+public class Chapter {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String title;
-
-    private String synopsis;
-
-    private CategoryType categoryType;
+    private UUID id;
+    private String chapterTitle;
+    private Long chapterNo;
+    private List<ChapterContent> chapterContents;
 }

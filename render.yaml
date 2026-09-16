@@ -1,0 +1,153 @@
+# ==============================================================================
+# NovelForge Render Blueprint Specification (Infrastructure as Code)
+# Docs: https://render.com/docs/blueprint-spec
+# ==============================================================================
+
+databases:
+  # -------------------------------------------------------------
+  # Managed PostgreSQL Database (Free Tier)
+  # -------------------------------------------------------------
+  - name: novelforge-postgres
+    databaseName: novelforge
+    user: novelforge_user
+    plan: free
+    region: oregon
+
+services:
+  # -------------------------------------------------------------
+  # Managed Key-Value Store / Redis (Free Tier)
+  # -------------------------------------------------------------
+  - type: keyvalue
+    name: novelforge-redis
+    plan: free
+    region: oregon
+    ipAllowList: [] # Accessible only via Render internal network
+
+  # -------------------------------------------------------------
+  # Service Discovery: Eureka Server
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-eureka-server
+    runtime: docker
+    dockerfilePath: ./eureka-server/Dockerfile
+    dockerContext: ./eureka-server
+    plan: free
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: JAVA_OPTS
+        value: "-Xmx350m -Xms200m"
+
+  # -------------------------------------------------------------
+  # API Gateway
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-api-gateway
+    runtime: docker
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: ./api-gateway
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: JAVA_OPTS
+        value: "-Xmx350m -Xms200m"
+      - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        value: http://novelforge-eureka-server:8761/eureka/
+      - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+        value: "true"
+
+  # -------------------------------------------------------------
+  # Identity Service (Auth, Users, JWT, Sessions)
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-identity-service
+    runtime: docker
+    dockerfilePath: ./identity-service/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: JAVA_OPTS
+        value: "-Xmx350m -Xms200m"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: novelforge-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: novelforge-redis
+          type: keyvalue
+          property: connectionString
+      - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        value: http://novelforge-eureka-server:8761/eureka/
+      - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+        value: "true"
+      - key: JWT_SECRETKEY
+        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+
+  # -------------------------------------------------------------
+  # Novel Service (Novel Metadata, Chapters, Content)
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-novel-service
+    runtime: docker
+    dockerfilePath: ./novel-service/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: JAVA_OPTS
+        value: "-Xmx350m -Xms200m"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: novelforge-postgres
+          property: connectionString
+      - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        value: http://novelforge-eureka-server:8761/eureka/
+      - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+        value: "true"
+      - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
+        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+
+  # -------------------------------------------------------------
+  # Notification Service (Email, OTPs)
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-notification-service
+    runtime: docker
+    dockerfilePath: ./notification-service/Dockerfile
+    dockerContext: ./notification-service
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: JAVA_OPTS
+        value: "-Xmx350m -Xms200m"
+      - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        value: http://novelforge-eureka-server:8761/eureka/
+      - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+        value: "true"
+      - key: SPRING_MAIL_USERNAME
+        sync: false # Set securely in Render dashboard
+      - key: SPRING_MAIL_PASSWORD
+        sync: false # Set securely in Render dashboard
+
+  # -------------------------------------------------------------
+  # Frontend Client (React 19 + Vite + Nginx)
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-client
+    runtime: docker
+    dockerfilePath: ./novelforge-client/Dockerfile
+    dockerContext: ./novelforge-client
+    plan: free
+    region: oregon
+    healthCheckPath: /
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: novelforge-api-gateway
+          type: web
+          property: host
