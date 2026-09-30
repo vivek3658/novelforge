@@ -2,10 +2,7 @@ package com.vivek.novelforge.novel.entity;
 
 import com.vivek.novelforge.common.entity.BaseEntity;
 import com.vivek.novelforge.novel.types.CategoryType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -23,5 +20,7 @@ public class Novel extends BaseEntity{
 
     private String synopsis;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private CategoryType categoryType;
 }
