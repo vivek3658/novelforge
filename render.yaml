@@ -97,6 +97,7 @@ services:
     dockerContext: .
     plan: free
     region: oregon
+    healthCheckPath: /actuator/health
     envVars:
       - key: JAVA_OPTS
         value: "-Xmx350m -Xms200m"

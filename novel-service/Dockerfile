@@ -21,18 +21,13 @@ WORKDIR /app
 
 # Run as non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
 COPY --from=builder /app/novel-service/target/*.jar app.jar
 
-ENV SERVER_PORT=8083
+USER spring:spring
+
 EXPOSE 8083
 
-# Limit JVM memory for cloud/Render free tier (512MB RAM)
-ENV JAVA_OPTS="-Xmx350m -Xms200m"
+ENV JAVA_OPTS="-Xmx300m -Xms128m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
 
-ENTRYPOINT ["sh", "-c", "\
-if [ -n \"$DATABASE_URL\" ]; then \
-  export SPRING_DATASOURCE_URL=$(echo \"$DATABASE_URL\" | sed -e 's/^postgres:\\/\\//jdbc:postgresql:\\/\\//' -e 's/^postgresql:\\/\\//jdbc:postgresql:\\/\\//'); \
-fi; \
-exec java $JAVA_OPTS -Dserver.port=${PORT:-8083} -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
