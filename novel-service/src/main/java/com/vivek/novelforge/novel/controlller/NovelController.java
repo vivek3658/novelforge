@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/novels")
+@RequestMapping({"/novels", ""})
 @RequiredArgsConstructor
 public class NovelController {
     private final NovelService novelService;
