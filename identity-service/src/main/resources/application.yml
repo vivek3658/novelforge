@@ -6,6 +6,7 @@ spring:
     username: postgres
     password: REDACTED_DB_PASSWORD
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     defer-datasource-initialization: true
@@ -13,10 +14,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   data:
     redis:
-      host: localhost
-      port: 6379
+      url: ${REDIS_URL:${SPRING_DATA_REDIS_URL:}}
+      host: ${REDIS_HOST:${SPRING_DATA_REDIS_HOST:${host:localhost}}}
+      port: ${REDIS_PORT:${SPRING_DATA_REDIS_PORT:${port:6379}}}
+      username: ${REDIS_USERNAME:${SPRING_DATA_REDIS_USERNAME:default}}
+      password: ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:${passwd:}}}
       timeout: 60000ms
       lettuce:
         pool:
@@ -40,3 +45,7 @@ eureka:
     hostname: localhost
     prefer-ip-address: false
     instance-id: ${spring.application.name}:${server.port}
+
+notification:
+  service:
+    url: ${NOTIFICATION_SERVICE_URL:https://notification-service-ng1j.onrender.com}

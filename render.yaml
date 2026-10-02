@@ -86,6 +86,8 @@ services:
         value: "true"
       - key: JWT_SECRETKEY
         value: REDACTED_JWT_SECRET_KEY
+      - key: NOTIFICATION_SERVICE_URL
+        value: https://notification-service-ng1j.onrender.com
 
   # -------------------------------------------------------------
   # Novel Service (Novel Metadata, Chapters, Content)
