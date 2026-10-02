@@ -1,7 +1,8 @@
 package com.vivek.novelforge.novel.service.impl;
 
 import com.vivek.novelforge.novel.repository.NovelRepository;
-import jakarta.transaction.Transactional;
+import com.vivek.novelforge.novel.service.NovelCleanupService;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -10,9 +11,10 @@ import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
-public class NovelCleanupServiceImpl {
+public class NovelCleanupServiceImpl implements NovelCleanupService {
     private final NovelRepository novelRepository;
 
+    @Override
     @Transactional
     public void permanentlyDeleteExpiredNovels() {
 
