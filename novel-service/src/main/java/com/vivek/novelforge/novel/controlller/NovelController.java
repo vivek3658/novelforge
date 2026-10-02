@@ -18,11 +18,11 @@ public class NovelController {
     public ResponseEntity<NovelResponseDto> createNovel(@Valid @RequestBody NovelRequestDto novelRequestDto){
         return ResponseEntity.status(201).body(novelService.createNovel(novelRequestDto));
     }
-    @PutMapping("/novels/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<NovelResponseDto> updateNovel(@PathVariable Long id,@Valid @RequestBody NovelRequestDto novelRequestDto){
         return ResponseEntity.status(200).body(novelService.updateNovel(id,novelRequestDto));
     }
-    @GetMapping("/novels/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<NovelResponseDto> getNovel(@PathVariable Long id){
         return ResponseEntity.status(200).body(novelService.getNovel(id));
     }
