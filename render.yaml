@@ -56,6 +56,12 @@ services:
         value: http://novelforge-eureka-server:8761/eureka/
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
+      - key: IDENTITY_SERVICE_URL
+        value: https://identity-service-0jgj.onrender.com
+      - key: NOTIFICATION_SERVICE_URL
+        value: https://notification-service-ng1j.onrender.com
+      - key: NOVEL_SERVICE_URL
+        value: https://novel-service.onrender.com
 
   # -------------------------------------------------------------
   # Identity Service (Auth, Users, JWT, Sessions)
