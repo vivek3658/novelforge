@@ -6,6 +6,7 @@ spring:
     username: postgres
     password: 365891
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     defer-datasource-initialization: true
@@ -13,6 +14,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   sql:
     init:
       mode: always
@@ -32,3 +34,12 @@ eureka:
     hostname: localhost
     prefer-ip-address: false
     instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
