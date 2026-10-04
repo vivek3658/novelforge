@@ -27,7 +27,12 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Successfully sent OTP email to {}", email);
         } catch (Exception ex) {
-            log.error("Failed to send OTP email to {}: {}. OTP [{}] is logged for verification.", email, ex.getMessage(), otp);
+            log.error(
+                    "Failed to send OTP email to {}",
+                    email,
+                    ex
+            );
+            throw new RuntimeException("Failed to send OTP email", ex);
         }
     }
 }
