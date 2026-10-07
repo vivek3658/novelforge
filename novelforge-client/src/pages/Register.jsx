@@ -22,7 +22,7 @@ const Register = () => {
 
   const otpInputsRef = useRef([]);
   const { register } = useAuth();
-  const { success, error, info } = useToast();
+  const { success, error } = useToast();
   const navigate = useNavigate();
 
   // Resend OTP Countdown Timer
