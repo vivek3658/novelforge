@@ -1,316 +1,578 @@
-/* Profile & Me Page Styles */
+/* ==========================================================================
+   NovelForge Professional Profile & Studio Stylesheet
+   Modern, Enterprise-Grade UI for Digital Web Novels & Publishing
+   ========================================================================== */
 
-.profile-page-container {
-  padding: 3rem 1.5rem;
-  min-height: calc(100vh - 70px - 280px);
+.profile-page-wrapper {
+  padding: 2rem 1.5rem 5rem 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.profile-grid {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 2rem;
-  align-items: start;
-}
-
-/* User Card */
-.profile-card {
+/* --------------------------------------------------------------------------
+   1. Profile Hero Banner & Header
+   -------------------------------------------------------------------------- */
+.profile-hero {
+  position: relative;
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: 2rem;
-  transition: all 0.3s ease;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 2rem;
 }
 
-.profile-avatar-wrapper {
+.profile-hero-cover {
+  height: 140px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.25) 50%, rgba(139, 92, 246, 0.2) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-hero-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.15), transparent 60%);
+}
+
+.profile-hero-body {
+  padding: 0 2rem 1.75rem 2rem;
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  margin-bottom: 1.5rem;
+  gap: 1.25rem;
 }
 
-.profile-avatar-large {
-  width: 80px;
-  height: 80px;
+.profile-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: -50px;
+}
+
+.profile-avatar-cluster {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+}
+
+.profile-avatar-pro {
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), #059669);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  box-shadow: 0 4px 14px var(--primary-glow);
-  margin-bottom: 1rem;
+  border: 4px solid var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  flex-shrink: 0;
+  position: relative;
 }
 
-.profile-name {
-  font-size: 1.35rem;
-  font-weight: 800;
+.profile-status-indicator {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #10b981;
+  border: 2px solid var(--bg-surface);
+}
+
+.profile-identity-title {
   margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
   color: var(--text-primary);
+  line-height: 1.2;
 }
 
-.profile-email {
-  font-size: 0.9rem;
+.profile-identity-handle {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.92rem;
   color: var(--text-secondary);
-  margin-top: 0.25rem;
 }
 
-.profile-badges {
+.profile-badges-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
-  justify-content: center;
-  margin-top: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
 }
 
-.badge {
+.pro-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 20px;
-  font-size: 0.78rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.76rem;
   font-weight: 700;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-.badge-role {
+.pro-badge-creator {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.25));
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.pro-badge-reader {
   background: var(--primary-light);
   color: var(--primary);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.badge-status {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.badge-verified {
-  background: var(--success-light);
-  color: var(--success);
+.pro-badge-verified {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.profile-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  padding-top: 1.5rem;
+.pro-badge-status {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.25);
 }
 
-.profile-menu-btn {
+.profile-hero-actions {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+/* Hero Metric Stats Bar */
+.profile-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.hero-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-stat-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.hero-stat-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+/* --------------------------------------------------------------------------
+   2. Modern Horizontal Tabs Navigation
+   -------------------------------------------------------------------------- */
+.profile-tabs-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.profile-tab-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem;
   background: transparent;
   border: none;
-  color: var(--text-primary);
-  font-size: 0.92rem;
+  border-bottom: 2.5px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  text-align: left;
   transition: all 0.2s ease;
+  position: relative;
 }
 
-.profile-menu-btn:hover,
-.profile-menu-btn.active {
-  background: var(--hover-bg);
+.profile-tab-item:hover {
+  color: var(--text-primary);
+}
+
+.profile-tab-item.active {
   color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 700;
 }
 
-.profile-menu-btn svg {
+.profile-tab-item svg {
   width: 18px;
   height: 18px;
 }
 
-.profile-menu-btn.logout {
-  color: var(--danger);
+.tab-counter-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-weight: 700;
 }
 
-.profile-menu-btn.logout:hover {
-  background: var(--danger-light);
-  color: var(--danger-hover);
+.profile-tab-item.active .tab-counter-badge {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
-/* Profile Main Content */
-.profile-content {
+/* --------------------------------------------------------------------------
+   3. Content Cards & Layout
+   -------------------------------------------------------------------------- */
+.profile-tab-view {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
 
-.content-card {
+.pro-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: 2rem;
-  transition: all 0.3s ease;
+  padding: 1.75rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
 }
 
-.card-title-row {
+.pro-card-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
-.content-card-title {
-  font-size: 1.25rem;
+.pro-card-title {
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-primary);
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.content-card-title svg {
-  width: 22px;
-  height: 22px;
-  color: var(--primary);
+.pro-card-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0.25rem 0 0 0;
 }
 
-.info-grid {
+/* Clean Key-Value Info Grid */
+.pro-info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.25rem;
 }
 
-.info-box {
+.pro-info-box {
   background: var(--bg-surface-elevated);
-  padding: 1.1rem;
-  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
 }
 
-.info-label {
-  font-size: 0.8rem;
+.pro-info-label {
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-muted);
   letter-spacing: 0.5px;
+  color: var(--text-muted);
   margin-bottom: 0.35rem;
 }
 
-.info-value {
-  font-size: 1.05rem;
+.pro-info-value {
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
   word-break: break-all;
 }
 
-/* Refresh Token Test Box */
-.token-test-box {
+/* --------------------------------------------------------------------------
+   4. Creator Studio Section
+   -------------------------------------------------------------------------- */
+.studio-metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.studio-metric-card {
   background: var(--bg-surface-elevated);
-  border: 1px dashed var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 1.5rem;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.studio-metric-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.studio-metric-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.studio-metric-number {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.studio-metric-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Studio Publications Grid */
+.studio-novels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.studio-novel-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.studio-novel-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.studio-novel-header {
+  height: 120px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  color: #ffffff;
+}
+
+.studio-novel-content {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.studio-novel-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 0.4rem 0;
+}
+
+.studio-novel-synopsis {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0 0 1rem 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.studio-novel-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* --------------------------------------------------------------------------
+   5. Security & Account Settings (Professional Grade)
+   -------------------------------------------------------------------------- */
+.security-settings-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.token-test-desc {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.token-action-row {
+.security-setting-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.action-btn-emerald {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.25rem;
-  background: var(--primary);
-  color: #ffffff;
-  border: none;
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
-}
-
-.action-btn-emerald:hover:not(:disabled) {
-  background: var(--primary-hover);
-  transform: translateY(-1px);
-}
-
-.action-btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.25rem;
-  background: var(--bg-surface);
+  justify-content: space-between;
+  padding: 1.15rem 1.25rem;
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
-  color: var(--text-primary);
   border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 0.92rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.security-setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.security-setting-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.security-setting-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.security-session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Collapsible Developer Section */
+.dev-tools-accordion {
+  margin-top: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  overflow: hidden;
+}
+
+.dev-tools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1.25rem;
   cursor: pointer;
+  user-select: none;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
 }
 
-.action-btn-secondary:hover:not(:disabled) {
-  border-color: var(--primary);
-  color: var(--primary);
+.dev-tools-header:hover {
+  color: var(--text-primary);
+  background: var(--hover-bg);
 }
 
-.code-output-block {
+.dev-tools-body {
+  padding: 1.25rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.masked-token-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+}
+
+.masked-token-text {
+  flex: 1;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.85rem;
   color: var(--text-primary);
-  max-height: 200px;
-  overflow-y: auto;
-  white-space: pre-wrap;
   word-break: break-all;
-}
-
-/* API Config Section */
-.api-config-row {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.api-input {
-  flex: 1;
-  min-width: 250px;
-  padding: 0.65rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1.5px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Responsive adjustments */
-@media (max-width: 868px) {
-  .profile-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 768px) {
+  .profile-page-wrapper {
+    padding: 1.5rem 1rem 4rem 1rem;
+  }
+
+  .profile-hero-body {
+    padding: 0 1.25rem 1.5rem 1.25rem;
+  }
+
+  .profile-hero-top {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: -40px;
+  }
+
+  .profile-hero-actions {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .profile-hero-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .security-setting-item {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
