@@ -69,8 +69,14 @@ export const resolveEndpoint = (endpoint) => {
     return endpoint;
   }
 
-  // Map auth and registration paths to identity service gateway route
-  if (endpoint.startsWith('/auth/') || endpoint.startsWith('/register')) {
+  // Map auth, registration, and user-profile paths to identity service gateway route
+  if (
+    endpoint.startsWith('/auth/') ||
+    endpoint.startsWith('/register') ||
+    endpoint.startsWith('/user-profile') ||
+    endpoint.startsWith('/profile') ||
+    endpoint.startsWith('/account')
+  ) {
     return `/api/v1/identity${endpoint}`;
   }
 
@@ -145,8 +151,8 @@ export async function apiRequest(endpoint, options = {}) {
             _isRetry: true,
           });
         }
-      } catch (refreshErr) {
-        localStorage.removeItem('novelforge_access_token');
+      } catch {
+        // Auto-refresh failed or refresh cookie missing; allow caller to handle 401
       }
     }
 
@@ -267,6 +273,24 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email, newPassword }),
     });
+  },
+
+  // Creator / Author Conversion Flow
+  becomeAuthor: async () => {
+    try {
+      return await apiRequest('/user-profile/become-author', {
+        method: 'POST',
+      });
+    } catch (err) {
+      // In case alternative creator endpoint is in use
+      try {
+        return await apiRequest('/profile/creator', {
+          method: 'POST',
+        });
+      } catch {
+        throw err;
+      }
+    }
   },
 };
 

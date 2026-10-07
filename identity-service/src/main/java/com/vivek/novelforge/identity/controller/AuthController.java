@@ -23,6 +23,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final com.vivek.novelforge.identity.repository.UserRepository userRepository;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequestDto){
@@ -56,8 +57,28 @@ public class AuthController {
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ResponseEntity<UserMeResponseDto> me(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal Object principal,
+            java.security.Principal securityPrincipal
     ) {
+        String resolvedUsername = null;
+        if (principal instanceof com.vivek.novelforge.security.authentication.AuthenticatedUser authUser) {
+            resolvedUsername = authUser.username();
+        } else if (principal instanceof User u) {
+            resolvedUsername = u.getUsername();
+        } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails ud) {
+            resolvedUsername = ud.getUsername();
+        } else if (securityPrincipal != null) {
+            resolvedUsername = securityPrincipal.getName();
+        }
+
+        if (resolvedUsername == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+
+        final String username = resolvedUsername;
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
         return ResponseEntity.ok(
                 UserMeResponseDto.builder()
                         .id(user.getId())

@@ -19,9 +19,20 @@ public class UserProfileController {
     @PreAuthorize("hasAuthority('BECOME_AUTHOR')")
     @PostMapping("/become-author")
     public ResponseEntity<Void> becomeAuthor(
-            @AuthenticationPrincipal UserDetails userDetails
+            @AuthenticationPrincipal Object principal,
+            java.security.Principal securityPrincipal
     ) {
-        userProfileService.becomeAuthor(userDetails.getUsername());
+        String username = null;
+        if (principal instanceof com.vivek.novelforge.security.authentication.AuthenticatedUser authUser) {
+            username = authUser.username();
+        } else if (principal instanceof UserDetails ud) {
+            username = ud.getUsername();
+        } else if (securityPrincipal != null) {
+            username = securityPrincipal.getName();
+        }
+        if (username != null) {
+            userProfileService.becomeAuthor(username);
+        }
         return ResponseEntity.ok().build();
     }
 }

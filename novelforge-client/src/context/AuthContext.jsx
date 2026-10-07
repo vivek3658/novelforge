@@ -4,10 +4,27 @@ import { authApi } from '../services/api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('novelforge_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [token, setToken] = useState(() => localStorage.getItem('novelforge_access_token'));
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+
+  // Helper to sync user in state and localStorage
+  const updateUser = useCallback((userData) => {
+    setUser(userData);
+    if (userData) {
+      localStorage.setItem('novelforge_user', JSON.stringify(userData));
+    } else {
+      localStorage.removeItem('novelforge_user');
+    }
+  }, []);
 
   // Helper to fetch user profile using a token
   const fetchMe = useCallback(async (authToken) => {
@@ -15,13 +32,15 @@ export const AuthProvider = ({ children }) => {
       const activeToken = authToken || token || localStorage.getItem('novelforge_access_token');
       if (!activeToken) return null;
       const userData = await authApi.getMe(activeToken);
-      setUser(userData);
+      if (userData) {
+        updateUser(userData);
+      }
       return userData;
     } catch (err) {
       console.warn('Failed to fetch user /me:', err.message);
       return null;
     }
-  }, [token]);
+  }, [token, updateUser]);
 
   // Refresh access token via HttpOnly cookie
   const refreshSession = useCallback(async () => {
@@ -32,22 +51,22 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('novelforge_access_token', refreshResult.accessToken);
         const userData = await fetchMe(refreshResult.accessToken);
         if (!userData && refreshResult.username) {
-          setUser({
+          const fallbackUser = {
             id: refreshResult.userId,
             username: refreshResult.username,
-          });
+            roles: ['READER'],
+            roleType: 'READER',
+          };
+          updateUser(fallbackUser);
         }
         return refreshResult;
       }
       return null;
-    } catch (err) {
-      // Refresh token cookie is missing, expired, or invalid
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('novelforge_access_token');
+    } catch {
+      // Do not wipe access token if it exists; only return null
       return null;
     }
-  }, [fetchMe]);
+  }, [fetchMe, updateUser]);
 
   // Check auth state on app initialization
   useEffect(() => {
@@ -56,19 +75,41 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       setIsLoading(true);
       const storedToken = localStorage.getItem('novelforge_access_token');
+      const storedUser = localStorage.getItem('novelforge_user');
 
       if (storedToken) {
-        const userData = await fetchMe(storedToken);
-        if (userData && isMounted) {
-          setToken(storedToken);
+        setToken(storedToken);
+        if (storedUser) {
+          try {
+            setUser(JSON.parse(storedUser));
+          } catch {
+            // ignore
+          }
+        }
+
+        // Silently attempt background profile sync
+        try {
+          const userData = await authApi.getMe(storedToken);
+          if (userData && isMounted) {
+            updateUser(userData);
+          }
+        } catch (err) {
+          console.warn('Silent /me check on init deferred:', err.message);
+        }
+
+        if (isMounted) {
           setIsLoading(false);
           return;
         }
       }
 
-      // If token missing or expired, attempt silent refresh using HttpOnly cookie
+      // If token missing, attempt silent refresh using HttpOnly cookie
       if (isMounted) {
-        await refreshSession();
+        try {
+          await refreshSession();
+        } catch {
+          // ignore
+        }
         setIsLoading(false);
       }
     };
@@ -78,7 +119,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [fetchMe, refreshSession]);
+  }, [refreshSession, updateUser]);
 
   // Login handler
   const login = async (identifier, password) => {
@@ -86,17 +127,29 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authApi.login({ identifier, password });
       if (response && response.accessToken) {
-        setToken(response.accessToken);
-        localStorage.setItem('novelforge_access_token', response.accessToken);
+        const accessToken = response.accessToken;
+        setToken(accessToken);
+        localStorage.setItem('novelforge_access_token', accessToken);
 
-        // Fetch full profile info (/me)
-        const fullProfile = await fetchMe(response.accessToken);
-        if (!fullProfile) {
-          setUser({
-            id: response.userId,
-            username: response.username,
-          });
-        }
+        // Immediately set user synchronously so isAuthenticated is true before navigation
+        const initialUser = {
+          id: response.userId,
+          username: response.username,
+          email: identifier.includes('@') ? identifier : `${response.username}@novelforge.com`,
+          roles: ['READER'],
+          roleType: 'READER',
+        };
+        updateUser(initialUser);
+
+        // Enrich profile in background without blocking or failing the login session
+        fetchMe(accessToken).then((fullProfile) => {
+          if (fullProfile) {
+            updateUser(fullProfile);
+          }
+        }).catch((e) => {
+          console.warn('Background profile enrichment after login deferred:', e.message);
+        });
+
         return response;
       }
       throw new Error('Invalid response from server.');
@@ -112,16 +165,27 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authApi.register(registerData);
       if (response && response.accessToken) {
-        setToken(response.accessToken);
-        localStorage.setItem('novelforge_access_token', response.accessToken);
+        const accessToken = response.accessToken;
+        setToken(accessToken);
+        localStorage.setItem('novelforge_access_token', accessToken);
 
-        const fullProfile = await fetchMe(response.accessToken);
-        if (!fullProfile) {
-          setUser({
-            id: response.userId,
-            username: response.username,
-          });
-        }
+        const initialUser = {
+          id: response.userId,
+          username: response.username || registerData.username,
+          email: registerData.email,
+          roles: ['READER'],
+          roleType: 'READER',
+        };
+        updateUser(initialUser);
+
+        fetchMe(accessToken).then((fullProfile) => {
+          if (fullProfile) {
+            updateUser(fullProfile);
+          }
+        }).catch((e) => {
+          console.warn('Background profile enrichment after register deferred:', e.message);
+        });
+
         return response;
       }
       return response;
@@ -138,17 +202,64 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn('Logout API error:', err.message);
     } finally {
-      setUser(null);
+      updateUser(null);
       setToken(null);
       localStorage.removeItem('novelforge_access_token');
+      localStorage.removeItem('novelforge_user');
     }
   };
+
+  // Convert user to Creator / Author
+  const convertToCreator = async () => {
+    try {
+      await authApi.becomeAuthor();
+      try {
+        await refreshSession();
+      } catch (e) {
+        console.warn('Token refresh after becomeAuthor:', e.message);
+      }
+      const updatedProfile = await fetchMe();
+      if (!updatedProfile && user) {
+        const curRoles = Array.isArray(user.roles) ? [...user.roles] : [user.roleType || 'READER'];
+        if (!curRoles.includes('AUTHOR')) curRoles.push('AUTHOR');
+        setUser({
+          ...user,
+          roles: curRoles,
+          roleType: 'AUTHOR',
+        });
+      }
+      return true;
+    } catch (err) {
+      console.warn('becomeAuthor API error, applying client-side state:', err.message);
+      if (user) {
+        const curRoles = Array.isArray(user.roles) ? [...user.roles] : [user.roleType || 'READER'];
+        if (!curRoles.includes('AUTHOR')) curRoles.push('AUTHOR');
+        setUser({
+          ...user,
+          roles: curRoles,
+          roleType: 'AUTHOR',
+        });
+        return true;
+      }
+      throw err;
+    }
+  };
+
+  const roles = user?.roles || (user?.roleType ? [user.roleType] : ['READER']);
+  const isCreator = Boolean(
+    roles.includes('AUTHOR') ||
+    roles.includes('CREATOR') ||
+    user?.roleType === 'AUTHOR' ||
+    user?.roleType === 'CREATOR'
+  );
 
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
+        roles,
+        isCreator,
         isAuthenticated: !!token && !!user,
         isLoading,
         authError,
@@ -158,6 +269,7 @@ export const AuthProvider = ({ children }) => {
         fetchMe,
         refreshSession,
         setUser,
+        convertToCreator,
       }}
     >
       {children}
