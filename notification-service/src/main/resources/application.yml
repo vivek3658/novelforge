@@ -1,22 +1,16 @@
 server:
   port: 8082
+
 spring:
   application:
     name: notification-service
-  mail:
-    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
-    port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:REDACTED_EMAIL@example.com}
-    password: ${SPRING_MAIL_PASSWORD:REDACTED_APP_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+
+brevo:
+  api:
+    key: ${BREVO_API_KEY}
+  sender:
+    email: ${BREVO_SENDER_EMAIL}
+
 eureka:
   client:
     service-url:
@@ -28,9 +22,6 @@ eureka:
     instance-id: ${spring.application.name}:${server.port}
 
 management:
-  health:
-    mail:
-      enabled: false
   endpoints:
     web:
       exposure:
