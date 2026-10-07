@@ -17,7 +17,8 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const redirectPath = location.state?.from?.pathname || '/profile';
+  const fromPath = location.state?.from?.pathname;
+  const redirectPath = fromPath && fromPath !== '/login' ? fromPath : '/profile';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
