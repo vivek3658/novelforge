@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/novelDB
     username: postgres
-    password: REDACTED_DB_PASSWORD
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:}}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -24,7 +24,7 @@ server:
 novelforge:
   security:
     jwt:
-      secret-key: REDACTED_JWT_SECRET_KEY
+      secret-key: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:${JWT_SECRET_KEY:}}
 eureka:
   client:
     service-url:
