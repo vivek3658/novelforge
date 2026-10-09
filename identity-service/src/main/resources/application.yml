@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/userDB
     username: postgres
-    password: REDACTED_DB_PASSWORD
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:}}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -35,7 +35,7 @@ spring:
 server:
   port: 8081
 jwt:
-  secretKey: REDACTED_JWT_SECRET_KEY
+  secretKey: ${JWT_SECRET_KEY:${JWT_SECRETKEY:}}
 eureka:
   client:
     service-url:

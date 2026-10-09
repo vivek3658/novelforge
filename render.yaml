@@ -91,7 +91,7 @@ services:
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
       - key: JWT_SECRETKEY
-        value: REDACTED_JWT_SECRET_KEY
+        sync: false # Set securely in Render dashboard
       - key: NOTIFICATION_SERVICE_URL
         value: https://notification-service-ng1j.onrender.com
 
@@ -118,7 +118,7 @@ services:
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
       - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
-        value: REDACTED_JWT_SECRET_KEY
+        sync: false # Set securely in Render dashboard
 
   # -------------------------------------------------------------
   # Notification Service (Email, OTPs)
