@@ -13,10 +13,15 @@ public final class RolePermissions {
 
             case USER -> EnumSet.of(
                     PermissionType.NOVEL_READ,
+<<<<<<< Updated upstream
                     PermissionType.CHAPTER_READ,
                     PermissionType.BECOME_CREATOR
             );
 
+=======
+                    PermissionType.CHAPTER_READ
+            );
+>>>>>>> Stashed changes
             case MODERATOR -> EnumSet.of(
                     PermissionType.NOVEL_READ,
                     PermissionType.NOVEL_UPDATE,

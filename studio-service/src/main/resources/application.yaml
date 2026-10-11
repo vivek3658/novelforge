@@ -1,6 +1,7 @@
 spring:
   application:
     name: studio-service
+<<<<<<< Updated upstream
   datasource:
     url: jdbc:postgresql://localhost:5432/userDB
     username: postgres
@@ -37,3 +38,5 @@ server:
 jwt:
   secretKey: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
 
+=======
+>>>>>>> Stashed changes

@@ -24,6 +24,10 @@ public class Studio extends BaseEntity {
     @Column(unique = true,nullable = false)
     @Size(min = 3,max = 50)
     private String studioHandle;
+    @Size(max = 200)
+    private String profileImageName;
+    @Size(max = 200)
+    private String bannerImageName;
     @Size(max = 500)
     private String description;
     @Enumerated(EnumType.STRING)

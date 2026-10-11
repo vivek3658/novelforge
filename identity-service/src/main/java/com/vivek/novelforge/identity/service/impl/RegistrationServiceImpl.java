@@ -66,7 +66,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         user.setUsername(registerRequestDto.getUsername());
         user.setPasswordHash(passwordEncoder.encode(registerRequestDto.getPassword()));
         user.setEmailVerified(true);
-        user.setRoles(new ArrayList<>(List.of(RoleType.READER)));
+        user.setRoles(new ArrayList<>(List.of(RoleType.USER)));
         user.setAccountStatus(AccountStatus.ACTIVE);
 
         User savedUser = userRepository.save(user);
