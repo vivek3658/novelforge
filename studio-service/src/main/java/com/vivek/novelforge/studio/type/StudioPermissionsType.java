@@ -1,0 +1,30 @@
+package com.vivek.novelforge.studio.type;
+
+public enum StudioPermissionsType {
+    STUDIO_UPDATE,
+    STUDIO_DELETE,
+
+    CREATE_NOVEL,
+    UPDATE_NOVEL,
+    DELETE_NOVEL,
+    PUBLISH_NOVEL,
+
+    CREATE_CHAPTER,
+    UPDATE_CHAPTER,
+    DELETE_CHAPTER,
+    PUBLISH_CHAPTER,
+
+    ADD_ILLUSTRATION,
+    DELETE_ILLUSTRATION,
+    UPDATE_ILLUSTRATION,
+
+    CREATE_POST,
+    UPDATE_POST,
+    DELETE_POST,
+    PUBLISH_POST,
+
+    CHANGE_STUDIO_PERMISSION,
+
+    REMOVE_MEMBER,
+    ADD_MEMBER
+}

@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: studio-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/userDB
+    username: postgres
+    password: 365891
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+#  data:
+#    redis:
+#      url: ${REDIS_URL:${SPRING_DATA_REDIS_URL:}}
+#      host: ${REDIS_HOST:${SPRING_DATA_REDIS_HOST:${host:localhost}}}
+#      port: ${REDIS_PORT:${SPRING_DATA_REDIS_PORT:${port:6379}}}
+#      username: ${REDIS_USERNAME:${SPRING_DATA_REDIS_USERNAME:default}}
+#      password: ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:${passwd:}}}
+#      timeout: 60000ms
+#      lettuce:
+#        pool:
+#          max-active: 8
+#          max-idle: 8
+#          min-idle: 0
+#          max-wait: -1ms
+  sql:
+    init:
+      mode: always
+server:
+  port: 8081
+jwt:
+  secretKey: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+

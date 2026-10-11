@@ -3,6 +3,7 @@ package com.vivek.novelforge.identity.entity;
 import com.vivek.novelforge.common.entity.BaseEntity;
 import com.vivek.novelforge.identity.security.RolePermissions;
 import com.vivek.novelforge.identity.type.AccountStatus;
+import com.vivek.novelforge.identity.type.CreatorStatus;
 import com.vivek.novelforge.identity.type.RoleType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -51,6 +52,10 @@ public class User extends BaseEntity implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false,length = 20)
     private AccountStatus accountStatus;
+    @Column(nullable = false,length = 20)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private CreatorStatus creatorStatus = CreatorStatus.NONE;
 //    private String profileImageName;
     private String passwordHash;
     @OneToOne(
