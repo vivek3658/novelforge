@@ -1,8 +1,7 @@
 package com.vivek.novelforge.identity.service;
 
-import com.vivek.novelforge.identity.dto.RegisterRequestDto;
-import com.vivek.novelforge.identity.dto.RegisterResponseDto;
-import com.vivek.novelforge.identity.dto.RegistrationResultDto;
+import com.vivek.novelforge.identity.dto.request.RegisterRequestDto;
+import com.vivek.novelforge.identity.dto.response.RegistrationResultDto;
 
 public interface RegistrationService {
     void sendVerificationOtp(String email);

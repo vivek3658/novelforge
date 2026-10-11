@@ -1,7 +1,7 @@
 package com.vivek.novelforge.identity.service.impl;
 
-import com.vivek.novelforge.identity.dto.RegisterRequestDto;
-import com.vivek.novelforge.identity.dto.RegistrationResultDto;
+import com.vivek.novelforge.identity.dto.request.RegisterRequestDto;
+import com.vivek.novelforge.identity.dto.response.RegistrationResultDto;
 import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.entity.UserProfile;
 import com.vivek.novelforge.identity.exception.EmailAlreadyExistsException;
@@ -14,6 +14,7 @@ import com.vivek.novelforge.identity.security.AuthUtil;
 import com.vivek.novelforge.identity.service.OtpService;
 import com.vivek.novelforge.identity.service.RegistrationService;
 import com.vivek.novelforge.identity.type.AccountStatus;
+import com.vivek.novelforge.identity.type.CreatorStatus;
 import com.vivek.novelforge.identity.type.ProfileVisibility;
 import com.vivek.novelforge.identity.type.RoleType;
 import jakarta.transaction.Transactional;
@@ -68,6 +69,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         user.setEmailVerified(true);
         user.setRoles(new ArrayList<>(List.of(RoleType.USER)));
         user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setCreatorStatus(CreatorStatus.NONE);
 
         User savedUser = userRepository.save(user);
 

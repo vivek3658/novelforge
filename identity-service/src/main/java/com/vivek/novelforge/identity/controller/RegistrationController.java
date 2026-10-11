@@ -1,6 +1,10 @@
 package com.vivek.novelforge.identity.controller;
 
-import com.vivek.novelforge.identity.dto.*;
+import com.vivek.novelforge.identity.dto.request.RegisterRequestDto;
+import com.vivek.novelforge.identity.dto.request.SendOtpRequestDto;
+import com.vivek.novelforge.identity.dto.request.VerifyOtpRequestDto;
+import com.vivek.novelforge.identity.dto.response.RegisterResponseDto;
+import com.vivek.novelforge.identity.dto.response.RegistrationResultDto;
 import com.vivek.novelforge.identity.service.RegistrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

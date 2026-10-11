@@ -1,8 +1,7 @@
-package com.vivek.novelforge.identity.dto;
+package com.vivek.novelforge.identity.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Data
@@ -11,11 +10,10 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ResetPasswordRequestDto {
+public class ForgotPasswordVerifyDto {
     @NotBlank
     @Email
     private String email;
     @NotBlank
-    @Size(min = 8,max = 100)
-    private String newPassword;
+    private String otp;
 }

@@ -1,4 +1,4 @@
-package com.vivek.novelforge.identity.dto;
+package com.vivek.novelforge.identity.dto.response;
 
 import lombok.*;
 
@@ -7,8 +7,8 @@ import lombok.*;
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
-public class RegistrationResultDto {
+public class LoginResultDto {
+
     private Long userId;
     private String username;
     private String accessToken;

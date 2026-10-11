@@ -6,6 +6,5 @@ import org.springframework.security.core.Authentication;
 public interface AccountService {
     void requestAccountDeletion(Authentication authentication);
     void cleanupDeletedAccounts();
-    User getAuthenticatedUser(Authentication authentication);
     void cancelAccountDeletion(Authentication authentication);
 }

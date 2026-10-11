@@ -1,4 +1,4 @@
-package com.vivek.novelforge.identity.dto;
+package com.vivek.novelforge.identity.dto.response;
 
 import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.type.RoleType;

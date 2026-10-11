@@ -57,12 +57,15 @@ public class AuthUtil {
         return claims.getSubject();
     }
     public String getUsernameFromRefreshToken(String token) {
-
         Claims claims = Jwts.parser()
                 .verifyWith(getSecretKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+
+        if (!"refresh".equals(claims.get("type", String.class))) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
 
         return claims.getSubject();
     }

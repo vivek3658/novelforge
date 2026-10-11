@@ -37,7 +37,7 @@ public class UserProfile extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private ProfileVisibility visibility = ProfileVisibility.PUBLIC;
+    private ProfileVisibility visibility = ProfileVisibility.PRIVATE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

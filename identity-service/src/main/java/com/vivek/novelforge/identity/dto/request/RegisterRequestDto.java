@@ -1,4 +1,4 @@
-package com.vivek.novelforge.identity.dto;
+package com.vivek.novelforge.identity.dto.request;
 
 import com.vivek.novelforge.identity.type.ProfileVisibility;
 import jakarta.validation.constraints.Email;
