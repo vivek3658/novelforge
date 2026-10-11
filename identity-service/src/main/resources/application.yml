@@ -1,51 +1,35 @@
-  spring:
-    application:
-      name: identity-service
-    datasource:
-      url: jdbc:postgresql://localhost:5432/userDB
-      username: postgres
-      password: 365891
-    jpa:
-      database-platform: org.hibernate.dialect.PostgreSQLDialect
+spring:
+  application:
+    name: identity-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/userDB
+    username: postgres
+    password: ${DB_PASSWORD:365891}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
       hibernate:
-        ddl-auto: update
-      defer-datasource-initialization: true
-      show-sql: true
-      properties:
-        hibernate:
-          format_sql: true
-          dialect: org.hibernate.dialect.PostgreSQLDialect
-    data:
-      redis:
-        url: ${REDIS_URL:${SPRING_DATA_REDIS_URL:}}
-        host: ${REDIS_HOST:${SPRING_DATA_REDIS_HOST:${host:localhost}}}
-        port: ${REDIS_PORT:${SPRING_DATA_REDIS_PORT:${port:6379}}}
-        username: ${REDIS_USERNAME:${SPRING_DATA_REDIS_USERNAME:default}}
-        password: ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:${passwd:}}}
-        timeout: 60000ms
-        lettuce:
-          pool:
-            max-active: 8
-            max-idle: 8
-            min-idle: 0
-            max-wait: -1ms
-    sql:
-      init:
-        mode: always
-  server:
-    port: 8081
-  jwt:
-    secretKey: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        format_sql: true
+
+  data:
+    redis:
+      url:
+
+server:
+  port: 8081
+
+jwt:
+  secretKey: ${JWT_SECRET_KEY:local-dev-secret-key-change-before-production}
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
-  instance:
-    hostname: localhost
-    prefer-ip-address: false
-    instance-id: ${spring.application.name}:${server.port}
-
 notification:
   service:
-    url: ${NOTIFICATION_SERVICE_URL:https://notification-service-ng1j.onrender.com}
+    url: http://localhost:8082
