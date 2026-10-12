@@ -1,5 +1,10 @@
 package com.vivek.novelforge.novel.service;
 
 public interface ChapterService {
-    ChapterResponseDto createChapter(ChapterRequestDto request);
+    void createChapter();
+    void updateChapter();
+    void deleteChapter();
+    void publishChapter();
+    void getChapter();
+    void getAllChapterFromNovels(); //pagination
 }

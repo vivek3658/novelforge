@@ -1,4 +1,7 @@
 package com.vivek.novelforge.engagement.entity;
 
-public class Follow {
+import com.vivek.novelforge.common.entity.BaseEntity;
+
+public class Follow extends BaseEntity {
+//    private
 }

@@ -24,6 +24,8 @@ public enum StudioPermissionsType {
     PUBLISH_POST,
 
     CHANGE_STUDIO_PERMISSION,
+    VIEW_STUDIO,
+    VIEW_MEMBERS,
 
     REMOVE_MEMBER,
     ADD_MEMBER
