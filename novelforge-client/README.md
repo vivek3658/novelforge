@@ -35,3 +35,19 @@ npm run dev
 ```
 
 The app will run on `http://localhost:5173`.
+
+## Deploying to Netlify
+
+Keep the site's base directory set to `novelforge-client`. The `netlify.toml`
+in this directory configures Netlify to run the Vite production build and publish
+only `dist`, with paths resolved relative to that base directory.
+
+Do not publish the source directory: its `index.html` references `/src/main.jsx`,
+which must be transformed by Vite before browsers can load it. Serving that
+source file directly causes the module-script MIME type error. The configuration
+also rewrites client-side routes to `index.html` without overriding existing
+static assets, so direct links and refreshes work with React Router.
+
+The existing `VITE_API_URL` build-time setting remains unchanged. Apply these
+deployment settings with a new deployment; they do not change an already
+published site's files.
