@@ -48,6 +48,10 @@ source file directly causes the module-script MIME type error. The configuration
 also rewrites client-side routes to `index.html` without overriding existing
 static assets, so direct links and refreshes work with React Router.
 
-The existing `VITE_API_URL` build-time setting remains unchanged. Apply these
-deployment settings with a new deployment; they do not change an already
-published site's files.
+Configure `VITE_API_URL` in the Netlify site's environment variables with the
+API gateway base URL. This is the client's only required environment variable;
+environment files are not included in the repository. For local development,
+set it in an ignored `.env.local` file.
+
+Apply environment and deployment settings with a new deployment; they do not
+change an already published site's files.
