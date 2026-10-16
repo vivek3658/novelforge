@@ -53,11 +53,14 @@ public class WebSecurityConfig {
 
                         .requestMatchers("/auth/me").authenticated()
 
-                        .anyRequest().authenticated()
+                        // This endpoint authenticates Studio through its
+                        // internal shared secret in the controller.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/internal/users/*/creator-eligibility"
                         ).permitAll()
+
+                        .anyRequest().authenticated()
                 )
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

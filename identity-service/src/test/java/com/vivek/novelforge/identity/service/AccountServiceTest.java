@@ -2,6 +2,7 @@ package com.vivek.novelforge.identity.service;
 
 import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.repository.UserRepository;
+import com.vivek.novelforge.identity.service.impl.AccountServiceImpl;
 import com.vivek.novelforge.identity.type.AccountStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,7 @@ class AccountServiceTest {
     private Authentication authentication;
 
     @InjectMocks
-    private AccountServiceImpl accountService;
+    public AccountServiceImpl accountService;
 
     private User user;
 
@@ -38,7 +39,7 @@ class AccountServiceTest {
         user = User.builder()
                 .id(1L)
                 .username("vivek")
-                .email("vivek@example.com")
+                . email("vivek@example.com")
                 .accountStatus(AccountStatus.ACTIVE)
                 .build();
     }

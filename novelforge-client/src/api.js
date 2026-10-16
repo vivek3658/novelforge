@@ -1,29 +1,43 @@
 import authApi, {
   getBaseUrl,
-  setBaseUrl,
-  resetBaseUrl,
+  getApiBaseUrl,
   apiRequest,
+  apiClient,
   novelApi,
-  healthApi,
-  SERVICES_CONFIG,
+  profileApi,
+  accountApi,
+  studioApi,
+  chaptersApi,
+  engagementApi,
+  imageKitConfig,
   normalizeUrl,
+  normalizeBaseUrl,
   resolveEndpoint,
+  ENDPOINTS,
+  STORAGE_TOKEN_KEY,
 } from './services/api';
 
-export const buildApiUrl = (path) => `${getBaseUrl()}${path}`;
+export const buildApiUrl = (path) => `${getBaseUrl()}${resolveEndpoint(path)}`;
 export const API_BASE_URL = getBaseUrl();
 
 export {
   authApi,
   novelApi,
-  healthApi,
-  SERVICES_CONFIG,
+  profileApi,
+  accountApi,
+  studioApi,
+  chaptersApi,
+  engagementApi,
+  imageKitConfig,
   getBaseUrl,
-  setBaseUrl,
-  resetBaseUrl,
+  getApiBaseUrl,
   apiRequest,
+  apiClient,
   normalizeUrl,
+  normalizeBaseUrl,
   resolveEndpoint,
+  ENDPOINTS,
+  STORAGE_TOKEN_KEY,
 };
 
 export default authApi;

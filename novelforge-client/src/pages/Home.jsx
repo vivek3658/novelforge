@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DUMMY_NOVELS } from '../services/dummyNovels';
 import './Home.css';
@@ -7,12 +7,18 @@ import './Home.css';
 const Home = () => {
   const { isAuthenticated, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
-  const filteredNovels = DUMMY_NOVELS.slice(0, 4).filter((novel) =>
-    novel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (novel.categoryType && novel.categoryType.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (novel.synopsis && novel.synopsis.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/novels?search=${encodeURIComponent(searchTerm.trim())}`);
+    } else {
+      navigate('/novels');
+    }
+  };
+
+  const featuredNovels = DUMMY_NOVELS.slice(0, 4);
 
   return (
     <div className="home-container">
@@ -20,7 +26,7 @@ const Home = () => {
       <section className="hero-section">
         <div className="app-container">
           <div className="hero-badge">
-            <span>✨</span> Next-Gen Web Novel Platform
+            <span>✨</span> Next-Gen Web Fiction Platform
           </div>
 
           <h1 className="hero-title">
@@ -28,20 +34,20 @@ const Home = () => {
           </h1>
 
           <p className="hero-subtitle">
-            Explore thousands of immersive serialized novels, support indie authors, and shape immersive stories together with interactive community feedback.
+            Explore immersive serialized novels, read chapters distraction-free, and follow independent web fiction creators.
           </p>
 
           <div className="hero-cta-group">
             {isAuthenticated ? (
               <Link to="/profile" className="cta-primary">
                 <span>Go to Dashboard ({user?.username})</span>
-                <span>→</span>
+                <span aria-hidden="true">→</span>
               </Link>
             ) : (
               <>
-                <Link to="/register" className="cta-primary">
+                <Link to="/novels" className="cta-primary">
                   <span>Start Reading Free</span>
-                  <span>→</span>
+                  <span aria-hidden="true">→</span>
                 </Link>
                 <Link to="/login" className="cta-secondary">
                   <span>Sign In</span>
@@ -50,16 +56,17 @@ const Home = () => {
             )}
           </div>
 
-          <div className="hero-search-wrapper">
+          <form className="hero-search-wrapper" onSubmit={handleSearchSubmit}>
             <svg
               className="hero-search-icon"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
+              aria-hidden="true"
             >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               type="text"
@@ -67,31 +74,38 @@ const Home = () => {
               placeholder="Search by title, author, or genre (e.g. Fantasy, Sci-Fi)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search novels by title or genre"
             />
-          </div>
+          </form>
         </div>
       </section>
 
       {/* Trending Novels Section */}
-      <section className="app-container">
+      <section className="app-container" style={{ padding: '4rem 1.5rem' }}>
         <div className="section-header">
           <div>
-            <h2 className="section-title">🔥 Trending Novels</h2>
-            <p className="section-subtitle">Top serials trending across NovelForge this week</p>
+            <h2 className="section-title">🔥 Featured Web Serials</h2>
+            <p className="section-subtitle">Top serials available for instant reading</p>
           </div>
-          <Link to="/trending" className="section-see-all">
-            Browse All <span>→</span>
+          <Link to="/novels" className="section-see-all">
+            Browse All Catalog <span aria-hidden="true">→</span>
           </Link>
         </div>
 
         <div className="novels-grid">
-          {filteredNovels.map((novel) => (
-            <article key={novel.id} className="novel-card">
+          {featuredNovels.map((novel) => (
+            <Link
+              key={novel.id}
+              to={`/novels/${novel.id}`}
+              className="novel-card"
+              style={{ textDecoration: 'none', color: 'inherit' }}
+              aria-label={`Read ${novel.title} by ${novel.author}`}
+            >
               <div
                 className="novel-cover-placeholder"
                 style={{ background: novel.gradient }}
               >
-                <span className="novel-badge-tag">{novel.categoryType || novel.genre || 'FICTION'}</span>
+                <span className="novel-badge-tag">{novel.categoryType || 'FICTION'}</span>
                 <span style={{ fontSize: '1.25rem', letterSpacing: '-0.5px' }}>{novel.title}</span>
               </div>
               <div className="novel-info">
@@ -100,46 +114,46 @@ const Home = () => {
                 <p className="novel-synopsis">{novel.synopsis}</p>
                 <div className="novel-stats">
                   <span className="novel-rating">★ {novel.rating}</span>
-                  <span>{novel.chapters ? `${novel.chapters} Chs` : '0 Chs'}</span>
+                  <span>{novel.chapters?.length || 0} Chs</span>
                   <span>{novel.views} reads</span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* Features & Architecture Grid */}
-      <section className="app-container">
+      {/* Platform Features Section */}
+      <section className="app-container" style={{ paddingBottom: '5rem' }}>
         <div className="section-header">
           <div>
-            <h2 className="section-title">⚡ Platform Architecture</h2>
-            <p className="section-subtitle">Engineered with high performance microservices</p>
+            <h2 className="section-title">⚡ Platform Architecture & Security</h2>
+            <p className="section-subtitle">Engineered with high performance microservices and accessible frontend standards</p>
           </div>
         </div>
 
         <div className="features-grid">
           <div className="feature-card">
-            <div className="feature-icon-wrapper">🛡️</div>
+            <div className="feature-icon-wrapper" aria-hidden="true">🛡️</div>
             <h3 className="feature-title">Secure Identity Service</h3>
             <p className="feature-desc">
-              Full Spring Security 6 microservice with stateless JWT authentication, OTP email verification, and HttpOnly cookie refresh token rotation.
+              Spring Security microservice featuring stateless JWT tokens, 6-digit email OTP verification, and HttpOnly cookie refresh token rotation.
             </p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon-wrapper">🌐</div>
-            <h3 className="feature-title">API Gateway & Eureka</h3>
+            <div className="feature-icon-wrapper" aria-hidden="true">🌐</div>
+            <h3 className="feature-title">Unified API Gateway</h3>
             <p className="feature-desc">
-              Dynamic reactive service routing via Spring Cloud Gateway and Eureka service discovery for unified endpoints across services.
+              Clean reactive routing via Spring Cloud Gateway. All client requests route strictly through the public gateway without leaking internal microservices.
             </p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon-wrapper">📱</div>
-            <h3 className="feature-title">Fully Responsive & Dual Theme</h3>
+            <div className="feature-icon-wrapper" aria-hidden="true">📖</div>
+            <h3 className="feature-title">Accessible Reading Experience</h3>
             <p className="feature-desc">
-              Sleek minimal white mode and deep dark mode with complete mobile responsiveness, gesture-friendly navigation drawer, and instant feedback.
+              High-contrast typography, adjustable font sizing, serif/sans-serif toggles, Sepia and Dark reading themes, and keyboard arrow chapter flipping.
             </p>
           </div>
         </div>

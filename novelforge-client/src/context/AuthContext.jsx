@@ -1,115 +1,129 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi } from '../services/api';
+import { authApi, profileApi, accountApi } from '../services/api';
 
 const AuthContext = createContext();
+
+const STORAGE_TOKEN_KEY = 'novelforge_access_token';
+const STORAGE_USER_KEY = 'novelforge_user';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
-      const stored = localStorage.getItem('novelforge_user');
+      const stored = localStorage.getItem(STORAGE_USER_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
   });
-  const [token, setToken] = useState(() => localStorage.getItem('novelforge_access_token'));
+
+  const [profile, setProfile] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_TOKEN_KEY));
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-  // Helper to sync user in state and localStorage
+  // Sync user object with localStorage
   const updateUser = useCallback((userData) => {
     setUser(userData);
     if (userData) {
-      localStorage.setItem('novelforge_user', JSON.stringify(userData));
+      try {
+        localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(userData));
+      } catch (e) {
+        console.warn('Storage save failed:', e);
+      }
     } else {
-      localStorage.removeItem('novelforge_user');
+      localStorage.removeItem(STORAGE_USER_KEY);
+      setProfile(null);
     }
   }, []);
 
-  // Helper to fetch user profile using a token
-  const fetchMe = useCallback(async (authToken) => {
+  // Fetch full user profile from backend (/api/v1/identity/profile/me)
+  const fetchProfile = useCallback(async () => {
     try {
-      const activeToken = authToken || token || localStorage.getItem('novelforge_access_token');
-      if (!activeToken) return null;
-      const userData = await authApi.getMe(activeToken);
-      if (userData) {
-        updateUser(userData);
+      const profileData = await profileApi.getMyProfile();
+      if (profileData) {
+        setProfile(profileData);
       }
-      return userData;
+      return profileData;
     } catch (err) {
-      console.warn('Failed to fetch user /me:', err.message);
+      console.warn('Could not fetch user profile details:', err.message);
       return null;
     }
-  }, [token, updateUser]);
+  }, []);
 
-  // Refresh access token via HttpOnly cookie
+  // Fetch /me account information from backend (/api/v1/identity/auth/me)
+  const fetchMe = useCallback(async (activeToken) => {
+    try {
+      const currentToken = activeToken || token || localStorage.getItem(STORAGE_TOKEN_KEY);
+      if (!currentToken) return null;
+      const meData = await authApi.getMe(currentToken);
+      if (meData) {
+        updateUser(meData);
+        // Also fetch user profile in parallel
+        fetchProfile();
+      }
+      return meData;
+    } catch (err) {
+      console.warn('Failed to fetch /me:', err.message);
+      return null;
+    }
+  }, [token, updateUser, fetchProfile]);
+
+  // Refresh access token via backend HttpOnly refresh cookie
   const refreshSession = useCallback(async () => {
     try {
       const refreshResult = await authApi.refreshToken();
       if (refreshResult && refreshResult.accessToken) {
         setToken(refreshResult.accessToken);
-        localStorage.setItem('novelforge_access_token', refreshResult.accessToken);
-        const userData = await fetchMe(refreshResult.accessToken);
-        if (!userData && refreshResult.username) {
-          const fallbackUser = {
-            id: refreshResult.userId,
-            username: refreshResult.username,
-            roles: ['READER'],
-            roleType: 'READER',
-          };
-          updateUser(fallbackUser);
-        }
+        localStorage.setItem(STORAGE_TOKEN_KEY, refreshResult.accessToken);
+        await fetchMe(refreshResult.accessToken);
         return refreshResult;
       }
       return null;
     } catch {
-      // Do not wipe access token if it exists; only return null
       return null;
     }
-  }, [fetchMe, updateUser]);
+  }, [fetchMe]);
 
-  // Check auth state on app initialization
+  // Initialize auth on page mount
   useEffect(() => {
     let isMounted = true;
 
     const initializeAuth = async () => {
       setIsLoading(true);
-      const storedToken = localStorage.getItem('novelforge_access_token');
-      const storedUser = localStorage.getItem('novelforge_user');
+      const storedToken = localStorage.getItem(STORAGE_TOKEN_KEY);
 
       if (storedToken) {
         setToken(storedToken);
-        if (storedUser) {
-          try {
-            setUser(JSON.parse(storedUser));
-          } catch {
-            // ignore
-          }
-        }
-
-        // Silently attempt background profile sync
         try {
           const userData = await authApi.getMe(storedToken);
           if (userData && isMounted) {
             updateUser(userData);
+            const prof = await profileApi.getMyProfile();
+            if (prof && isMounted) {
+              setProfile(prof);
+            }
           }
-        } catch (err) {
-          console.warn('Silent /me check on init deferred:', err.message);
+        } catch {
+          // If stored access token is invalid or expired, attempt refresh via HttpOnly cookie
+          if (isMounted) {
+            try {
+              await refreshSession();
+            } catch {
+              // ignore
+            }
+          }
         }
-
-        if (isMounted) {
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // If token missing, attempt silent refresh using HttpOnly cookie
-      if (isMounted) {
+      } else {
+        // No stored access token; check if valid HttpOnly refresh cookie exists
         try {
           await refreshSession();
         } catch {
           // ignore
         }
+      }
+
+      if (isMounted) {
         setIsLoading(false);
       }
     };
@@ -129,26 +143,20 @@ export const AuthProvider = ({ children }) => {
       if (response && response.accessToken) {
         const accessToken = response.accessToken;
         setToken(accessToken);
-        localStorage.setItem('novelforge_access_token', accessToken);
+        localStorage.setItem(STORAGE_TOKEN_KEY, accessToken);
 
-        // Immediately set user synchronously so isAuthenticated is true before navigation
+        // Seed initial user data while waiting for background /me
         const initialUser = {
           id: response.userId,
           username: response.username,
           email: identifier.includes('@') ? identifier : `${response.username}@novelforge.com`,
-          roles: ['READER'],
-          roleType: 'READER',
+          roles: ['USER'],
+          accountStatus: 'ACTIVE',
         };
         updateUser(initialUser);
 
-        // Enrich profile in background without blocking or failing the login session
-        fetchMe(accessToken).then((fullProfile) => {
-          if (fullProfile) {
-            updateUser(fullProfile);
-          }
-        }).catch((e) => {
-          console.warn('Background profile enrichment after login deferred:', e.message);
-        });
+        // Fetch authoritative profile and /me
+        fetchMe(accessToken);
 
         return response;
       }
@@ -167,25 +175,17 @@ export const AuthProvider = ({ children }) => {
       if (response && response.accessToken) {
         const accessToken = response.accessToken;
         setToken(accessToken);
-        localStorage.setItem('novelforge_access_token', accessToken);
+        localStorage.setItem(STORAGE_TOKEN_KEY, accessToken);
 
         const initialUser = {
           id: response.userId,
           username: response.username || registerData.username,
           email: registerData.email,
-          roles: ['READER'],
-          roleType: 'READER',
+          roles: ['USER'],
+          accountStatus: 'ACTIVE',
         };
         updateUser(initialUser);
-
-        fetchMe(accessToken).then((fullProfile) => {
-          if (fullProfile) {
-            updateUser(fullProfile);
-          }
-        }).catch((e) => {
-          console.warn('Background profile enrichment after register deferred:', e.message);
-        });
-
+        fetchMe(accessToken);
         return response;
       }
       return response;
@@ -204,62 +204,61 @@ export const AuthProvider = ({ children }) => {
     } finally {
       updateUser(null);
       setToken(null);
-      localStorage.removeItem('novelforge_access_token');
-      localStorage.removeItem('novelforge_user');
+      setProfile(null);
+      localStorage.removeItem(STORAGE_TOKEN_KEY);
+      localStorage.removeItem(STORAGE_USER_KEY);
     }
   };
 
-  // Convert user to Creator / Author
-  const convertToCreator = async () => {
-    try {
-      await authApi.becomeAuthor();
-      try {
-        await refreshSession();
-      } catch (e) {
-        console.warn('Token refresh after becomeAuthor:', e.message);
-      }
-      const updatedProfile = await fetchMe();
-      if (!updatedProfile && user) {
-        const curRoles = Array.isArray(user.roles) ? [...user.roles] : [user.roleType || 'READER'];
-        if (!curRoles.includes('AUTHOR')) curRoles.push('AUTHOR');
-        setUser({
-          ...user,
-          roles: curRoles,
-          roleType: 'AUTHOR',
-        });
-      }
-      return true;
-    } catch (err) {
-      console.warn('becomeAuthor API error, applying client-side state:', err.message);
-      if (user) {
-        const curRoles = Array.isArray(user.roles) ? [...user.roles] : [user.roleType || 'READER'];
-        if (!curRoles.includes('AUTHOR')) curRoles.push('AUTHOR');
-        setUser({
-          ...user,
-          roles: curRoles,
-          roleType: 'AUTHOR',
-        });
-        return true;
-      }
-      throw err;
-    }
+  // Activate Creator status (calls real POST /api/v1/identity/profile/creator)
+  const activateCreator = async () => {
+    const updatedProfile = await profileApi.activateCreator();
+    setProfile(updatedProfile);
+    return updatedProfile;
   };
 
-  const roles = user?.roles || (user?.roleType ? [user.roleType] : ['READER']);
-  const isCreator = Boolean(
-    roles.includes('AUTHOR') ||
-    roles.includes('CREATOR') ||
-    user?.roleType === 'AUTHOR' ||
-    user?.roleType === 'CREATOR'
-  );
+  // Deactivate Creator status (calls real POST /api/v1/identity/profile/creator/deactivate)
+  const deactivateCreator = async () => {
+    const updatedProfile = await profileApi.deactivateCreator();
+    setProfile(updatedProfile);
+    return updatedProfile;
+  };
+
+  // Update profile details (calls real PATCH /api/v1/identity/profile/me)
+  const updateProfile = async ({ displayName, bio, visibility }) => {
+    const updatedProfile = await profileApi.updateMyProfile({ displayName, bio, visibility });
+    setProfile(updatedProfile);
+    return updatedProfile;
+  };
+
+  // Request account deletion (calls real DELETE /api/v1/identity/account)
+  const requestAccountDeletion = async () => {
+    const result = await accountApi.requestDeletion();
+    await fetchMe();
+    return result;
+  };
+
+  // Cancel account deletion (calls real POST /api/v1/identity/account/cancel-deletion)
+  const cancelAccountDeletion = async () => {
+    const result = await accountApi.cancelDeletion();
+    await fetchMe();
+    return result;
+  };
+
+  const roles = user?.roles || ['USER'];
+  const isCreator = profile?.creatorStatus === 'ACTIVE';
+  const isPendingDeletion = user?.accountStatus === 'PENDING_DELETION';
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        profile,
         token,
         roles,
         isCreator,
+        isPendingDeletion,
+        accountStatus: user?.accountStatus || 'ACTIVE',
         isAuthenticated: !!token && !!user,
         isLoading,
         authError,
@@ -267,9 +266,13 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         fetchMe,
+        fetchProfile,
         refreshSession,
-        setUser,
-        convertToCreator,
+        activateCreator,
+        deactivateCreator,
+        updateProfile,
+        requestAccountDeletion,
+        cancelAccountDeletion,
       }}
     >
       {children}
@@ -284,3 +287,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+export default AuthContext;

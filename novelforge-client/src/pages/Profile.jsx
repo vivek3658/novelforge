@@ -1,14 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getBaseUrl, setBaseUrl, resetBaseUrl } from '../services/api';
-import { novelStore } from '../services/novelStore';
+import { novelStore, getLocalAuthorDrafts } from '../services/novelStore';
+import StudioManager from '../components/StudioManager';
 import './Profile.css';
 import './Home.css';
 
 const Profile = () => {
-  const { user, token, isCreator, logout, refreshSession, convertToCreator } = useAuth();
+  const {
+    user,
+    profile,
+    isCreator,
+    isPendingDeletion,
+    accountStatus,
+    logout,
+    refreshSession,
+    activateCreator,
+    deactivateCreator,
+    updateProfile,
+    requestAccountDeletion,
+    cancelAccountDeletion,
+  } = useAuth();
+
   const { success, error, info } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,86 +32,152 @@ const Profile = () => {
   const initialTab = queryParams.get('tab') || 'overview';
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // States
+  // Loading states
   const [refreshLoading, setRefreshLoading] = useState(false);
-  const [convertLoading, setConvertLoading] = useState(false);
-  const [customApiUrl, setCustomApiUrl] = useState(getBaseUrl());
-  const [showDevTools, setShowDevTools] = useState(false);
-  const [showFullToken, setShowFullToken] = useState(false);
-  const [tokenCopied, setTokenCopied] = useState(false);
+  const [creatorActionLoading, setCreatorActionLoading] = useState(false);
+  const [accountActionLoading, setAccountActionLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
 
-  // Creator novels state
-  const [creatorNovels, setCreatorNovels] = useState([]);
-  const [novelsLoading, setNovelsLoading] = useState(false);
+  // Author drafts & catalog
+  const [authorDrafts, setAuthorDrafts] = useState([]);
+  const [savedBookmarks, setSavedBookmarks] = useState([]);
 
   // Modals state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedNovel, setSelectedNovel] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [novelForm, setNovelForm] = useState({
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState(null);
+
+  // Profile Form State
+  const [profileForm, setProfileForm] = useState({
+    displayName: '',
+    bio: '',
+    visibility: 'PUBLIC',
+  });
+
+  // Draft Form State
+  const [draftForm, setDraftForm] = useState({
     title: '',
     categoryType: 'FICTION',
+    genre: 'Fantasy / Adventure',
     synopsis: '',
   });
 
-  const loadCreatorNovels = useCallback(async () => {
-    setNovelsLoading(true);
+  // Load author drafts & bookmarks
+  const refreshAuthorData = useCallback(() => {
+    setAuthorDrafts(getLocalAuthorDrafts());
     try {
-      const { novels } = await novelStore.loadAllNovels();
-      const username = user?.username;
-      const userAuthored = novels.filter(
-        (n) => n.isUserCreated || (username && n.author === username)
-      );
-      setCreatorNovels(userAuthored);
-    } catch (err) {
-      console.warn('Could not load publications:', err.message);
-    } finally {
-      setNovelsLoading(false);
+      const bmarks = JSON.parse(localStorage.getItem('novelforge_bookmarks') || '[]');
+      setSavedBookmarks(bmarks);
+    } catch {
+      setSavedBookmarks([]);
     }
-  }, [user?.username]);
+  }, []);
 
-  // Load creator novels on mount / user change
   useEffect(() => {
-    loadCreatorNovels();
-  }, [loadCreatorNovels]);
+    refreshAuthorData();
+  }, [refreshAuthorData]);
 
   // Sync tab with URL search parameter
   useEffect(() => {
     const tab = new URLSearchParams(location.search).get('tab');
-    if (tab && ['overview', 'creator', 'library', 'security'].includes(tab)) {
+    if (tab && ['overview', 'creator', 'studios', 'library', 'security'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [location.search]);
 
-  // Convert to Creator / Author
-  const handleBecomeCreator = async () => {
-    setConvertLoading(true);
+  // Seed profile form on profile update
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        displayName: profile.displayName || user?.username || '',
+        bio: profile.bio || '',
+        visibility: profile.visibility || 'PUBLIC',
+      });
+    }
+  }, [profile, user]);
+
+  // Handle Creator activation (real POST /api/v1/identity/profile/creator)
+  const handleActivateCreator = async () => {
+    setCreatorActionLoading(true);
     try {
-      await convertToCreator();
-      success('🎉 Welcome to the Creator Studio! Author privileges unlocked.');
+      await activateCreator();
+      success('🎉 Author privileges unlocked! Welcome to the Creator Studio.');
       setActiveTab('creator');
-      loadCreatorNovels();
     } catch (err) {
-      error(err.message || 'Failed to activate Creator account');
+      error(err.message || 'Failed to activate Creator account.');
     } finally {
-      setConvertLoading(false);
+      setCreatorActionLoading(false);
     }
   };
 
-  // Refresh session handler
+  // Handle Creator deactivation (real POST /api/v1/identity/profile/creator/deactivate)
+  const handleDeactivateCreator = async () => {
+    setCreatorActionLoading(true);
+    try {
+      await deactivateCreator();
+      info('Creator status set to deactivated.');
+    } catch (err) {
+      error(err.message || 'Failed to deactivate Creator account.');
+    } finally {
+      setCreatorActionLoading(false);
+    }
+  };
+
+  // Handle Profile Update (real PATCH /api/v1/identity/profile/me)
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    try {
+      await updateProfile(profileForm);
+      success('Profile updated successfully!');
+      setShowEditProfileModal(false);
+    } catch (err) {
+      error(err.message || 'Failed to update profile.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  // Handle Account Deletion Request (real DELETE /api/v1/identity/account)
+  const handleRequestDeletion = async () => {
+    setAccountActionLoading(true);
+    try {
+      await requestAccountDeletion();
+      success('Account deletion requested. Your account is now in a 30-day grace period.');
+      setShowDeleteAccountModal(false);
+    } catch (err) {
+      error(err.message || 'Failed to request account deletion.');
+    } finally {
+      setAccountActionLoading(false);
+    }
+  };
+
+  // Handle Account Deletion Cancellation (real POST /api/v1/identity/account/cancel-deletion)
+  const handleCancelDeletion = async () => {
+    setAccountActionLoading(true);
+    try {
+      await cancelAccountDeletion();
+      success('Account deletion cancelled! Your account is active.');
+    } catch (err) {
+      error(err.message || 'Failed to cancel deletion.');
+    } finally {
+      setAccountActionLoading(false);
+    }
+  };
+
+  // Test token refresh via backend HttpOnly cookie
   const handleTestRefresh = async () => {
     setRefreshLoading(true);
     try {
       const result = await refreshSession();
       if (result) {
-        success('Session key refreshed successfully via secure HttpOnly cookie');
+        success('Session token refreshed successfully via HttpOnly refresh cookie.');
       } else {
-        info('Session is active. Refresh cookie cycle checked.');
+        info('Session is active. Refresh verified.');
       }
     } catch (err) {
-      error(err.message || 'Session refresh cycle failed');
+      error(err.message || 'Session refresh cycle failed.');
     } finally {
       setRefreshLoading(false);
     }
@@ -105,145 +185,139 @@ const Profile = () => {
 
   const handleLogout = async () => {
     await logout();
-    success('Signed out successfully');
+    success('Signed out successfully.');
     navigate('/login');
   };
 
-  const handleSaveApiUrl = (e) => {
-    e.preventDefault();
-    if (customApiUrl.trim()) {
-      setBaseUrl(customApiUrl.trim());
-      success(`API Endpoint updated: ${customApiUrl.trim()}`);
-    }
-  };
-
-  const handleResetApiUrl = () => {
-    resetBaseUrl();
-    setCustomApiUrl(getBaseUrl());
-    info(`API URL reset to production gateway (${getBaseUrl()})`);
-  };
-
-  const handleCopyToken = () => {
-    if (token) {
-      navigator.clipboard.writeText(token);
-      setTokenCopied(true);
-      success('Token copied to clipboard');
-      setTimeout(() => setTokenCopied(false), 2000);
-    }
-  };
-
-  // Novel Modals handlers
-  const handleOpenCreateNovel = () => {
-    setNovelForm({
+  // Draft Management Handlers
+  const handleOpenNewDraft = () => {
+    setSelectedDraft(null);
+    setDraftForm({
       title: '',
       categoryType: 'FICTION',
+      genre: 'Original Fiction',
       synopsis: '',
     });
-    setShowCreateModal(true);
+    setShowDraftModal(true);
   };
 
-  const handleOpenEditNovel = (novel) => {
-    setSelectedNovel(novel);
-    setNovelForm({
-      title: novel.title,
-      categoryType: novel.categoryType || 'FICTION',
-      synopsis: novel.synopsis,
+  const handleOpenEditDraft = (draft) => {
+    setSelectedDraft(draft);
+    setDraftForm({
+      title: draft.title || '',
+      categoryType: draft.categoryType || 'FICTION',
+      genre: draft.genre || 'Original Fiction',
+      synopsis: draft.synopsis || '',
     });
-    setShowEditModal(true);
+    setShowDraftModal(true);
   };
 
-  const handleOpenDeleteNovel = (novel) => {
-    setSelectedNovel(novel);
-    setShowDeleteModal(true);
-  };
-
-  const handleCreateNovelSubmit = async (e) => {
+  const handleSaveDraft = async (e) => {
     e.preventDefault();
-    if (!novelForm.title.trim() || !novelForm.synopsis.trim()) {
-      error('Title and synopsis are required');
+    if (!draftForm.title.trim()) {
+      error('Draft title is required.');
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      const creatorName = user?.username || 'Author Unknown';
-      const created = await novelStore.createNovel(novelForm, creatorName);
-      success(`Novel "${created.title}" published!`);
-      setShowCreateModal(false);
-      loadCreatorNovels();
+      const authorName = user?.username || 'Author';
+      const saved = await novelStore.saveDraft(
+        {
+          ...(selectedDraft || {}),
+          ...draftForm,
+        },
+        authorName
+      );
+      success(`Draft "${saved.title}" saved in local author workspace.`);
+      setShowDraftModal(false);
+      refreshAuthorData();
     } catch (err) {
-      error(`Failed to publish: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
+      error(err.message || 'Failed to save draft.');
     }
   };
 
-  const handleUpdateNovelSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedNovel) return;
-    if (!novelForm.title.trim() || !novelForm.synopsis.trim()) {
-      error('Title and synopsis are required');
-      return;
-    }
-
-    setIsSubmitting(true);
+  const handleDeleteDraft = async (draftId) => {
     try {
-      await novelStore.updateNovel(selectedNovel.id, novelForm);
-      success(`Novel "${novelForm.title}" updated!`);
-      setShowEditModal(false);
-      setSelectedNovel(null);
-      loadCreatorNovels();
+      await novelStore.deleteDraft(draftId);
+      success('Draft removed from local workspace.');
+      refreshAuthorData();
     } catch (err) {
-      error(`Failed to update novel: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
+      error(err.message || 'Failed to delete draft.');
     }
   };
 
-  const handleDeleteNovelSubmit = async () => {
-    if (!selectedNovel) return;
-
-    setIsSubmitting(true);
-    try {
-      await novelStore.deleteNovel(selectedNovel.id);
-      success(`Novel "${selectedNovel.title}" deleted.`);
-      setShowDeleteModal(false);
-      setSelectedNovel(null);
-      loadCreatorNovels();
-    } catch (err) {
-      error(`Failed to delete novel: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleAttemptPublish = () => {
+    info(
+      'Publishing API Status: Backend NovelController endpoints are currently pending deployment to the API Gateway. Local simulation has been intentionally disabled to maintain production integrity. Your work is safe as a local draft.'
+    );
   };
 
-  const userRolesList = Array.isArray(user?.roles) ? user.roles : (user?.roleType ? [user.roleType] : ['READER']);
-  const maskedToken = token
-    ? `${token.substring(0, 14)}••••••••••••••••••••••••••••••••${token.substring(token.length - 10)}`
-    : 'No active session token';
+  const userRolesList = Array.isArray(user?.roles) ? user.roles : ['USER'];
 
   return (
     <div className="profile-page-wrapper">
-      {/* 1. PROFESSIONAL HERO BANNER */}
+      {/* PENDING DELETION CRITICAL BANNER */}
+      {isPendingDeletion && (
+        <aside
+          role="alert"
+          style={{
+            background: 'var(--danger-light)',
+            border: '2px solid var(--danger)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1.25rem 1.5rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--danger)', margin: '0 0 0.25rem 0' }}>
+              ⚠️ Account Scheduled for Deletion
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--danger)' }}>
+              Your account has a pending deletion request and will be purged in 30 days. You can cancel this request at any time.
+            </p>
+          </div>
+          <button
+            onClick={handleCancelDeletion}
+            disabled={accountActionLoading}
+            className="btn-primary"
+            style={{
+              backgroundColor: 'var(--danger)',
+              borderColor: 'var(--danger)',
+              padding: '0.55rem 1.25rem',
+            }}
+          >
+            {accountActionLoading ? 'Restoring...' : 'Cancel Deletion Request'}
+          </button>
+        </aside>
+      )}
+
+      {/* HERO BANNER */}
       <section className="profile-hero">
         <div className="profile-hero-cover" />
 
         <div className="profile-hero-body">
           <div className="profile-hero-top">
             <div className="profile-avatar-cluster">
-              <div className="profile-avatar-pro">
+              <div className="profile-avatar-pro" aria-label="User avatar">
                 {(user?.username || 'U').charAt(0).toUpperCase()}
-                <span className="profile-status-indicator" title="Active Online Session" />
+                <span className="profile-status-indicator" title="Active Session" />
               </div>
 
               <div>
-                <h1 className="profile-identity-title">{user?.username || 'Novelist'}</h1>
+                <h1 className="profile-identity-title">
+                  {profile?.displayName || user?.username || 'Author'}
+                </h1>
                 <p className="profile-identity-handle">@{user?.username?.toLowerCase() || 'reader'}</p>
 
                 <div className="profile-badges-row">
                   {isCreator ? (
                     <span className="pro-badge pro-badge-creator">
-                      ★ Creator & Author
+                      ★ Active Creator
                     </span>
                   ) : (
                     <span className="pro-badge pro-badge-reader">
@@ -251,11 +325,16 @@ const Profile = () => {
                     </span>
                   )}
                   <span className="pro-badge pro-badge-status">
-                    ● {user?.accountStatus || 'Active'}
+                    ● {accountStatus}
                   </span>
                   {user?.emailVerified && (
                     <span className="pro-badge pro-badge-verified">
-                      ✓ Verified
+                      ✓ Verified Email
+                    </span>
+                  )}
+                  {profile?.visibility && (
+                    <span className="pro-badge" style={{ background: 'var(--bg-surface-elevated)' }}>
+                      {profile.visibility} Profile
                     </span>
                   )}
                 </div>
@@ -263,14 +342,26 @@ const Profile = () => {
             </div>
 
             <div className="profile-hero-actions">
+              <button
+                onClick={() => setShowEditProfileModal(true)}
+                className="action-btn-secondary"
+                style={{ padding: '0.6rem 1.1rem', fontSize: '0.9rem' }}
+              >
+                ✏️ Edit Profile
+              </button>
+
               {isCreator ? (
-                <button onClick={handleOpenCreateNovel} className="btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem' }}>
-                  <span>+</span> Publish Novel
+                <button
+                  onClick={handleOpenNewDraft}
+                  className="btn-primary"
+                  style={{ padding: '0.6rem 1.25rem', fontSize: '0.9rem' }}
+                >
+                  <span>+</span> New Novel Draft
                 </button>
               ) : (
                 <button
-                  onClick={handleBecomeCreator}
-                  disabled={convertLoading}
+                  onClick={handleActivateCreator}
+                  disabled={creatorActionLoading}
                   className="btn-primary"
                   style={{
                     padding: '0.6rem 1.25rem',
@@ -279,11 +370,15 @@ const Profile = () => {
                     border: 'none',
                   }}
                 >
-                  {convertLoading ? 'Activating...' : '✨ Become an Author'}
+                  {creatorActionLoading ? 'Activating...' : '✨ Become an Author'}
                 </button>
               )}
 
-              <button onClick={handleLogout} className="action-btn-secondary" style={{ padding: '0.6rem 1rem', fontSize: '0.9rem', color: 'var(--danger)' }}>
+              <button
+                onClick={handleLogout}
+                className="action-btn-secondary"
+                style={{ padding: '0.6rem 1rem', fontSize: '0.9rem', color: 'var(--danger)' }}
+              >
                 Sign Out
               </button>
             </div>
@@ -292,27 +387,31 @@ const Profile = () => {
           {/* Quick Metrics Bar */}
           <div className="profile-hero-stats">
             <div className="hero-stat-item">
-              <span className="hero-stat-value">{creatorNovels.length}</span>
-              <span className="hero-stat-label">Publications</span>
+              <span className="hero-stat-value">{authorDrafts.length}</span>
+              <span className="hero-stat-label">Local Drafts</span>
             </div>
             <div className="hero-stat-item">
-              <span className="hero-stat-value">18.4 hrs</span>
-              <span className="hero-stat-label">Reading Time</span>
+              <span className="hero-stat-value">{savedBookmarks.length}</span>
+              <span className="hero-stat-label">Saved Bookmarks</span>
             </div>
             <div className="hero-stat-item">
-              <span className="hero-stat-value">12</span>
-              <span className="hero-stat-label">Bookmarks</span>
+              <span className="hero-stat-value" style={{ color: isCreator ? '#f59e0b' : 'var(--primary)' }}>
+                {profile?.creatorStatus || 'NONE'}
+              </span>
+              <span className="hero-stat-label">Creator Status</span>
             </div>
             <div className="hero-stat-item">
-              <span className="hero-stat-value" style={{ color: '#10b981' }}>TLS Encrypted</span>
-              <span className="hero-stat-label">Session Security</span>
+              <span className="hero-stat-value" style={{ color: 'var(--primary)' }}>
+                Secure JWT
+              </span>
+              <span className="hero-stat-label">Session State</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. MODERN HORIZONTAL TABS */}
-      <nav className="profile-tabs-header" aria-label="Profile Sections">
+      {/* HORIZONTAL NAVIGATION TABS */}
+      <nav className="profile-tabs-header" aria-label="Profile workspace sections">
         <button
           className={`profile-tab-item ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveTab('overview')}
@@ -335,9 +434,22 @@ const Profile = () => {
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
           <span>Creator Studio</span>
-          {creatorNovels.length > 0 && (
-            <span className="tab-counter-badge">{creatorNovels.length}</span>
+          {authorDrafts.length > 0 && (
+            <span className="tab-counter-badge">{authorDrafts.length}</span>
           )}
+        </button>
+
+        <button
+          className={`profile-tab-item ${activeTab === 'studios' ? 'active' : ''}`}
+          onClick={() => setActiveTab('studios')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span>Studio Teams</span>
         </button>
 
         <button
@@ -349,6 +461,9 @@ const Profile = () => {
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
           </svg>
           <span>Reading Library</span>
+          {savedBookmarks.length > 0 && (
+            <span className="tab-counter-badge">{savedBookmarks.length}</span>
+          )}
         </button>
 
         <button
@@ -363,12 +478,12 @@ const Profile = () => {
         </button>
       </nav>
 
-      {/* 3. TAB VIEWS */}
+      {/* TAB CONTENT VIEWS */}
       <div className="profile-tab-view">
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <>
-            {/* Creator Invitation Card (for Readers) */}
+            {/* Creator Invitation Card */}
             {!isCreator ? (
               <div
                 className="pro-card"
@@ -383,12 +498,12 @@ const Profile = () => {
                       <span>✍️</span> Unlock Author Privileges on NovelForge
                     </h3>
                     <p className="pro-card-subtitle">
-                      Publish original serials, write synopses, and build an audience. Conversion is instant with zero friction.
+                      Elevate your account to create serial works, write story blurb synopses, and build an audience. Activated directly via the Identity microservice.
                     </p>
                   </div>
                   <button
-                    onClick={handleBecomeCreator}
-                    disabled={convertLoading}
+                    onClick={handleActivateCreator}
+                    disabled={creatorActionLoading}
                     className="btn-primary"
                     style={{
                       background: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -396,7 +511,7 @@ const Profile = () => {
                       padding: '0.65rem 1.4rem',
                     }}
                   >
-                    {convertLoading ? 'Activating Creator...' : '⚡ Convert to Creator Account'}
+                    {creatorActionLoading ? 'Activating...' : '⚡ Activate Creator Account'}
                   </button>
                 </div>
               </div>
@@ -410,14 +525,14 @@ const Profile = () => {
               >
                 <div className="pro-card-header">
                   <div>
-                    <h3 className="pro-card-title" style={{ color: '#10b981' }}>
-                      <span>👑</span> Active Creator Account
+                    <h3 className="pro-card-title" style={{ color: 'var(--primary)' }}>
+                      <span>👑</span> Active Creator Status
                     </h3>
                     <p className="pro-card-subtitle">
-                      You are authorized to publish and manage serial novels. Access your full author workbench in the Creator Studio.
+                      Your author privileges are live on the Identity microservice. Access your author workbench in the Creator Studio.
                     </p>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => setActiveTab('creator')}
                       className="btn-primary"
@@ -426,11 +541,12 @@ const Profile = () => {
                       Open Creator Studio →
                     </button>
                     <button
-                      onClick={handleOpenCreateNovel}
+                      onClick={handleDeactivateCreator}
+                      disabled={creatorActionLoading}
                       className="action-btn-secondary"
                       style={{ padding: '0.55rem 1rem', fontSize: '0.88rem' }}
                     >
-                      + Publish Novel
+                      {creatorActionLoading ? 'Updating...' : 'Deactivate Creator'}
                     </button>
                   </div>
                 </div>
@@ -442,10 +558,19 @@ const Profile = () => {
               <div className="pro-card-header">
                 <div>
                   <h3 className="pro-card-title">
-                    <span>👤</span> Personal & Account Details
+                    <span>👤</span> Personal & Identity Profile
                   </h3>
-                  <p className="pro-card-subtitle">Essential details associated with your NovelForge account</p>
+                  <p className="pro-card-subtitle">
+                    Confirmed data synced directly from Identity Service (`/api/v1/identity/profile/me` & `/auth/me`)
+                  </p>
                 </div>
+                <button
+                  onClick={() => setShowEditProfileModal(true)}
+                  className="action-btn-secondary"
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                >
+                  Edit Profile
+                </button>
               </div>
 
               <div className="pro-info-grid">
@@ -460,31 +585,41 @@ const Profile = () => {
                 </div>
 
                 <div className="pro-info-box">
+                  <div className="pro-info-label">Display Name</div>
+                  <div className="pro-info-value">{profile?.displayName || user?.username || '—'}</div>
+                </div>
+
+                <div className="pro-info-box">
                   <div className="pro-info-label">Email Address</div>
                   <div className="pro-info-value">{user?.email || '—'}</div>
                 </div>
 
                 <div className="pro-info-box">
                   <div className="pro-info-label">Assigned Roles</div>
-                  <div className="pro-info-value" style={{ color: isCreator ? '#f59e0b' : 'var(--primary)' }}>
-                    {userRolesList.join(' • ')}
-                  </div>
-                </div>
-
-                <div className="pro-info-box">
-                  <div className="pro-info-label">Verification Status</div>
-                  <div className="pro-info-value" style={{ color: user?.emailVerified ? '#10b981' : 'var(--text-secondary)' }}>
-                    {user?.emailVerified ? 'Verified Account' : 'Standard Reader'}
+                  <div className="pro-info-value" style={{ color: 'var(--primary)' }}>
+                    {userRolesList.join(', ')}
                   </div>
                 </div>
 
                 <div className="pro-info-box">
                   <div className="pro-info-label">Account Health</div>
-                  <div className="pro-info-value" style={{ color: '#10b981' }}>
-                    {user?.accountStatus || 'ACTIVE'}
+                  <div
+                    className="pro-info-value"
+                    style={{ color: isPendingDeletion ? 'var(--danger)' : 'var(--primary)' }}
+                  >
+                    {accountStatus}
                   </div>
                 </div>
               </div>
+
+              {profile?.bio && (
+                <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-color)' }}>
+                  <div className="pro-info-label" style={{ marginBottom: '0.5rem' }}>Author Bio</div>
+                  <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                    {profile.bio}
+                  </p>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -495,133 +630,113 @@ const Profile = () => {
             <div className="pro-card-header">
               <div>
                 <h3 className="pro-card-title">
-                  <span>✨</span> Creator Studio & Catalog
+                  <span>✨</span> Creator Studio & Draft Workspace
                 </h3>
                 <p className="pro-card-subtitle">
-                  Manage your serialized publications, story synopses, and publication status
+                  Compose, organize, and prepare your original serialized works
                 </p>
               </div>
 
               {isCreator ? (
-                <button onClick={handleOpenCreateNovel} className="btn-primary" style={{ padding: '0.6rem 1.35rem' }}>
-                  + Publish New Novel
+                <button onClick={handleOpenNewDraft} className="btn-primary" style={{ padding: '0.6rem 1.35rem' }}>
+                  + New Novel Draft
                 </button>
               ) : (
                 <button
-                  onClick={handleBecomeCreator}
-                  disabled={convertLoading}
+                  onClick={handleActivateCreator}
+                  disabled={creatorActionLoading}
                   className="btn-primary"
                   style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none' }}
                 >
-                  {convertLoading ? 'Activating...' : 'Convert to Creator'}
+                  {creatorActionLoading ? 'Activating...' : 'Activate Creator'}
                 </button>
               )}
             </div>
 
-            {/* Metrics Row */}
-            <div className="studio-metrics-bar">
-              <div className="studio-metric-card">
-                <div className="studio-metric-icon">📚</div>
-                <div className="studio-metric-info">
-                  <span className="studio-metric-number">{creatorNovels.length}</span>
-                  <span className="studio-metric-label">Published Serials</span>
-                </div>
-              </div>
+            {/* Transparent Backend API Status Alert */}
+            <aside
+              role="status"
+              className="chapter-alert-box"
+              style={{
+                background: 'var(--bg-surface-elevated)',
+                borderLeft: '4px solid #f59e0b',
+                marginBottom: '1.75rem',
+              }}
+            >
+              <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                ℹ️ Novel Service API Contract Status: In Development
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.85rem', lineHeight: 1.5 }}>
+                The backend `NovelController` class is an empty stub and has not yet exposed live CRUD endpoints (`GET/POST /novels`) through the API Gateway.
+                In accordance with NovelForge integrity policies, publishing to server is marked as pending. Your novel synopses and metadata are stored safely in your local author draft workspace below.
+              </p>
+            </aside>
 
-              <div className="studio-metric-card">
-                <div className="studio-metric-icon">👥</div>
-                <div className="studio-metric-info">
-                  <span className="studio-metric-number">14.2K</span>
-                  <span className="studio-metric-label">Audience Reads</span>
-                </div>
-              </div>
-
-              <div className="studio-metric-card">
-                <div className="studio-metric-icon">⭐</div>
-                <div className="studio-metric-info">
-                  <span className="studio-metric-number">4.92</span>
-                  <span className="studio-metric-label">Avg. Rating</span>
-                </div>
-              </div>
-
-              <div className="studio-metric-card">
-                <div className="studio-metric-icon">⚡</div>
-                <div className="studio-metric-info">
-                  <span className="studio-metric-number">{isCreator ? 'ACTIVE' : 'READY'}</span>
-                  <span className="studio-metric-label">Author Status</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Chapter status note */}
-            <div className="chapter-alert-box" style={{ marginBottom: '1.5rem' }}>
-              <strong>ℹ️ Chapter Authoring Pipeline:</strong> Novel CRUD (Title, Category, Synopsis) is fully operational.
-              Polymorphic chapter blocks (`TextBlock`, `IllustrationBlock`) will link to your works upon backend merge.
-            </div>
-
-            {/* Publications List */}
-            {novelsLoading && (
-              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                Loading your publications...
-              </div>
-            )}
-
-            {!novelsLoading && creatorNovels.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '3.5rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border-color)' }}>
+            {/* Drafts List */}
+            {authorDrafts.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '3.5rem 1rem',
+                  background: 'var(--bg-surface-elevated)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px dashed var(--border-color)',
+                }}
+              >
                 <p style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
-                  {isCreator ? 'No novels published yet' : 'Become a Creator to start writing'}
+                  No novel drafts in progress
                 </p>
                 <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
-                  Publish your first serialized novel to start building your readership on NovelForge.
+                  Start a new draft to prepare your novel title, category, and story blurb.
                 </p>
-                {isCreator ? (
-                  <button onClick={handleOpenCreateNovel} className="btn-primary" style={{ padding: '0.6rem 1.4rem' }}>
-                    + Publish Your First Novel
-                  </button>
-                ) : (
-                  <button onClick={handleBecomeCreator} disabled={convertLoading} className="btn-primary" style={{ background: '#f59e0b', border: 'none', padding: '0.6rem 1.4rem' }}>
-                    {convertLoading ? 'Activating...' : 'Convert to Creator'}
-                  </button>
-                )}
+                <button onClick={handleOpenNewDraft} className="btn-primary" style={{ padding: '0.6rem 1.4rem' }}>
+                  + Create Your First Draft
+                </button>
               </div>
-            )}
-
-            {!novelsLoading && creatorNovels.length > 0 && (
+            ) : (
               <div className="studio-novels-grid">
-                {creatorNovels.map((novel) => (
-                  <article key={novel.id} className="studio-novel-card">
-                    <div className="studio-novel-header" style={{ background: novel.gradient || 'linear-gradient(135deg, #1e3a8a, #3b82f6)' }}>
-                      <span className="pro-badge pro-badge-reader" style={{ background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', alignSelf: 'flex-start' }}>
-                        {novel.categoryType || 'FICTION'}
+                {authorDrafts.map((draft) => (
+                  <article key={draft.id} className="studio-novel-card">
+                    <div className="studio-novel-header" style={{ background: draft.gradient }}>
+                      <span className="pro-badge pro-badge-reader" style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none' }}>
+                        Local Draft
                       </span>
                       <span style={{ fontSize: '1.1rem', fontWeight: 800, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
-                        {novel.title}
+                        {draft.title}
                       </span>
                     </div>
 
                     <div className="studio-novel-content">
-                      <h4 className="studio-novel-title">{novel.title}</h4>
-                      <p className="studio-novel-synopsis">{novel.synopsis}</p>
+                      <h4 className="studio-novel-title">{draft.title}</h4>
+                      <p className="studio-novel-synopsis">{draft.synopsis || 'No synopsis added yet.'}</p>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                        <span>★ {novel.rating || '4.9'}</span>
-                        <span>0 Chapters</span>
-                        <span>{novel.views || '1.2K'} reads</span>
+                        <span>Category: {draft.categoryType || 'FICTION'}</span>
+                        <span>Saved Locally</span>
                       </div>
 
                       <div className="studio-novel-actions-bar">
                         <button
-                          onClick={() => handleOpenEditNovel(novel)}
+                          onClick={() => handleOpenEditDraft(draft)}
                           className="action-btn-secondary"
                           style={{ flex: 1, padding: '0.45rem 0.75rem', fontSize: '0.85rem', justifyContent: 'center' }}
                         >
-                          ✏️ Edit
+                          ✏️ Edit Draft
                         </button>
                         <button
-                          onClick={() => handleOpenDeleteNovel(novel)}
+                          onClick={handleAttemptPublish}
+                          className="btn-primary"
+                          style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem' }}
+                          title="Publish to live server"
+                        >
+                          🚀 Publish
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDraft(draft.id)}
                           className="action-btn-secondary"
                           style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem', color: 'var(--danger)' }}
-                          title="Delete Novel"
+                          title="Delete Draft"
+                          aria-label="Delete draft"
                         >
                           🗑️
                         </button>
@@ -634,182 +749,164 @@ const Profile = () => {
           </div>
         )}
 
-        {/* TAB 3: READING LIBRARY */}
+        {/* TAB 3: STUDIO TEAMS */}
+        {activeTab === 'studios' && (
+          <div className="pro-card">
+            <StudioManager
+              isCreator={isCreator}
+              onActivateCreator={handleActivateCreator}
+            />
+          </div>
+        )}
+
+        {/* TAB 4: READING LIBRARY */}
         {activeTab === 'library' && (
           <div className="pro-card">
             <div className="pro-card-header">
               <div>
                 <h3 className="pro-card-title">
-                  <span>📖</span> Reading Bookshelf & History
+                  <span>📖</span> Reading Bookshelf & Saved Bookmarks
                 </h3>
-                <p className="pro-card-subtitle">Keep track of your active serials, bookmarks, and reading milestones</p>
+                <p className="pro-card-subtitle">Your saved serials and bookmarked chapters</p>
               </div>
+              <Link to="/novels" className="btn-primary" style={{ padding: '0.55rem 1.2rem', fontSize: '0.88rem' }}>
+                Browse Catalog
+              </Link>
             </div>
 
-            <div className="pro-info-grid">
-              <div className="pro-info-box">
-                <div className="pro-info-label">Saved Bookmarks</div>
-                <div className="pro-info-value">12 Chapters Bookmarked</div>
+            {savedBookmarks.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '3rem 1rem',
+                  background: 'var(--bg-surface-elevated)',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem 0' }}>
+                  You have not saved any novels to your library yet.
+                </p>
+                <Link to="/novels" className="btn-primary" style={{ padding: '0.55rem 1.25rem' }}>
+                  Explore Curated Novels
+                </Link>
               </div>
-              <div className="pro-info-box">
-                <div className="pro-info-label">Total Reading Time</div>
-                <div className="pro-info-value">18.4 Hours</div>
+            ) : (
+              <div className="pro-info-grid">
+                <div className="pro-info-box">
+                  <div className="pro-info-label">Active Bookmarks</div>
+                  <div className="pro-info-value">{savedBookmarks.length} Novels Bookmarked</div>
+                </div>
+                <div className="pro-info-box">
+                  <div className="pro-info-label">Reading Mode</div>
+                  <div className="pro-info-value">Distraction-Free Sepia / Dark</div>
+                </div>
               </div>
-              <div className="pro-info-box">
-                <div className="pro-info-label">Favorite Genres</div>
-                <div className="pro-info-value">Epic Fantasy, LitRPG, Sci-Fi</div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
-        {/* TAB 4: SECURITY & SESSIONS (PROFESSIONAL GRADE) */}
+        {/* TAB 5: SECURITY & SESSIONS */}
         {activeTab === 'security' && (
           <div className="pro-card">
             <div className="pro-card-header">
               <div>
                 <h3 className="pro-card-title">
-                  <span>🛡️</span> Security & Active Sessions
+                  <span>🛡️</span> Security, Identity & Lifecycle
                 </h3>
                 <p className="pro-card-subtitle">
-                  Enterprise-grade authentication, stateless tokens, and account safeguards
+                  Stateless JWT authorization, HttpOnly refresh cookies, and account deletion lifecycle
                 </p>
               </div>
             </div>
 
             <div className="security-settings-list">
-              {/* Account Credential */}
+              {/* Account Email */}
               <div className="security-setting-item">
                 <div className="security-setting-info">
-                  <h4 className="security-setting-title">Primary Account Email</h4>
-                  <p className="security-setting-desc">{user?.email || 'reader@novelforge.com'}</p>
+                  <h4 className="security-setting-title">Primary Identity Email</h4>
+                  <p className="security-setting-desc">{user?.email || 'user@novelforge.com'}</p>
                 </div>
-                <span className="pro-badge pro-badge-verified">Verified</span>
-              </div>
-
-              {/* Password Status */}
-              <div className="security-setting-item">
-                <div className="security-setting-info">
-                  <h4 className="security-setting-title">Account Password</h4>
-                  <p className="security-setting-desc">Last changed via secure OTP verification</p>
-                </div>
-                <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                  ••••••••••••••••
+                <span className="pro-badge pro-badge-verified">
+                  {user?.emailVerified ? '✓ Verified' : 'Standard'}
                 </span>
               </div>
 
-              {/* Session Health */}
+              {/* Session State */}
               <div className="security-setting-item">
                 <div className="security-setting-info">
-                  <h4 className="security-setting-title">Active Browser Session</h4>
+                  <h4 className="security-setting-title">Browser Session & Tokens</h4>
                   <p className="security-setting-desc">
-                    Protected with stateless JWT verification & auto-rotating HttpOnly cookie
+                    Access token is held in client memory; refresh token is isolated in browser HttpOnly cookie
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <span className="security-session-pill">● Secure & Active</span>
+                  <span className="security-session-pill">● Protected Session</span>
                   <button
                     onClick={handleTestRefresh}
                     disabled={refreshLoading}
                     className="action-btn-secondary"
                     style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}
                   >
-                    {refreshLoading ? <span className="spinner-sm" /> : '↻'} Refresh Session
+                    {refreshLoading ? 'Refreshing...' : '↻ Test Cookie Refresh'}
                   </button>
                 </div>
               </div>
-            </div>
 
-            {/* Collapsible Advanced Developer Tools */}
-            <div className="dev-tools-accordion">
-              <div
-                className="dev-tools-header"
-                onClick={() => setShowDevTools((prev) => !prev)}
-              >
-                <span>⚙️ Advanced: Developer Connectivity & Token Diagnostics</span>
-                <span>{showDevTools ? '▲ Hide' : '▼ Expand'}</span>
-              </div>
-
-              {showDevTools && (
-                <div className="dev-tools-body">
-                  {/* Masked Token Box */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
-                      Session Access Token
-                    </label>
-                    <div className="masked-token-container">
-                      <span className="masked-token-text">
-                        {showFullToken ? (token ? `Bearer ${token}` : 'No active token') : maskedToken}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowFullToken((prev) => !prev)}
-                        className="action-btn-secondary"
-                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}
-                      >
-                        {showFullToken ? 'Mask' : 'Reveal'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCopyToken}
-                        className="action-btn-secondary"
-                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.78rem' }}
-                      >
-                        {tokenCopied ? '✓ Copied' : 'Copy'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* API Endpoint Switcher */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
-                      API Gateway Base URL
-                    </label>
-                    <form onSubmit={handleSaveApiUrl} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <input
-                        type="text"
-                        className="form-input no-icon"
-                        value={customApiUrl}
-                        onChange={(e) => setCustomApiUrl(e.target.value)}
-                        placeholder="https://api-gateway-g43i.onrender.com"
-                        style={{ flex: 1, minWidth: '220px', padding: '0.5rem 0.75rem', fontSize: '0.88rem' }}
-                      />
-                      <button type="submit" className="action-btn-emerald" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                        Save Endpoint
-                      </button>
-                      <button type="button" onClick={handleResetApiUrl} className="action-btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                        Reset Default
-                      </button>
-                    </form>
-                  </div>
+              {/* Account Deletion Lifecycle */}
+              <div className="security-setting-item" style={{ borderBottom: 'none' }}>
+                <div className="security-setting-info">
+                  <h4 className="security-setting-title" style={{ color: isPendingDeletion ? 'var(--danger)' : 'inherit' }}>
+                    Account Retention & Deletion
+                  </h4>
+                  <p className="security-setting-desc">
+                    NovelForge provides a 30-day retention grace period for requested account deletions.
+                  </p>
                 </div>
-              )}
+
+                {isPendingDeletion ? (
+                  <button
+                    onClick={handleCancelDeletion}
+                    disabled={accountActionLoading}
+                    className="btn-primary"
+                    style={{ backgroundColor: 'var(--danger)', borderColor: 'var(--danger)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                  >
+                    {accountActionLoading ? 'Restoring...' : 'Cancel Deletion Request'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowDeleteAccountModal(true)}
+                    className="action-btn-secondary"
+                    style={{ color: 'var(--danger)', borderColor: 'var(--danger)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                  >
+                    Request Deletion
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* CREATE NOVEL MODAL */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+      {/* EDIT PROFILE MODAL */}
+      {showEditProfileModal && (
+        <div className="modal-overlay" onClick={() => setShowEditProfileModal(false)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Publish New Novel</h2>
-              <button className="modal-close-btn" onClick={() => setShowCreateModal(false)}>✕</button>
+              <h2 className="modal-title">Edit Public Profile</h2>
+              <button className="modal-close-btn" onClick={() => setShowEditProfileModal(false)}>✕</button>
             </div>
 
-            <form onSubmit={handleCreateNovelSubmit}>
+            <form onSubmit={handleSaveProfile}>
               <div className="modal-body">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 600 }}>
-                    Novel Title
+                    Display Name
                   </label>
                   <input
                     type="text"
                     required
-                    value={novelForm.title}
-                    onChange={(e) => setNovelForm({ ...novelForm, title: e.target.value })}
-                    placeholder="e.g. Chronicles of the Void Sovereign"
+                    value={profileForm.displayName}
+                    onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
                     className="form-input no-icon"
                     style={{ width: '100%' }}
                   />
@@ -817,39 +914,42 @@ const Profile = () => {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 600 }}>
-                    Category
+                    Profile Visibility
                   </label>
                   <select
-                    value={novelForm.categoryType}
-                    onChange={(e) => setNovelForm({ ...novelForm, categoryType: e.target.value })}
+                    value={profileForm.visibility}
+                    onChange={(e) => setProfileForm({ ...profileForm, visibility: e.target.value })}
                     className="form-input no-icon"
                     style={{ width: '100%', padding: '0.65rem' }}
                   >
-                    <option value="FICTION">Fiction</option>
-                    <option value="NONFICTION">Non-Fiction</option>
+                    <option value="PUBLIC">Public (Visible to readers)</option>
+                    <option value="PRIVATE">Private (Only visible to you)</option>
                   </select>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 600 }}>
-                    Synopsis
+                    Author Bio
                   </label>
                   <textarea
-                    required
-                    rows={5}
-                    value={novelForm.synopsis}
-                    onChange={(e) => setNovelForm({ ...novelForm, synopsis: e.target.value })}
-                    placeholder="Provide a compelling story blurb and setting synopsis..."
+                    rows={4}
+                    value={profileForm.bio}
+                    onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                    placeholder="Tell readers about your stories, inspirations, and publishing schedule..."
                     className="form-input no-icon"
                     style={{ width: '100%', resize: 'vertical' }}
                   />
+                </div>
+
+                <div className="chapter-alert-box" style={{ fontSize: '0.82rem' }}>
+                  ℹ️ Avatar image uploads require backend signature integration. Initials and account identifiers are displayed.
                 </div>
               </div>
 
               <div className="modal-footer">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => setShowEditProfileModal(false)}
                   className="btn-secondary"
                   style={{ padding: '0.6rem 1.2rem' }}
                 >
@@ -857,11 +957,11 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={profileSaving}
                   className="btn-primary"
                   style={{ padding: '0.6rem 1.4rem' }}
                 >
-                  {isSubmitting ? 'Publishing...' : 'Publish Novel'}
+                  {profileSaving ? 'Saving...' : 'Save Profile'}
                 </button>
               </div>
             </form>
@@ -869,16 +969,18 @@ const Profile = () => {
         </div>
       )}
 
-      {/* EDIT NOVEL MODAL */}
-      {showEditModal && selectedNovel && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+      {/* DRAFT MODAL */}
+      {showDraftModal && (
+        <div className="modal-overlay" onClick={() => setShowDraftModal(false)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Edit Novel Metadata</h2>
-              <button className="modal-close-btn" onClick={() => setShowEditModal(false)}>✕</button>
+              <h2 className="modal-title">
+                {selectedDraft ? 'Edit Novel Draft' : 'Create New Novel Draft'}
+              </h2>
+              <button className="modal-close-btn" onClick={() => setShowDraftModal(false)}>✕</button>
             </div>
 
-            <form onSubmit={handleUpdateNovelSubmit}>
+            <form onSubmit={handleSaveDraft}>
               <div className="modal-body">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 600 }}>
@@ -887,8 +989,9 @@ const Profile = () => {
                   <input
                     type="text"
                     required
-                    value={novelForm.title}
-                    onChange={(e) => setNovelForm({ ...novelForm, title: e.target.value })}
+                    value={draftForm.title}
+                    onChange={(e) => setDraftForm({ ...draftForm, title: e.target.value })}
+                    placeholder="e.g. Chronicles of the Starforge"
                     className="form-input no-icon"
                     style={{ width: '100%' }}
                   />
@@ -899,8 +1002,8 @@ const Profile = () => {
                     Category
                   </label>
                   <select
-                    value={novelForm.categoryType}
-                    onChange={(e) => setNovelForm({ ...novelForm, categoryType: e.target.value })}
+                    value={draftForm.categoryType}
+                    onChange={(e) => setDraftForm({ ...draftForm, categoryType: e.target.value })}
                     className="form-input no-icon"
                     style={{ width: '100%', padding: '0.65rem' }}
                   >
@@ -911,23 +1014,42 @@ const Profile = () => {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 600 }}>
-                    Synopsis
+                    Genre
+                  </label>
+                  <input
+                    type="text"
+                    value={draftForm.genre}
+                    onChange={(e) => setDraftForm({ ...draftForm, genre: e.target.value })}
+                    placeholder="e.g. High Fantasy / Cultivation"
+                    className="form-input no-icon"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', fontWeight: 600 }}>
+                    Synopsis & Story Blurb
                   </label>
                   <textarea
                     required
                     rows={5}
-                    value={novelForm.synopsis}
-                    onChange={(e) => setNovelForm({ ...novelForm, synopsis: e.target.value })}
+                    value={draftForm.synopsis}
+                    onChange={(e) => setDraftForm({ ...draftForm, synopsis: e.target.value })}
+                    placeholder="Write a compelling blurb for prospective readers..."
                     className="form-input no-icon"
                     style={{ width: '100%', resize: 'vertical' }}
                   />
+                </div>
+
+                <div className="chapter-alert-box" style={{ fontSize: '0.82rem' }}>
+                  ℹ️ Saved safely in your local author drafts workspace.
                 </div>
               </div>
 
               <div className="modal-footer">
                 <button
                   type="button"
-                  onClick={() => setShowEditModal(false)}
+                  onClick={() => setShowDraftModal(false)}
                   className="btn-secondary"
                   style={{ padding: '0.6rem 1.2rem' }}
                 >
@@ -935,11 +1057,10 @@ const Profile = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="action-btn-emerald"
+                  className="btn-primary"
                   style={{ padding: '0.6rem 1.4rem' }}
                 >
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                  Save Draft
                 </button>
               </div>
             </form>
@@ -947,28 +1068,28 @@ const Profile = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && selectedNovel && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
+      {showDeleteAccountModal && (
+        <div className="modal-overlay" onClick={() => setShowDeleteAccountModal(false)}>
           <div className="modal-container" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title" style={{ color: 'var(--danger)' }}>Confirm Deletion</h2>
-              <button className="modal-close-btn" onClick={() => setShowDeleteModal(false)}>✕</button>
+              <h2 className="modal-title" style={{ color: 'var(--danger)' }}>Request Account Deletion</h2>
+              <button className="modal-close-btn" onClick={() => setShowDeleteAccountModal(false)}>✕</button>
             </div>
 
             <div className="modal-body">
-              <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.5 }}>
-                Are you sure you want to delete <strong>"{selectedNovel.title}"</strong>?
+              <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                Are you sure you want to request deletion of your account (<strong>{user?.username}</strong>)?
               </p>
               <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                This triggers a soft delete on the server with a 30-day retention grace period.
+                Your account will be placed into a 30-day pending deletion state. You can cancel this request at any time during this period.
               </p>
             </div>
 
             <div className="modal-footer">
               <button
                 type="button"
-                onClick={() => setShowDeleteModal(false)}
+                onClick={() => setShowDeleteAccountModal(false)}
                 className="btn-secondary"
                 style={{ padding: '0.55rem 1.2rem' }}
               >
@@ -976,12 +1097,12 @@ const Profile = () => {
               </button>
               <button
                 type="button"
-                onClick={handleDeleteNovelSubmit}
-                disabled={isSubmitting}
+                onClick={handleRequestDeletion}
+                disabled={accountActionLoading}
                 className="btn-primary"
                 style={{ padding: '0.55rem 1.4rem', backgroundColor: 'var(--danger)', borderColor: 'var(--danger)' }}
               >
-                {isSubmitting ? 'Deleting...' : 'Delete Novel'}
+                {accountActionLoading ? 'Requesting...' : 'Confirm Deletion Request'}
               </button>
             </div>
           </div>

@@ -3,9 +3,9 @@ spring:
     name: studio-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/userDB
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${STUDIO_DB:studioDB}
     username: ${POSTGRES_USER:postgres}
-    password: ${POSTGRES_PASSWORD:365891}
+    password: ${POSTGRES_PASSWORD}
 
   jpa:
     hibernate:
@@ -31,7 +31,7 @@ novelforge:
 identity:
   service:
     base-url: ${IDENTITY_SERVICE_BASE_URL:http://localhost:8081}
-    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET:qwertyuioooopasdfghjkl}
+    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET}
 
 eureka:
   client:
