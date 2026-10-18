@@ -37,7 +37,7 @@ spring:
                 - RewritePath=/api/v1/identity(?<segment>/.*), ${segment}
 
             - id: STUDIO-SERVICE-ROOT
-              uri: ${STUDIO_SERVICE_URL:http://localhost:8087}
+              uri: ${STUDIO_SERVICE_URL:https://novelforge-studio-service.onrender.com}
               predicates:
                 - Path=/api/v1/studios
               filters:
