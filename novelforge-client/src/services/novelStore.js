@@ -1,248 +1,245 @@
-// Unified Novel Store for NovelForge Client
-// Integrates live backend novel-service CRUD with fallback dummy novels and local storage cache.
+/**
+ * Novel Store & Catalog Service
+ * Production client store with explicit data isolation and live backend gateway synchronization:
+ * - Real Backend Synchronization: Connects directly to Novel Service via API Gateway (GET /api/v1/novels)
+ * - Local Drafts: Author work-in-progress drafts (isDraft: true, isPublished: false)
+ * - Curated Catalog: Fallback showcase novels for reader demonstration while backend endpoints are under development
+ */
 
-import { novelApi } from './api';
 import { DUMMY_NOVELS, NOVEL_GRADIENTS } from './dummyNovels';
+import { novelApi } from './api';
 
-const LOCAL_NOVELS_KEY = 'novelforge_user_novels';
+const LOCAL_DRAFTS_KEY = 'novelforge_author_drafts';
 
-export const getLocalUserNovels = () => {
+export const getLocalAuthorDrafts = () => {
   try {
-    const raw = localStorage.getItem(LOCAL_NOVELS_KEY);
+    const raw = localStorage.getItem(LOCAL_DRAFTS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
-    console.warn('Failed to parse local user novels:', e);
+    console.warn('Failed to parse local author drafts:', e);
     return [];
   }
 };
 
-export const saveLocalUserNovels = (novels) => {
+export const saveLocalAuthorDrafts = (drafts) => {
   try {
-    localStorage.setItem(LOCAL_NOVELS_KEY, JSON.stringify(novels));
+    localStorage.setItem(LOCAL_DRAFTS_KEY, JSON.stringify(drafts));
   } catch (e) {
-    console.warn('Failed to save local user novels:', e);
+    console.warn('Failed to save local author drafts:', e);
   }
-};
-
-/**
- * Normalizes novel data from backend or local storage into a consistent frontend model.
- */
-export const normalizeNovel = (novel, idx = 0) => {
-  return {
-    id: novel.id,
-    title: novel.title || 'Untitled Novel',
-    synopsis: novel.synopsis || 'No synopsis provided.',
-    categoryType: novel.categoryType || 'FICTION',
-    author: novel.author || 'Author Unknown',
-    chapters: novel.chapters ?? 0,
-    chapterStatus: novel.chapterStatus || (novel.chapters ? `${novel.chapters} Chapters` : 'No chapters published yet'),
-    rating: novel.rating || 4.9,
-    views: novel.views || '1.2K',
-    createdAt: novel.createdAt || new Date().toISOString(),
-    updatedAt: novel.updatedAt || new Date().toISOString(),
-    gradient: novel.gradient || NOVEL_GRADIENTS[idx % NOVEL_GRADIENTS.length],
-    isLive: Boolean(novel.isLive),
-    isUserCreated: Boolean(novel.isUserCreated),
-  };
 };
 
 export const novelStore = {
   /**
-   * Fetches all novels: tries backend novel-service first,
-   * then merges live novels, user-created novels, and curated dummy novels.
+   * Loads the complete novel catalog:
+   * First queries the live backend API Gateway (/api/v1/novels).
+   * If live backend novels exist, they are integrated directly.
+   * If the service is under development (returns 404/offline), reports status honestly.
    */
-  loadAllNovels: async (page = 0) => {
-    let liveNovels = [];
-    let isLiveConnected = false;
+  loadAllNovels: async () => {
+    let isLiveBackendAvailable = false;
+    let backendNovels = [];
+    let backendStatusMessage = null;
 
     try {
-      const response = await novelApi.getAllNovels(page);
-      const content = response && Array.isArray(response.content)
-        ? response.content
-        : (Array.isArray(response) ? response : []);
-
-      if (content.length > 0) {
-        liveNovels = content.map((item, idx) => ({
-          ...normalizeNovel(item, idx),
-          isLive: true,
-          author: item.author || 'Author Unknown',
-          chapters: 0,
-          chapterStatus: 'No chapters published yet',
+      const res = await novelApi.getAllNovels({ page: 0 });
+      const items = res?.content || (Array.isArray(res) ? res : []);
+      if (items.length > 0) {
+        backendNovels = items.map((novel, idx) => ({
+          ...novel,
+          isRemote: true,
+          gradient: NOVEL_GRADIENTS[idx % NOVEL_GRADIENTS.length],
         }));
-        isLiveConnected = true;
+        isLiveBackendAvailable = true;
       } else {
-        isLiveConnected = true;
+        // Connected to backend, but catalog has no entries yet
+        isLiveBackendAvailable = true;
       }
     } catch (err) {
-      console.warn('Live novel-service currently unavailable, using catalog store:', err.message);
-      isLiveConnected = false;
+      isLiveBackendAvailable = false;
+      backendStatusMessage =
+        err.status === 404
+          ? 'Novel microservice endpoints are undergoing backend development.'
+          : err.message || 'Novel microservice is currently unreachable.';
     }
 
-    const userNovels = getLocalUserNovels().map((item, idx) => ({
-      ...normalizeNovel(item, idx),
-      isUserCreated: true,
+    const authorDrafts = getLocalAuthorDrafts().map((draft, idx) => ({
+      ...draft,
+      isDraft: true,
+      gradient: draft.gradient || NOVEL_GRADIENTS[idx % NOVEL_GRADIENTS.length],
     }));
 
-    // Avoid duplicates if a novel is in both live and local
-    const liveIds = new Set(liveNovels.map((n) => String(n.id)));
-    const filteredUserNovels = userNovels.filter((n) => !liveIds.has(String(n.id)));
-
-    // Combined catalog: User created + Live backend + Dummy novels
-    const combined = [...filteredUserNovels, ...liveNovels, ...DUMMY_NOVELS];
+    // Merge: backend novels + author drafts + curated showcase catalog
+    const allNovels =
+      backendNovels.length > 0
+        ? [...authorDrafts, ...backendNovels]
+        : [...authorDrafts, ...DUMMY_NOVELS];
 
     return {
-      novels: combined,
-      isLiveConnected,
-      liveCount: liveNovels.length,
-      userCount: filteredUserNovels.length,
+      novels: allNovels,
+      isLiveBackendAvailable,
+      backendStatusMessage,
+      curatedCount: DUMMY_NOVELS.length,
+      draftCount: authorDrafts.length,
+      remoteCount: backendNovels.length,
     };
   },
 
   /**
-   * Searches novels by keyword (title, synopsis, category)
+   * Search novels by keyword across titles, authors, genres, and synopses
    */
-  searchNovels: async (query = '', page = 0) => {
+  searchNovels: async (query = '') => {
     const q = query.trim().toLowerCase();
+    const { novels, isLiveBackendAvailable, backendStatusMessage } = await novelStore.loadAllNovels();
+
     if (!q) {
-      return await novelStore.loadAllNovels(page);
+      return { novels, isLiveBackendAvailable, backendStatusMessage };
     }
 
-    let liveNovels = [];
-    let isLiveConnected = false;
-
-    try {
-      const response = await novelApi.searchNovels(q, page);
-      const content = response && Array.isArray(response.content)
-        ? response.content
-        : (Array.isArray(response) ? response : []);
-
-      if (content.length > 0) {
-        liveNovels = content.map((item, idx) => ({
-          ...normalizeNovel(item, idx),
-          isLive: true,
-          author: item.author || 'Author Unknown',
-          chapters: 0,
-        }));
-        isLiveConnected = true;
+    // Try backend search if available
+    if (isLiveBackendAvailable) {
+      try {
+        const res = await novelApi.searchNovels({ query: q, page: 0 });
+        const items = res?.content || (Array.isArray(res) ? res : []);
+        if (items.length > 0) {
+          const remoteMatches = items.map((novel, idx) => ({
+            ...novel,
+            isRemote: true,
+            gradient: NOVEL_GRADIENTS[idx % NOVEL_GRADIENTS.length],
+          }));
+          return { novels: remoteMatches, isLiveBackendAvailable, backendStatusMessage: null };
+        }
+      } catch (err) {
+        console.warn('Backend search failed, falling back to local search:', err.message);
       }
-    } catch {
-      isLiveConnected = false;
     }
 
-    const userNovels = getLocalUserNovels();
-    const allFallback = [...userNovels, ...DUMMY_NOVELS];
-    const filteredFallback = allFallback.filter((n) =>
-      (n.title && n.title.toLowerCase().includes(q)) ||
-      (n.synopsis && n.synopsis.toLowerCase().includes(q)) ||
-      (n.categoryType && n.categoryType.toLowerCase().includes(q))
-    );
+    const filtered = novels.filter((n) => {
+      const matchTitle = n.title && n.title.toLowerCase().includes(q);
+      const matchAuthor = n.author && n.author.toLowerCase().includes(q);
+      const matchCategory = n.categoryType && n.categoryType.toLowerCase().includes(q);
+      const matchGenre = n.genre && n.genre.toLowerCase().includes(q);
+      const matchSynopsis = n.synopsis && n.synopsis.toLowerCase().includes(q);
+      const matchTags = Array.isArray(n.tags) && n.tags.some((t) => t.toLowerCase().includes(q));
 
-    const liveIds = new Set(liveNovels.map((n) => String(n.id)));
-    const merged = [...liveNovels, ...filteredFallback.filter((n) => !liveIds.has(String(n.id)))];
+      return matchTitle || matchAuthor || matchCategory || matchGenre || matchSynopsis || matchTags;
+    });
 
-    return {
-      novels: merged,
-      isLiveConnected,
-    };
+    return { novels: filtered, isLiveBackendAvailable, backendStatusMessage };
   },
 
   /**
-   * Creates a novel: attempts POST /novels on novel-service,
-   * also caches in local storage for instantaneous display.
+   * Find a single novel by ID.
+   * First checks local author drafts, then attempts remote backend fetch, then catalog.
    */
-  createNovel: async (data, creatorUsername = 'Author Unknown') => {
-    let createdResult = null;
-    let isLive = false;
+  getNovelById: async (id) => {
+    const drafts = getLocalAuthorDrafts();
+    const draft = drafts.find((d) => String(d.id) === String(id));
+    if (draft) return draft;
 
-    try {
-      createdResult = await novelApi.createNovel({
-        title: data.title,
-        synopsis: data.synopsis,
-        categoryType: data.categoryType,
-      });
-      isLive = true;
-    } catch (err) {
-      console.warn('Backend createNovel failed or timed out, caching locally:', err.message);
-      // Fallback local creation with synthetic ID
-      createdResult = {
-        id: Date.now(),
-        title: data.title,
-        synopsis: data.synopsis,
-        categoryType: data.categoryType,
+    // Check remote backend if ID is a valid numeric ID
+    if (/^\d+$/.test(String(id))) {
+      try {
+        const remoteNovel = await novelApi.getNovel(id);
+        if (remoteNovel) {
+          return {
+            ...remoteNovel,
+            isRemote: true,
+            gradient: NOVEL_GRADIENTS[Number(id) % NOVEL_GRADIENTS.length],
+          };
+        }
+      } catch {
+        // Fall through to curated catalog
+      }
+    }
+
+    const catalogNovel = DUMMY_NOVELS.find((n) => String(n.id) === String(id));
+    return catalogNovel || null;
+  },
+
+  /**
+   * Find a chapter by novel ID and chapter ID.
+   */
+  getChapter: async (novelId, chapterId) => {
+    const novel = await novelStore.getNovelById(novelId);
+    if (!novel || !Array.isArray(novel.chapters)) return null;
+
+    const chapter = novel.chapters.find(
+      (c) => String(c.id) === String(chapterId) || String(c.chapterNumber) === String(chapterId)
+    );
+    return chapter ? { novel, chapter } : null;
+  },
+
+  /**
+   * Saves a novel draft in the author's local workspace.
+   * Explicitly labeled as a Local Draft (isDraft: true).
+   */
+  saveDraft: async (draftData, authorUsername = 'Author') => {
+    const drafts = getLocalAuthorDrafts();
+    const isExisting = draftData.id && drafts.some((d) => String(d.id) === String(draftData.id));
+
+    let updatedDraft;
+    if (isExisting) {
+      updatedDraft = {
+        ...draftData,
+        updatedAt: new Date().toISOString(),
+        isDraft: true,
+      };
+      const updatedList = drafts.map((d) =>
+        String(d.id) === String(draftData.id) ? updatedDraft : d
+      );
+      saveLocalAuthorDrafts(updatedList);
+    } else {
+      updatedDraft = {
+        id: `draft-${Date.now()}`,
+        title: draftData.title || 'Untitled Draft',
+        author: authorUsername,
+        categoryType: draftData.categoryType || 'FICTION',
+        genre: draftData.genre || 'Original Fiction',
+        synopsis: draftData.synopsis || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        isDraft: true,
+        chaptersCount: 0,
+        chapters: [],
+        rating: 5.0,
+        views: '0',
+        gradient: NOVEL_GRADIENTS[Math.floor(Math.random() * NOVEL_GRADIENTS.length)],
       };
+      saveLocalAuthorDrafts([updatedDraft, ...drafts]);
     }
 
-    const newNovel = {
-      ...normalizeNovel(createdResult),
-      author: creatorUsername || 'Author Unknown',
-      chapters: 0,
-      chapterStatus: 'No chapters published yet',
-      isLive,
-      isUserCreated: true,
-      gradient: NOVEL_GRADIENTS[Math.floor(Math.random() * NOVEL_GRADIENTS.length)],
-    };
-
-    const existing = getLocalUserNovels();
-    saveLocalUserNovels([newNovel, ...existing]);
-
-    return newNovel;
+    return updatedDraft;
   },
 
   /**
-   * Updates an existing novel by ID: attempts PUT /novels/{id},
-   * and updates local store.
+   * Delete an author draft from local workspace
    */
-  updateNovel: async (id, data) => {
-    let isLive = false;
-    try {
-      await novelApi.updateNovel(id, {
-        title: data.title,
-        synopsis: data.synopsis,
-        categoryType: data.categoryType,
-      });
-      isLive = true;
-    } catch (err) {
-      console.warn('Backend updateNovel failed, updating local copy:', err.message);
-    }
-
-    // Update in local user novels if exists
-    const existing = getLocalUserNovels();
-    const updated = existing.map((n) => {
-      if (String(n.id) === String(id)) {
-        return {
-          ...n,
-          title: data.title,
-          synopsis: data.synopsis,
-          categoryType: data.categoryType,
-          updatedAt: new Date().toISOString(),
-          isLive: isLive || n.isLive,
-        };
-      }
-      return n;
-    });
-    saveLocalUserNovels(updated);
-
-    return { id, ...data, updatedAt: new Date().toISOString(), isLive };
-  },
-
-  /**
-   * Deletes a novel by ID: attempts DELETE /novels/{id},
-   * and removes from local store.
-   */
-  deleteNovel: async (id) => {
-    try {
-      await novelApi.deleteNovel(id);
-    } catch (err) {
-      console.warn('Backend deleteNovel failed or offline, removing from local state:', err.message);
-    }
-
-    const existing = getLocalUserNovels();
-    const filtered = existing.filter((n) => String(n.id) !== String(id));
-    saveLocalUserNovels(filtered);
-
+  deleteDraft: async (draftId) => {
+    const drafts = getLocalAuthorDrafts();
+    const filtered = drafts.filter((d) => String(d.id) !== String(draftId));
+    saveLocalAuthorDrafts(filtered);
     return true;
+  },
+
+  /**
+   * Attempt publishing novel to backend service.
+   * Transparently informs caller that backend NovelController endpoints are pending.
+   */
+  publishToBackend: async (draftData) => {
+    // Attempt live POST /novels on the backend
+    try {
+      const created = await novelApi.createNovel({
+        title: draftData.title,
+        synopsis: draftData.synopsis,
+        categoryType: draftData.categoryType || 'FICTION',
+      });
+      return { success: true, novel: created };
+    } catch (err) {
+      throw new Error(
+        `Backend Novel Service is undergoing development (${err.message || 'HTTP 404'}). Your story is safely preserved in your author drafts.`
+      );
+    }
   },
 };
 

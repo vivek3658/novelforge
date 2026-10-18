@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "NovelForge Runtime Architecture",
+    "locale": "en",
+    "output": "novelforge-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/vivek3658/novelforge.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "fe4dc874390422ec3fef4c85cdb352a2185dd353"
+    }
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "Reader / Creator", "sublabel": "Web browser", "pos": [34, 302], "size": [138, 64], "sources": [{ "path": "novelforge-client/src/main.jsx", "line": 1, "end_line": 13 }] },
+    { "id": "web_client", "type": "frontend", "label": "NovelForge Client", "sublabel": "React + Vite / Nginx", "pos": [248, 302], "size": [154, 64], "sources": [{ "path": "novelforge-client/src/services/api.js", "line": 1, "end_line": 16 }] },
+    { "id": "gateway", "type": "security", "label": "API Gateway", "sublabel": "Spring Cloud Gateway :8080", "pos": [478, 302], "size": [172, 64], "sources": [{ "path": "api-gateway/src/main/resources/application.yml", "line": 1, "end_line": 60 }] },
+    { "id": "identity", "type": "backend", "label": "Identity Service", "sublabel": "Auth, accounts, OTP", "pos": [736, 194], "size": [154, 64], "sources": [{ "path": "identity-service/src/main/java/com/vivek/novelforge/identity/controller/AuthController.java", "line": 18, "end_line": 142 }] },
+    { "id": "novel", "type": "backend", "label": "Novel Service", "sublabel": "Catalog, search, CRUD", "pos": [736, 410], "size": [154, 64], "sources": [{ "path": "novel-service/src/main/java/com/vivek/novelforge/novel/controlller/NovelController.java", "line": 12, "end_line": 54 }] },
+    { "id": "identity_db", "type": "database", "label": "PostgreSQL", "sublabel": "userDB", "pos": [1000, 194], "size": [132, 64], "sources": [{ "path": "docker-compose.yml", "line": 89, "end_line": 113 }] },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "OTP / verification TTLs", "pos": [1000, 302], "size": [148, 64], "sources": [{ "path": "identity-service/src/main/java/com/vivek/novelforge/identity/redis/RegistrationRedisService.java", "line": 11, "end_line": 61 }] },
+    { "id": "novel_db", "type": "database", "label": "PostgreSQL", "sublabel": "novelDB", "pos": [1000, 410], "size": [132, 64], "sources": [{ "path": "docker-compose.yml", "line": 139, "end_line": 160 }] },
+    { "id": "notification", "type": "backend", "label": "Notification Service", "sublabel": "OTP email endpoint", "pos": [1000, 518], "size": [164, 64], "sources": [{ "path": "notification-service/src/main/java/com/vivek/novelforge/notification_service/controller/EmailController.java", "line": 12, "end_line": 31 }] },
+    { "id": "brevo", "type": "external", "label": "Brevo Email API", "sublabel": "HTTPS provider", "pos": [1270, 518], "size": [154, 64], "sources": [{ "path": "notification-service/src/main/java/com/vivek/novelforge/notification_service/service/impl/EmailServiceImpl.java", "line": 19, "end_line": 58 }] },
+    { "id": "eureka", "type": "cloud", "label": "Eureka Server", "sublabel": "Service registry :8761", "pos": [478, 84], "size": [172, 64], "sources": [{ "path": "eureka-server/src/main/resources/application.yml", "line": 1, "end_line": 11 }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "NovelForge application runtime (Docker Compose)", "wraps": ["web_client", "gateway", "identity", "novel", "identity_db", "redis", "novel_db", "notification", "eureka"], "pad": 20 },
+    { "kind": "security-group", "label": "Service-owned data and transient state", "wraps": ["identity_db", "redis", "novel_db"], "pad": 14 }
+  ],
+  "connections": [
+    { "id": "browser-client", "from": "browser", "to": "web_client", "label": "HTTPS / UI", "variant": "emphasis" },
+    { "id": "client-gateway", "from": "web_client", "to": "gateway", "label": "REST /api/v1", "variant": "emphasis" },
+    { "id": "gateway-identity", "from": "gateway", "to": "identity", "label": "identity routes", "variant": "emphasis", "route": "orthogonal-h" },
+    { "id": "gateway-novel", "from": "gateway", "to": "novel", "label": "novel routes", "variant": "emphasis", "route": "orthogonal-h" },
+    { "id": "identity-postgres", "from": "identity", "to": "identity_db", "label": "JPA / SQL" },
+    { "id": "identity-redis", "from": "identity", "to": "redis", "label": "OTP state / TTL", "variant": "dashed", "route": "straight" },
+    { "id": "novel-postgres", "from": "novel", "to": "novel_db", "label": "JPA / SQL" },
+    { "id": "identity-notification", "from": "identity", "to": "notification", "label": "HTTP POST /email", "variant": "dashed", "fromSide": "bottom", "toSide": "left", "route": "orthogonal-h" },
+    { "id": "notification-brevo", "from": "notification", "to": "brevo", "label": "HTTPS email API", "variant": "dashed" },
+    { "id": "gateway-eureka", "from": "gateway", "to": "eureka", "label": "registry client", "variant": "dashed", "fromSide": "top", "toSide": "right", "route": "orthogonal-v" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Primary request path", "items": ["Browser uses the React client to call REST through Spring Cloud Gateway.", "Gateway rewrites /api/v1/identity and /api/v1/novels paths to their service APIs.", "Identity handles registration/login; novel service handles paginated catalog, search, and novel CRUD."] },
+    { "dot": "emerald", "title": "Ownership and state", "items": ["Identity owns user data in the userDB database and uses Redis for short-lived OTP and verified-email state.", "Novel service owns novel data in the separate novelDB database; both databases currently share one PostgreSQL container in Compose.", "Services are deployed in a shared Docker Compose network; data stores are service-owned logical boundaries, not separate database servers."] },
+    { "dot": "amber", "title": "External dependency and registry", "items": ["Notification service calls the external Brevo HTTPS API to deliver OTP email.", "Eureka is configured as the service registry; gateway and backend clients register against it in the deployment configuration.", "The committed Compose gateway routes default to hosted Render URLs unless service URL variables are overridden."] },
+    { "dot": "rose", "title": "Scope and trust caveats", "items": ["Engagement, AI, analytics, and studio are present as scaffolds or in-progress code; they are not on the committed primary request path.", "The browser and gateway are the public-facing path; authentication and resource authorization are enforced by backend services.", "Current implementation review found hard-coded sample secrets and token/OTP logging; rotate/remove before production. Novel writes currently lack creator ownership checks."] }
+  ]
+}

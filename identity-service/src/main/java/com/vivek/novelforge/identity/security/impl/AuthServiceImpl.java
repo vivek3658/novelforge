@@ -1,14 +1,14 @@
 package com.vivek.novelforge.identity.security.impl;
 
-import com.vivek.novelforge.identity.dto.*;
+import com.vivek.novelforge.identity.dto.request.LoginRequestDto;
+import com.vivek.novelforge.identity.dto.response.LoginResponseDto;
+import com.vivek.novelforge.identity.dto.response.LoginResultDto;
 import com.vivek.novelforge.identity.entity.User;
-import com.vivek.novelforge.identity.exception.UsernameAlreadyExistsException;
 import com.vivek.novelforge.identity.repository.UserRepository;
 import com.vivek.novelforge.identity.security.AuthService;
 import com.vivek.novelforge.identity.security.AuthUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;

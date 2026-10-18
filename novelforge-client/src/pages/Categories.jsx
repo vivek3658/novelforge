@@ -3,12 +3,48 @@ import { Link } from 'react-router-dom';
 import './Home.css';
 
 const CATEGORIES = [
-  { name: 'Fantasy & Magic', count: '1,420 Novels', icon: '🔮', desc: 'Epic worlds, spellcasters, mythic kingdoms, and legendary artifacts.' },
-  { name: 'Cultivation & Xianxia', count: '980 Novels', icon: '⚡', desc: 'Martial arts mastery, celestial ascension, qi condensation, and divine beasts.' },
-  { name: 'Sci-Fi & Cyberpunk', count: '650 Novels', icon: '🤖', desc: 'Futuristic AI, cyberpunk dystopias, space exploration, and cyberware.' },
-  { name: 'LitRPG & GameLit', count: '890 Novels', icon: '🎮', desc: 'Stats, leveling systems, dungeons, skill trees, and virtual reality.' },
-  { name: 'Mystery & Thriller', count: '430 Novels', icon: '🕵️', desc: 'Supernatural investigations, dark mysteries, detectives, and suspense.' },
-  { name: 'Romance & Drama', count: '760 Novels', icon: '💖', desc: 'Heartfelt journeys, historical romance, drama, and emotional bonds.' },
+  {
+    name: 'Fantasy & Cultivation',
+    searchKey: 'Fantasy',
+    count: '3 Featured Serials',
+    icon: '🔮',
+    desc: 'Cosmic ascension, martial sects, constellation spirits, and forgotten magical relics.',
+  },
+  {
+    name: 'Sci-Fi & Cyberpunk',
+    searchKey: 'Sci-Fi',
+    count: '2 Featured Serials',
+    icon: '🤖',
+    desc: 'Neural consciousness networks, deep ocean abysses, AI hegemony, and high-tech dystopias.',
+  },
+  {
+    name: 'LitRPG & Game Systems',
+    searchKey: 'LitRPG',
+    count: '1 Featured Serial',
+    icon: '🎮',
+    desc: 'Skill trees, potion compounding ratios, leveling milestones, and system prompts.',
+  },
+  {
+    name: 'Epic Kingdoms & Intrigue',
+    searchKey: 'Kingdoms',
+    count: '1 Featured Serial',
+    icon: '👑',
+    desc: 'Dynastic betrayal, imperial succession wars, heraldry, and geopolitical strategy.',
+  },
+  {
+    name: 'Engineering & Systems Architecture',
+    searchKey: 'Distributed',
+    count: '1 Guidebook',
+    icon: '⚡',
+    desc: 'Enterprise microservices, distributed data persistence, and reactive API Gateways.',
+  },
+  {
+    name: 'Narrative Craft & Writing',
+    searchKey: 'Craft',
+    count: '1 Guidebook',
+    icon: '✍️',
+    desc: 'Serialized pacing, character tension loops, and digital reader engagement techniques.',
+  },
 ];
 
 const Categories = () => {
@@ -17,24 +53,29 @@ const Categories = () => {
       <div className="section-header">
         <div>
           <h1 className="section-title">📂 Explore Genres & Categories</h1>
-          <p className="section-subtitle">Find your favorite themes, worlds, and storytelling tropes</p>
+          <p className="section-subtitle">Find your favorite storytelling worlds, tropes, and craft guides</p>
         </div>
       </div>
 
       <div className="features-grid">
         {CATEGORIES.map((cat, idx) => (
           <Link
-            to="/novels"
+            to={`/novels?search=${encodeURIComponent(cat.searchKey)}`}
             key={idx}
             className="feature-card"
             style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column' }}
+            aria-label={`Explore ${cat.name} (${cat.count})`}
           >
-            <div className="feature-icon-wrapper" style={{ fontSize: '1.75rem' }}>
+            <div className="feature-icon-wrapper" style={{ fontSize: '1.75rem' }} aria-hidden="true">
               {cat.icon}
             </div>
-            <h3 className="feature-title">{cat.name}</h3>
-            <p className="feature-desc" style={{ flex: 1 }}>{cat.desc}</p>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', marginTop: '1rem' }}>
+            <h2 className="feature-title" style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>
+              {cat.name}
+            </h2>
+            <p className="feature-desc" style={{ flex: 1, margin: 0 }}>
+              {cat.desc}
+            </p>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', marginTop: '1.25rem' }}>
               {cat.count} →
             </span>
           </Link>

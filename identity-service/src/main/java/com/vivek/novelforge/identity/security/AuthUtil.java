@@ -5,6 +5,7 @@ import com.vivek.novelforge.identity.type.RoleType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class AuthUtil {
     @Value("${jwt.secretKey}")
     private String jwtSecretKey;
@@ -57,12 +59,15 @@ public class AuthUtil {
         return claims.getSubject();
     }
     public String getUsernameFromRefreshToken(String token) {
-
         Claims claims = Jwts.parser()
                 .verifyWith(getSecretKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+
+        if (!"refresh".equals(claims.get("type", String.class))) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
 
         return claims.getSubject();
     }

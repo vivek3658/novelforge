@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -52,8 +53,16 @@ public class WebSecurityConfig {
 
                         .requestMatchers("/auth/me").authenticated()
 
+                        // This endpoint authenticates Studio through its
+                        // internal shared secret in the controller.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/internal/users/*/creator-eligibility"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
+
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 ;
         return httpSecurity.build();

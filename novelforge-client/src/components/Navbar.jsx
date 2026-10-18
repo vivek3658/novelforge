@@ -15,11 +15,22 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Close mobile menu on route change
+  // Close mobile menu on route change and Escape key
   useEffect(() => {
     setMobileMenuOpen(false);
     setUserDropdownOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+        setUserDropdownOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
