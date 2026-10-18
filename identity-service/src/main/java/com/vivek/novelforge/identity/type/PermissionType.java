@@ -4,16 +4,14 @@ package com.vivek.novelforge.identity.type;
 public enum PermissionType {
 
     NOVEL_READ,
-    NOVEL_CREATE,
     NOVEL_UPDATE,
     NOVEL_DELETE,
 
     CHAPTER_READ,
-    CHAPTER_CREATE,
     CHAPTER_UPDATE,
     CHAPTER_DELETE,
 
-    BECOME_AUTHOR,
+    BECOME_CREATOR,
 
     USER_READ,
     USER_UPDATE,

@@ -11,98 +11,50 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class NovelServiceImpl implements NovelService {
 
-    private final NovelRepository novelRepository;
-    private final ModelMapper modelMapper;
-
 
     @Override
-    public NovelResponseDto createNovel(NovelRequestDto request) {
-        Novel novel = Novel.builder()
-                .title(request.getTitle())
-                .synopsis(request.getSynopsis())
-                .categoryType(request.getCategoryType())
-                .build();
-
-        Novel savedNovel = novelRepository.save(novel);
-
-        return modelMapper.map(savedNovel,NovelResponseDto.class);
+    public NovelResponseDto createNovel(UUID studioId, NovelRequestDto request, Authentication authentication) {
+        return null;
     }
 
     @Override
-    public NovelResponseDto updateNovel(Long id,NovelRequestDto request) {
-        Novel novel = novelRepository.findById(id)
-                .orElseThrow(() ->
-                        new NovelNotFoundException("Novel not found with id: " + id)
-                );
-
-        novel.setTitle(request.getTitle());
-        novel.setSynopsis(request.getSynopsis());
-        novel.setCategoryType(request.getCategoryType());
-
-        Novel updatedNovel = novelRepository.save(novel);
-
-        return modelMapper.map(updatedNovel, NovelResponseDto.class);
+    public NovelResponseDto updateNovel(Long novelId, NovelRequestDto request, Authentication authentication) {
+        return null;
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public NovelResponseDto getNovel(Long id) {
-
-        Novel novel = novelRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Novel not found with id: " + id)
-                );
-
-        return modelMapper.map(novel, NovelResponseDto.class);
-    }
-    @Override
-    @Transactional(readOnly = true)
-    public Page<NovelResponseDto> getAllNovels(int page) {
-
-        Pageable pageable = PageRequest.of(page, 20);
-
-        Page<Novel> novels = novelRepository.findAll(pageable);
-
-        return novels.map(novel -> mapToResponse(novel));
-    }
-    private NovelResponseDto mapToResponse(Novel novel) {
-
-        return NovelResponseDto.builder()
-                .id(novel.getId())
-                .title(novel.getTitle())
-                .synopsis(novel.getSynopsis())
-                .categoryType(novel.getCategoryType())
-                .build();
+    public NovelResponseDto getNovel(Long novelId, Authentication authentication) {
+        return null;
     }
 
     @Override
-    public void deleteNovel(Long id) {
-        Novel novel = novelRepository.findById(id)
-                .orElseThrow(() -> new NovelNotFoundException("Novel not found"));
+    public void deleteNovel(Long novelId, Authentication authentication) {
 
-        novel.setDeletedAt(Instant.now());
-
-        novelRepository.save(novel);
     }
+
     @Override
-    @Transactional(readOnly = true)
-    public Page<NovelResponseDto> searchNovels(
-            String query,
-            int page
-    ) {
+    public NovelResponseDto publishNovel(Long novelId, Authentication authentication) {
+        return null;
+    }
 
-        Pageable pageable = PageRequest.of(page, 20);
+    @Override
+    public Page<NovelResponseDto> getStudioNovels(UUID studioId, Pageable pageable, Authentication authentication) {
+        return null;
+    }
 
-        return novelRepository.searchNovels(query, pageable)
-                .map(this::mapToResponse);
+    @Override
+    public Page<NovelResponseDto> searchPublicNovels(String query, Pageable pageable) {
+        return null;
     }
 }

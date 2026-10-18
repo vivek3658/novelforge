@@ -11,21 +11,10 @@ public final class RolePermissions {
     public static Set<PermissionType> getPermissions(RoleType roleType){
         return switch (roleType) {
 
-            case READER -> EnumSet.of(
+            case USER -> EnumSet.of(
                     PermissionType.NOVEL_READ,
                     PermissionType.CHAPTER_READ,
-                    PermissionType.BECOME_AUTHOR
-            );
-
-            case AUTHOR -> EnumSet.of(
-                    PermissionType.NOVEL_READ,
-                    PermissionType.NOVEL_CREATE,
-                    PermissionType.NOVEL_UPDATE,
-
-                    PermissionType.CHAPTER_READ,
-                    PermissionType.CHAPTER_CREATE,
-                    PermissionType.CHAPTER_UPDATE,
-                    PermissionType.CHAPTER_DELETE
+                    PermissionType.BECOME_CREATOR
             );
 
             case MODERATOR -> EnumSet.of(

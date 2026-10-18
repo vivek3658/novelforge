@@ -302,3 +302,63 @@ button, input, select, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* Accessibility: High-Contrast Visible Focus States */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex="0"]:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2.5px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* Accessibility: Skip to Content */
+.skip-to-content {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  z-index: 10000;
+  padding: 0.75rem 1.25rem;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-to-content:focus {
+  top: 1rem;
+}
+
+/* Accessibility: Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Mobile & Touch Ergonomics */
+@media (max-width: 640px) {
+  button,
+  .btn-primary,
+  .action-btn-secondary,
+  .nav-item,
+  .mobile-nav-item,
+  .toast-close {
+    min-height: 44px;
+  }
+
+  .app-container {
+    padding: 0 1rem;
+  }
+}
