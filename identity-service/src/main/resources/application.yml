@@ -1,27 +1,29 @@
 spring:
   application:
     name: identity-service
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/userDB
-    username: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/userDB}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:}}
+    driver-class-name: org.postgresql.Driver
+
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     defer-datasource-initialization: true
-    show-sql: true
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: ${SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL:false}
+
   data:
     redis:
-      url: ${REDIS_URL:${SPRING_DATA_REDIS_URL:}}
-      host: ${REDIS_HOST:${SPRING_DATA_REDIS_HOST:${host:localhost}}}
-      port: ${REDIS_PORT:${SPRING_DATA_REDIS_PORT:${port:6379}}}
-      username: ${REDIS_USERNAME:${SPRING_DATA_REDIS_USERNAME:default}}
-      password: ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:${passwd:}}}
+      url: ${REDIS_URL:}
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      username: ${SPRING_DATA_REDIS_USERNAME:default}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
       timeout: 60000ms
       lettuce:
         pool:
@@ -29,23 +31,35 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
+
   sql:
     init:
-      mode: always
+      mode: ${SPRING_SQL_INIT_MODE:never}
+
 server:
-  port: 8081
+  port: ${PORT:8081}
+
 jwt:
-  secretKey: ${JWT_SECRET_KEY:${JWT_SECRETKEY:}}
+  secretKey: ${JWT_SECRETKEY:${JWT_SECRET_KEY:}}
+
+identity:
+  internal:
+    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET}
+
 eureka:
   client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 
   instance:
-    hostname: localhost
-    prefer-ip-address: false
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
+    non-secure-port-enabled: ${EUREKA_INSTANCE_NON_SECURE_PORT_ENABLED:true}
+    secure-port-enabled: ${EUREKA_INSTANCE_SECURE_PORT_ENABLED:false}
+    secure-port: ${EUREKA_INSTANCE_SECURE_PORT:443}
     instance-id: ${spring.application.name}:${server.port}
 
 notification:
   service:
-    url: ${NOTIFICATION_SERVICE_URL:https://notification-service-ng1j.onrender.com}
+    url: ${NOTIFICATION_SERVICE_URL:https://novelforge-notification.onrender.com}
