@@ -24,7 +24,7 @@ public class CorsConfig {
                         "http://localhost:[*]",
                         "http://127.0.0.1:[*]",
                         "https://*.onrender.com",
-                        "http://novelforge-ngee.onrender.com"
+                        "https://novelforge7.netlify.app"
                 )
         );
 
