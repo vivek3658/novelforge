@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: studio-service
+
+  datasource:
+    # Render provides DATABASE_URL as postgresql://; the container entrypoint
+    # converts it to JDBC_URL before Spring starts. Local deployments can set
+    # SPRING_DATASOURCE_URL directly.
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${STUDIO_DB:studioDB}}}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:}}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: ${SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL:false}
+
+  data:
+    redis:
+      url: ${REDIS_URL:}
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:}
+
+server:
+  port: ${PORT:${STUDIO_PORT:8087}}
+
+novelforge:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY}
+
+identity:
+  service:
+    base-url: ${IDENTITY_SERVICE_BASE_URL:http://localhost:8081}
+    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}

@@ -36,6 +36,20 @@ spring:
               filters:
                 - RewritePath=/api/v1/identity(?<segment>/.*), ${segment}
 
+            - id: STUDIO-SERVICE-ROOT
+              uri: ${STUDIO_SERVICE_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/v1/studios
+              filters:
+                - SetPath=/studios
+
+            - id: STUDIO-SERVICE
+              uri: ${STUDIO_SERVICE_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/v1/studios/**
+              filters:
+                - RewritePath=/api/v1/studios(?<segment>/.*), /studios${segment}
+
             - id: NOTIFICATION-SERVICE-ROOT
               uri: ${NOTIFICATION_SERVICE_URL:https://notification-service-ng1j.onrender.com}
               predicates:

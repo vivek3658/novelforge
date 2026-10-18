@@ -121,6 +121,42 @@ services:
         value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
 
   # -------------------------------------------------------------
+  # Studio Service (Creator Studios & Memberships)
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-studio-service
+    runtime: docker
+    dockerfilePath: ./studio-service/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: JAVA_OPTS
+        value: "-Xmx350m -Xms200m"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: novelforge-postgres
+          property: connectionString
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: novelforge-postgres
+          property: user
+      - key: REDIS_URL
+        fromService:
+          name: novelforge-redis
+          type: keyvalue
+          property: connectionString
+      - key: EUREKA_URL
+        value: http://novelforge-eureka-server:8761/eureka/
+      - key: IDENTITY_SERVICE_BASE_URL
+        value: https://identity-service-0jgj.onrender.com
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: IDENTITY_INTERNAL_CLIENT_SECRET
+        sync: false
+
+  # -------------------------------------------------------------
   # Notification Service (Email, OTPs)
   # -------------------------------------------------------------
   - type: web
