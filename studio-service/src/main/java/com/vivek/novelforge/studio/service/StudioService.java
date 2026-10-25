@@ -5,6 +5,7 @@ import com.vivek.novelforge.studio.dto.request.InviteStudioMemberRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioMemberRoleRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioRequestDto;
 import com.vivek.novelforge.studio.dto.response.StudioMembershipResponseDto;
+import com.vivek.novelforge.studio.dto.response.MyStudioMembershipDto;
 import com.vivek.novelforge.studio.dto.response.StudioResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -73,6 +74,11 @@ public interface StudioService {
     Page<StudioMembershipResponseDto> getMembers(
             UUID studioId,
             Pageable pageable,
+            Authentication authentication
+    );
+
+    MyStudioMembershipDto getMyMembership(
+            UUID studioId,
             Authentication authentication
     );
 }

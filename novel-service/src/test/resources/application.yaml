@@ -1,0 +1,29 @@
+spring:
+  cache:
+    type: simple
+  datasource:
+    url: jdbc:h2:mem:novel_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  mongodb:
+    uri: mongodb://localhost:27017/novelforge_novel_test
+  data:
+    mongodb:
+      auto-index-creation: false
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  sql:
+    init:
+      mode: never
+novelforge:
+  security:
+    jwt:
+      secret-key: test-secret-key-with-more-than-32-bytes-for-jwt-testing
+  chapters:
+    publish-poll-ms: 60000
+eureka:
+  client:
+    enabled: false

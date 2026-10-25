@@ -4,9 +4,12 @@ import com.vivek.novelforge.security.authentication.AuthenticatedUser;
 import com.vivek.novelforge.studio.client.CreatorEligibilityClient;
 import com.vivek.novelforge.studio.dto.request.CreateStudioRequestDto;
 import com.vivek.novelforge.studio.entity.Studio;
+import com.vivek.novelforge.studio.entity.StudioMembership;
 import com.vivek.novelforge.studio.repository.StudioMembershipRepository;
 import com.vivek.novelforge.studio.repository.StudioRepository;
 import com.vivek.novelforge.studio.type.StudioRoleType;
+import com.vivek.novelforge.studio.type.StudioMembershipStatus;
+import com.vivek.novelforge.studio.type.StudioStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +24,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -102,5 +107,25 @@ class StudioServiceImplEligibilityTest {
 
         verify(studioRepository, never()).save(any(Studio.class));
         verify(membershipRepository, never()).save(any());
+    }
+
+    @Test
+    void returnsTheAuthenticatedMembersPermissionBundle() {
+        UUID studioId = UUID.randomUUID();
+        when(studioRepository.findByIdAndDeletedAtIsNull(studioId)).thenReturn(
+                java.util.Optional.of(Studio.builder().id(studioId).status(StudioStatus.ACTIVE).build()));
+        when(membershipRepository.findByStudioIdAndUserIdAndStatusAndDeletedAtIsNull(
+                studioId, 42L, StudioMembershipStatus.ACTIVE)).thenReturn(
+                java.util.Optional.of(StudioMembership.builder()
+                        .studioId(studioId).userId(42L).role(StudioRoleType.EDITOR)
+                        .status(StudioMembershipStatus.ACTIVE).build()));
+
+        var membership = studioService.getMyMembership(studioId, authentication);
+
+        assertEquals(studioId, membership.getStudioId());
+        assertEquals(42L, membership.getUserId());
+        assertTrue(membership.getPermissions().contains("NOVEL_EDIT"));
+        assertTrue(membership.getPermissions().contains("CHAPTER_TEXT_EDIT"));
+        assertFalse(membership.getPermissions().contains("NOVEL_DELETE"));
     }
 }

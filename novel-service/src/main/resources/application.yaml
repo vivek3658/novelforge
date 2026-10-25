@@ -2,37 +2,42 @@ spring:
   application:
     name: novel-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/novelDB
-    username: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/novelDB}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:}}
+  mongodb:
+    uri: ${SPRING_MONGODB_URI:mongodb://localhost:27017/novelforge_chapters}
+  data:
+    mongodb:
+      auto-index-creation: true
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  cache:
+    type: redis
+    redis:
+      time-to-live: 30s
+      cache-null-values: false
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    defer-datasource-initialization: true
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  sql:
-    init:
-      mode: always
 server:
-  port: 8083
+  port: ${SERVER_PORT:8083}
 
-novelforge:
-  security:
-    jwt:
-      secret-key: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:${JWT_SECRET_KEY:}}
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 
   instance:
-    hostname: localhost
-    prefer-ip-address: false
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
     instance-id: ${spring.application.name}:${server.port}
 
 management:
@@ -43,3 +48,12 @@ management:
   endpoint:
     health:
       show-details: always
+
+studio:
+  service:
+    base-url: ${STUDIO_SERVICE_BASE_URL:http://localhost:8087}
+
+novelforge:
+  security:
+    jwt:
+      secret-key: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:${JWT_SECRET_KEY:}}

@@ -45,7 +45,7 @@ public class OtpEmailPublisher {
             }, correlation);
 
             CorrelationData.Confirm confirm = correlation.getFuture().get(3, TimeUnit.SECONDS);
-            if (!confirm.ack() || correlation.getReturn() != null) {
+            if (!confirm.ack() || correlation.getReturned() != null) {
                 throw new IllegalStateException("RabbitMQ did not accept the OTP notification");
             }
             log.info("OTP notification accepted notificationId={} challengeId={} purpose={}",

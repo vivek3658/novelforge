@@ -5,6 +5,7 @@ import com.vivek.novelforge.studio.dto.request.InviteStudioMemberRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioMemberRoleRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioRequestDto;
 import com.vivek.novelforge.studio.dto.response.StudioMembershipResponseDto;
+import com.vivek.novelforge.studio.dto.response.MyStudioMembershipDto;
 import com.vivek.novelforge.studio.dto.response.StudioResponseDto;
 import com.vivek.novelforge.studio.service.StudioService;
 import jakarta.validation.Valid;
@@ -130,5 +131,14 @@ public class StudioController {
     ) {
         return ResponseEntity.ok(
                 studioService.getMembers(studioId, pageable, authentication));
+    }
+
+    @GetMapping("/{studioId}/members/me")
+    public ResponseEntity<MyStudioMembershipDto> getMyMembership(
+            @PathVariable UUID studioId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                studioService.getMyMembership(studioId, authentication));
     }
 }

@@ -6,6 +6,7 @@ volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  mongodb_data:
 
 services:
   # -------------------------------------------------------------
@@ -30,6 +31,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: novelforge-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME:-novelforge}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:?Set MONGODB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${MONGODB_HOST_PORT:-27018}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - novelforge-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -200,6 +220,37 @@ services:
   # -------------------------------------------------------------
   # Novel Service
   # -------------------------------------------------------------
+  studio-service:
+    build:
+      context: .
+      dockerfile: ./studio-service/Dockerfile
+    image: novelforge/studio-service:latest
+    container_name: studio-service
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      SERVER_PORT: 8087
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/studioDB
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      IDENTITY_SERVICE_BASE_URL: http://identity-service:8081
+      IDENTITY_INTERNAL_CLIENT_SECRET: ${IDENTITY_INTERNAL_CLIENT_SECRET:?Set IDENTITY_INTERNAL_CLIENT_SECRET in .env}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      identity-service:
+        condition: service_started
+    networks:
+      - novelforge-network
+
   novel-service:
     build:
       context: .
@@ -212,13 +263,25 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novelDB
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-365891}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      SPRING_MONGODB_URI: mongodb://${MONGODB_USERNAME:-novelforge}:${MONGODB_PASSWORD:?Set MONGODB_PASSWORD in .env}@mongodb:27017/novelforge_chapters?authSource=admin
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      NOVELFORGE_SECURITY_JWT_SECRET_KEY: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:-${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      STUDIO_SERVICE_BASE_URL: http://studio-service:8087
     depends_on:
       postgres:
         condition: service_healthy
       eureka-server:
+        condition: service_started
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      studio-service:
         condition: service_started
     networks:
       - novelforge-network
