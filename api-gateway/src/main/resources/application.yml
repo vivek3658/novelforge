@@ -1,12 +1,71 @@
+novelforge:
+  gateway:
+    internal-secret: ${GATEWAY_INTERNAL_SECRET:}
+    trusted-proxy-hops: ${GATEWAY_TRUSTED_PROXY_HOPS:0}
+
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      username: ${SPRING_DATA_REDIS_USERNAME:}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
 
   cloud:
     gateway:
       server:
         webflux:
           routes:
+
+            - id: REGISTRATION-OTP-RATE-LIMIT
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/identity/register/send-otp
+              filters:
+                - SetPath=/register/send-otp
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@otpClientIpKeyResolver}"
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 10
+
+            - id: PASSWORD-RESET-OTP-RATE-LIMIT
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/identity/auth/forgot-password
+              filters:
+                - SetPath=/auth/forgot-password
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@otpClientIpKeyResolver}"
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 10
+
+            - id: REGISTRATION-OTP-VERIFY-RATE-LIMIT
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/identity/register/verify-otp
+              filters:
+                - SetPath=/register/verify-otp
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@otpClientIpKeyResolver}"
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 10
+
+            - id: PASSWORD-RESET-OTP-VERIFY-RATE-LIMIT
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/identity/auth/forgot-password/verify
+              filters:
+                - SetPath=/auth/forgot-password/verify
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@otpClientIpKeyResolver}"
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 10
 
             - id: NOVEL-SERVICE-ROOT
               uri: ${NOVEL_SERVICE_URL:https://novel-service.onrender.com}
@@ -23,14 +82,14 @@ spring:
                 - RewritePath=/api/v1/novels(?<segment>/.*), /novels${segment}
 
             - id: IDENTITY-SERVICE-ROOT
-              uri: ${IDENTITY_SERVICE_URL:https://identity-service-0jgj.onrender.com}
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
               predicates:
                 - Path=/api/v1/identity
               filters:
                 - SetPath=/
 
             - id: IDENTITY-SERVICE
-              uri: ${IDENTITY_SERVICE_URL:https://identity-service-0jgj.onrender.com}
+              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
               predicates:
                 - Path=/api/v1/identity/**
               filters:
@@ -50,33 +109,19 @@ spring:
               filters:
                 - RewritePath=/api/v1/studios(?<segment>/.*), /studios${segment}
 
-            - id: NOTIFICATION-SERVICE-ROOT
-              uri: ${NOTIFICATION_SERVICE_URL:https://notification-service-ng1j.onrender.com}
-              predicates:
-                - Path=/api/v1/notifications
-              filters:
-                - SetPath=/
-
-            - id: NOTIFICATION-SERVICE
-              uri: ${NOTIFICATION_SERVICE_URL:https://notification-service-ng1j.onrender.com}
-              predicates:
-                - Path=/api/v1/notifications/**
-              filters:
-                - RewritePath=/api/v1/notifications(?<segment>/.*), ${segment}
-
 server:
   port: 8080
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,gateway,prometheus
 
   endpoint:
     gateway:
@@ -84,4 +129,4 @@ management:
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO

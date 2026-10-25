@@ -10,7 +10,10 @@ import com.vivek.novelforge.identity.dto.response.UserMeResponseDto;
 import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.security.AuthService;
 import com.vivek.novelforge.identity.service.PasswordResetService;
+import com.vivek.novelforge.identity.security.OtpFlowCookieSupport;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import com.vivek.novelforge.identity.security.ClientIpResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +32,8 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final OtpFlowCookieSupport otpFlowCookieSupport;
+    private final ClientIpResolver clientIpResolver;
     private final com.vivek.novelforge.identity.repository.UserRepository userRepository;
 
     @PostMapping("/login")
@@ -37,8 +42,8 @@ public class AuthController {
         ResponseCookie refreshCookie = ResponseCookie
                 .from("refreshToken",result.getRefreshToken())
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
+                .secure(otpFlowCookieSupport.isSecure())
+                .sameSite(otpFlowCookieSupport.isSecure() ? "None" : "Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(30))
                 .build();
@@ -105,8 +110,8 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie
                 .from("refreshToken", "")
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
+                .secure(otpFlowCookieSupport.isSecure())
+                .sameSite(otpFlowCookieSupport.isSecure() ? "None" : "Lax")
                 .path("/")
                 .maxAge(0)
                 .build();
@@ -120,34 +125,51 @@ public class AuthController {
     }
     @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(
-            @RequestBody @Valid ForgotPasswordRequestDto request
+            @RequestBody @Valid ForgotPasswordRequestDto request,
+            @CookieValue(name = "resetOtpFlowId", required = false) String existingFlowId,
+            HttpServletRequest servletRequest
     ) {
-        passwordResetService.sendResetOtp(request.getEmail());
+        String flowId = otpFlowCookieSupport.resolveOrCreate(existingFlowId);
+        passwordResetService.sendResetOtp(
+                request.getEmail(), flowId, clientIpResolver.resolve(servletRequest));
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.accepted()
+                .header(HttpHeaders.SET_COOKIE,
+                        otpFlowCookieSupport.cookie("resetOtpFlowId", flowId).toString())
+                .build();
     }
     @PostMapping("/forgot-password/verify")
     public ResponseEntity<Void> verifyForgotPasswordOtp(
-            @RequestBody @Valid ForgotPasswordVerifyDto request
+            @RequestBody @Valid ForgotPasswordVerifyDto request,
+            @CookieValue(name = "resetOtpFlowId", required = false) String flowCookie,
+            HttpServletRequest servletRequest
     ) {
 
+        String flowId = otpFlowCookieSupport.resolveOrCreate(flowCookie);
         passwordResetService.verifyResetOtp(
                 request.getEmail(),
-                request.getOtp()
+                request.getOtp(),
+                flowId,
+                clientIpResolver.resolve(servletRequest)
         );
 
         return ResponseEntity.ok().build();
     }
     @PostMapping("/forgot-password/reset")
     public ResponseEntity<Void> resetPassword(
-            @RequestBody @Valid ResetPasswordRequestDto request
+            @RequestBody @Valid ResetPasswordRequestDto request,
+            @CookieValue(name = "resetOtpFlowId", required = false) String flowCookie
     ) {
-
+        String flowId = otpFlowCookieSupport.resolveOrCreate(flowCookie);
         passwordResetService.resetPassword(
                 request.getEmail(),
-                request.getNewPassword()
+                request.getNewPassword(),
+                flowId
         );
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE,
+                        otpFlowCookieSupport.expiredCookie("resetOtpFlowId").toString())
+                .build();
     }
 }

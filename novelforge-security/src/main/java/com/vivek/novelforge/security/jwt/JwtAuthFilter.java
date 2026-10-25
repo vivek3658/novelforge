@@ -54,7 +54,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 return;
             }
-            System.out.println(1);
             String userId =
                     claims.get("userId", String.class);
 
@@ -70,7 +69,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             roles = roles == null
                     ? List.of()
                     : roles;
-            System.out.println(roles);
 
             authorities = authorities == null
                     ? List.of()
@@ -80,7 +78,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authorities.stream()
                             .map(SimpleGrantedAuthority::new)
                             .toList();
-            System.out.println(grantedAuthorities);
 
             AuthenticatedUser authenticatedUser =
                     new AuthenticatedUser(
@@ -89,7 +86,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                             roles,
                             authorities
                     );
-            System.out.println(authenticatedUser);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
@@ -105,8 +101,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            e.getStackTrace();
-
             SecurityContextHolder.clearContext();
 
             response.sendError(

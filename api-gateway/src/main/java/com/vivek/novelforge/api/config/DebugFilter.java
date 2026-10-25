@@ -2,12 +2,14 @@ package com.vivek.novelforge.api.config;
 
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import lombok.extern.slf4j.Slf4j;
+import java.util.UUID;
 
 @Component
+@Slf4j
 public class DebugFilter implements GlobalFilter {
 
     @Override
@@ -15,13 +17,18 @@ public class DebugFilter implements GlobalFilter {
             ServerWebExchange exchange,
             GatewayFilterChain chain) {
 
-        System.out.println(
-                "GATEWAY AUTH = " +
-                        exchange.getRequest()
-                                .getHeaders()
-                                .getFirst(HttpHeaders.AUTHORIZATION)
-        );
-
-        return chain.filter(exchange);
+        String requestId = exchange.getRequest().getHeaders().getFirst("X-Request-Id");
+        if (requestId == null || requestId.isBlank()) requestId = UUID.randomUUID().toString();
+        String safeRequestId = requestId.replaceAll("[^A-Za-z0-9._-]", "_");
+        if (safeRequestId.length() > 80) safeRequestId = safeRequestId.substring(0, 80);
+        final String correlatedRequestId = safeRequestId;
+        var request = exchange.getRequest().mutate()
+                .headers(headers -> headers.set("X-Request-Id", correlatedRequestId))
+                .build();
+        log.info("gateway_request requestId={} method={} path={}", correlatedRequestId,
+                request.getMethod(), request.getURI().getRawPath());
+        return chain.filter(exchange.mutate().request(request).build())
+                .doFinally(signal -> exchange.getResponse().getHeaders()
+                        .set("X-Request-Id", correlatedRequestId));
     }
 }

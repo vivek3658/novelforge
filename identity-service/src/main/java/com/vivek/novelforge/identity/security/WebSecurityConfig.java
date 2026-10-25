@@ -23,10 +23,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class WebSecurityConfig {
     @Bean
-    public JwtProperties jwtProperties() {
-        return new JwtProperties();
-    }
-    @Bean
     public JwtTokenValidator jwtTokenValidator(
             JwtProperties jwtProperties
     ) {
@@ -57,7 +53,8 @@ public class WebSecurityConfig {
                         // internal shared secret in the controller.
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/internal/users/*/creator-eligibility"
+                                "/internal/users/*/creator-eligibility",
+                                "/internal/otp-challenges/*"
                         ).permitAll()
 
                         .anyRequest().authenticated()

@@ -4,12 +4,71 @@ server:
 spring:
   application:
     name: notification-service
+  main:
+    web-application-type: none
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      username: ${SPRING_DATA_REDIS_USERNAME:}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:novelforge}
+    password: ${RABBITMQ_PASSWORD:}
+    listener:
+      simple:
+        concurrency: 2
+        max-concurrency: 4
+        prefetch: 1
+        default-requeue-rejected: false
+        retry:
+          enabled: false
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 3000
+          timeout: 5000
+          writetimeout: 5000
+
+identity:
+  service:
+    url: ${IDENTITY_SERVICE_URL:http://identity-service:8081}
+  internal:
+    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET:}
+
+novelforge:
+  messaging:
+    exchange: novelforge.notifications
+    dlx: novelforge.notifications.dlx
+    otp-queue: novelforge.notification.otp
+    otp-routing-key: notification.otp
+    otp-dlq: novelforge.notification.otp.dlq
 
 brevo:
   api:
-    key: ${BREVO_API_KEY}
+    key: ${BREVO_API_KEY:}
   sender:
-    email: ${BREVO_SENDER_EMAIL}
+    email: ${BREVO_SENDER_EMAIL:}
+
+notification:
+  email:
+    provider: ${NOTIFICATION_EMAIL_PROVIDER:smtp}
+    from: ${NOTIFICATION_EMAIL_FROM:${BREVO_SENDER_EMAIL:notifications@novelforge.local}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 eureka:
   client:
@@ -20,9 +79,3 @@ eureka:
     hostname: localhost
     prefer-ip-address: false
     instance-id: ${spring.application.name}:${server.port}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info

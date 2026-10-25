@@ -38,6 +38,29 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:novelforge}
+    password: ${RABBITMQ_PASSWORD:}
+    connection-timeout: 2s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        concurrency: 2
+        max-concurrency: 4
+        prefetch: 1
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 1s
+          max-attempts: 4
+          multiplier: 2
+          max-interval: 8s
+
   sql:
     init:
       mode: ${SPRING_SQL_INIT_MODE:never}
@@ -46,11 +69,28 @@ server:
   port: ${PORT:8081}
 
 jwt:
-  secretKey: ${JWT_SECRETKEY:${JWT_SECRET_KEY:}}
+  secretKey: ${JWT_SECRET_KEY:}
 
 identity:
   internal:
-    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET}
+    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET:}
+  gateway:
+    internal-secret: ${GATEWAY_INTERNAL_SECRET:}
+  cookies:
+    secure: ${COOKIE_SECURE:true}
+
+novelforge:
+  security:
+    jwt:
+      secret-key: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:${JWT_SECRET_KEY:}}
+  otp:
+    hmac-secret: ${OTP_HMAC_SECRET:}
+  messaging:
+    exchange: novelforge.notifications
+    dlx: novelforge.notifications.dlx
+    otp-queue: novelforge.notification.otp
+    otp-routing-key: notification.otp
+    otp-dlq: novelforge.notification.otp.dlq
 
 eureka:
   client:
@@ -65,6 +105,12 @@ eureka:
     secure-port-enabled: ${EUREKA_INSTANCE_SECURE_PORT_ENABLED:false}
     secure-port: ${EUREKA_INSTANCE_SECURE_PORT:443}
     instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
 
 notification:
   service:
