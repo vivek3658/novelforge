@@ -118,7 +118,7 @@ export const studioApi = {
       page: String(page),
       size: String(size),
     });
-    return apiClient(`${ENDPOINTS.STUDIOS.MEMBERS(studioId)}?$${params.toString()}`, {
+    return apiClient(`${ENDPOINTS.STUDIOS.MEMBERS(studioId)}?${params.toString()}`, {
       method: 'GET',
     });
   },

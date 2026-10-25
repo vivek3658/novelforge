@@ -11,7 +11,7 @@ import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.core.AcknowledgeMode;
-import org.springframework.boot.autoconfigure.amqp.SimpleRabbitListenerContainerFactoryConfigurer;
+import org.springframework.boot.amqp.autoconfigure.SimpleRabbitListenerContainerFactoryConfigurer;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -90,7 +90,7 @@ public class NotificationMessagingConfiguration {
         factory.setMessageConverter(notificationMessageConverter);
         factory.setAcknowledgeMode(AcknowledgeMode.AUTO);
         factory.setAdviceChain(RetryInterceptorBuilder.stateless()
-                .maxAttempts(4)
+                .maxRetries(3)
                 .backOffOptions(1000, 2.0, 8000)
                 .recoverer((message, cause) -> {
                     if (cause instanceof org.springframework.amqp.AmqpRejectAndDontRequeueException rejected) {

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -82,6 +83,15 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND)
                 .body(error);
     }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorDetails> handleResponseStatusException(
+            ResponseStatusException exception, WebRequest request) {
+        ErrorDetails error = new ErrorDetails(
+                LocalDateTime.now(), exception.getReason(), request.getDescription(false));
+        return ResponseEntity.status(exception.getStatusCode()).body(error);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorDetails> handleRuntimeException(RuntimeException exception, WebRequest webRequest){
         ErrorDetails errorDetails = new ErrorDetails(

@@ -16,6 +16,10 @@ export const chaptersApi = {
     });
   },
 
+  getStudioChapters: async (studioId, novelId, { page = 0, size = 100 } = {}) => {
+    return apiClient(`/api/v1/studios/${studioId}/novels/${novelId}/chapters?page=${page}&size=${size}`, { method: 'GET' });
+  },
+
   /**
    * Get full chapter text and metadata for the reading view.
    */
@@ -25,13 +29,15 @@ export const chaptersApi = {
     });
   },
 
+  getStudioChapter: (studioId, novelId, chapterId) => apiClient(`/api/v1/studios/${studioId}/novels/${novelId}/chapters/${chapterId}`, { method: 'GET' }),
+
   /**
    * Create a new chapter for an author's novel.
    */
-  createChapter: async (novelId, { title, content, sequenceOrder }) => {
+  createChapter: async (novelId, { title, chapterNumber }) => {
     return apiClient(`${ENDPOINTS.NOVELS.DETAIL(novelId)}/chapters`, {
       method: 'POST',
-      body: JSON.stringify({ title, content, sequenceOrder }),
+      body: JSON.stringify({ title, chapterNumber }),
     });
   },
 
@@ -40,10 +46,14 @@ export const chaptersApi = {
    */
   updateChapter: async (novelId, chapterId, { title, content }) => {
     return apiClient(`${ENDPOINTS.NOVELS.DETAIL(novelId)}/chapters/${chapterId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify({ title, content }),
     });
   },
+
+  addBlock: async (novelId, chapterId, block) => apiClient(`${ENDPOINTS.NOVELS.DETAIL(novelId)}/chapters/${chapterId}/blocks`, { method: 'POST', body: JSON.stringify(block) }),
+  updateBlock: async (novelId, chapterId, blockId, block) => apiClient(`${ENDPOINTS.NOVELS.DETAIL(novelId)}/chapters/${chapterId}/blocks/${blockId}`, { method: 'PUT', body: JSON.stringify(block) }),
+  publishChapter: async (novelId, chapterId) => apiClient(`${ENDPOINTS.NOVELS.DETAIL(novelId)}/chapters/${chapterId}/publish`, { method: 'POST' }),
 };
 
 export default chaptersApi;

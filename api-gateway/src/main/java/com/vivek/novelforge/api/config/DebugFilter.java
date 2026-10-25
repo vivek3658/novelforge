@@ -5,12 +5,13 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.UUID;
 
 @Component
-@Slf4j
 public class DebugFilter implements GlobalFilter {
+    private static final Logger log = LoggerFactory.getLogger(DebugFilter.class);
 
     @Override
     public Mono<Void> filter(

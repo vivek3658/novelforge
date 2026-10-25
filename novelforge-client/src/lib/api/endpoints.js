@@ -51,6 +51,16 @@ export const ENDPOINTS = {
     SEARCH: '/api/v1/novels/search',
   },
 
+  ENGAGEMENT: {
+    BASE: '/api/v1/engagement',
+    COLLECTIONS: '/api/v1/engagement/collections',
+    WATCH_LATER: '/api/v1/engagement/collections/watch-later',
+    COLLECTION_ITEMS: (id) => `/api/v1/engagement/collections/${id}/items`,
+    WATCH_LATER_ITEMS: '/api/v1/engagement/collections/watch-later/items',
+    PUBLIC_POSTS: '/api/v1/engagement/public/posts',
+    FEED: '/api/v1/engagement/feed',
+  },
+
   // Notification Service routes (mounted behind gateway at /api/v1/notifications)
   NOTIFICATIONS: {
     BASE: '/api/v1/notifications',
@@ -90,6 +100,10 @@ export function resolveEndpoint(path) {
   // Novel Service short-paths
   if (normalized.startsWith('/novels')) {
     return `/api/v1${normalized}`;
+  }
+
+  if (normalized.startsWith('/engagement') || normalized.startsWith('/collections') || normalized.startsWith('/follows') || normalized.startsWith('/targets') || normalized.startsWith('/posts') || normalized.startsWith('/feed') || normalized.startsWith('/public/posts')) {
+    return `/api/v1/engagement${normalized}`;
   }
 
   // Notification Service short-paths

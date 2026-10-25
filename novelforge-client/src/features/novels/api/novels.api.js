@@ -26,9 +26,7 @@ export const novelApi = {
    * Fetch paginated novels catalog from gateway.
    */
   getAllNovels: async ({ page = 0 } = {}) => {
-    return apiClient(`${ENDPOINTS.NOVELS.BASE}?page=${page}`, {
-      method: 'GET',
-    });
+    return apiClient(`${ENDPOINTS.NOVELS.SEARCH}?page=${page}&size=20`, { method: 'GET' });
   },
 
   /**
@@ -56,20 +54,23 @@ export const novelApi = {
    * Create a new novel.
    * Payload: { title, synopsis, categoryType: 'FICTION' | 'NONFICTION' }
    */
-  createNovel: async ({ title, synopsis, categoryType = 'FICTION' }) => {
-    return apiClient(ENDPOINTS.NOVELS.BASE, {
+  createNovel: async (studioId, { title, synopsis, categoryType = 'FICTION', genres = [], tags = [] }) => {
+    return apiClient(`/api/v1/studios/${studioId}/novels`, {
       method: 'POST',
-      body: JSON.stringify({ title, synopsis, categoryType }),
+      body: JSON.stringify({ title, synopsis, categoryType, genres, tags }),
     });
   },
+
+  getStudioNovels: (studioId, { page = 0, size = 20 } = {}) => apiClient(`/api/v1/studios/${studioId}/novels?page=${page}&size=${size}`),
+  publishNovel: (novelId) => apiClient(`/api/v1/novels/${novelId}/publish`, { method: 'POST' }),
 
   /**
    * Update existing novel metadata.
    */
-  updateNovel: async (novelId, { title, synopsis, categoryType }) => {
+  updateNovel: async (novelId, { title, synopsis, categoryType, genres = [], tags = [] }) => {
     return apiClient(ENDPOINTS.NOVELS.DETAIL(novelId), {
       method: 'PUT',
-      body: JSON.stringify({ title, synopsis, categoryType }),
+      body: JSON.stringify({ title, synopsis, categoryType, genres, tags }),
     });
   },
 

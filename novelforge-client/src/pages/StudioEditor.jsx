@@ -1,0 +1,32 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { novelApi } from '../features/novels/api/novels.api';
+import { chaptersApi } from '../features/chapters/api/chapters.api';
+import { useToast } from '../context/ToastContext';
+import './ProductPages.css';
+
+export default function StudioEditor() {
+  const { success, error: toastError } = useToast();
+  const [studioId, setStudioId] = useState('');
+  const [novels, setNovels] = useState([]);
+  const [novelId, setNovelId] = useState('');
+  const [chapters, setChapters] = useState([]);
+  const [chapterId, setChapterId] = useState('');
+  const [title, setTitle] = useState('');
+  const [synopsis, setSynopsis] = useState('');
+  const [chapterNumber, setChapterNumber] = useState(1);
+  const [chapterTitle, setChapterTitle] = useState('');
+  const [blocks, setBlocks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const loadNovels = useCallback(async (id = studioId) => { try { const page = await novelApi.getStudioNovels(id); setNovels(page?.content || []); } catch (err) { setError(err.message || 'Could not load studio novels.'); } }, [studioId]);
+  const loadChapters = useCallback(async (id = novelId) => { try { const page = await chaptersApi.getStudioChapters(studioId, id); const list = page?.content || []; setChapters(list); } catch (err) { setError(err.message || 'Could not load chapters.'); } }, [studioId, novelId]);
+  const createNovel = async (event) => { event.preventDefault(); setLoading(true); try { const created = await novelApi.createNovel(studioId, { title, synopsis, categoryType: 'FICTION', genres: [], tags: [] }); setTitle(''); setSynopsis(''); await loadNovels(); setNovelId(String(created.id)); success('Novel created.'); } catch (err) { setError(err.message || 'Could not create novel.'); } finally { setLoading(false); } };
+  const createChapter = async (event) => { event.preventDefault(); setLoading(true); try { const created = await chaptersApi.createChapter(novelId, { title: chapterTitle, chapterNumber: Number(chapterNumber) }); setChapterTitle(''); await loadChapters(); setChapterId(created.id); success('Chapter created.'); } catch (err) { setError(err.message || 'Could not create chapter.'); } finally { setLoading(false); } };
+  const loadChapter = async (id) => { setChapterId(id); try { const chapter = await chaptersApi.getStudioChapter(studioId, novelId, id); setBlocks(chapter.blocks || []); setChapterTitle(chapter.title || ''); } catch (err) { setError(err.message || 'Could not load this chapter.'); } };
+  const saveTextBlock = async () => { if (!chapterId) return; setLoading(true); try { const position = blocks.length ? Math.max(...blocks.map((block) => block.position || 0)) + 1 : 0; const updated = await chaptersApi.addBlock(novelId, chapterId, { position, type: 'TEXT', text: document.getElementById('new-block').value }); setBlocks(updated.blocks || []); document.getElementById('new-block').value = ''; success('Block saved.'); } catch (err) { setError(err.message || 'Could not save block.'); } finally { setLoading(false); } };
+  const publishChapter = async () => { try { await chaptersApi.publishChapter(novelId, chapterId); success('Chapter published.'); await loadChapters(); } catch (err) { toastError(err.message || 'Could not publish chapter.'); } };
+  useEffect(() => { if (!studioId) return; const timer = setTimeout(() => loadNovels(studioId), 250); return () => clearTimeout(timer); }, [studioId, loadNovels]);
+  useEffect(() => { if (studioId && novelId) loadChapters(novelId); }, [studioId, novelId, loadChapters]);
+  return <main className="product-page studio-page"><header className="product-heading"><div><p className="eyebrow">CREATOR WORKSPACE</p><h1>Studio</h1><p>Write and publish your next chapter.</p></div><Link className="quiet-button" to="/profile">Account</Link></header><section className="editor-card"><label>Studio ID<input value={studioId} onChange={(event) => setStudioId(event.target.value)} placeholder="Paste your studio ID" /></label>{studioId && <label>Choose a novel<select value={novelId} onChange={(event) => setNovelId(event.target.value)}><option value="">Select a novel</option>{novels.map((novel) => <option value={novel.id} key={novel.id}>{novel.title}</option>)}</select></label>}<form onSubmit={createNovel} className="editor-form"><h2>New novel</h2><label>Title<input value={title} maxLength={200} required onChange={(event) => setTitle(event.target.value)} /></label><label>Synopsis<textarea value={synopsis} maxLength={2000} rows={3} onChange={(event) => setSynopsis(event.target.value)} /></label><button className="product-button" disabled={!studioId || loading}>Create novel</button></form>{novelId && <form onSubmit={createChapter} className="editor-form"><h2>New chapter</h2><div className="form-inline"><label>Number<input type="number" min="1" value={chapterNumber} onChange={(event) => setChapterNumber(event.target.value)} /></label><label>Chapter title<input value={chapterTitle} required maxLength={200} onChange={(event) => setChapterTitle(event.target.value)} /></label></div><button className="product-button" disabled={loading}>Create chapter</button></form>}</section>{novelId && <div className="writer-layout"><aside className="chapter-sidebar"><h2>Chapters</h2>{chapters.map((chapter) => <button className={chapterId === chapter.id ? 'chapter-select selected' : 'chapter-select'} key={chapter.id} onClick={() => loadChapter(chapter.id)}>Ch. {chapter.chapterNumber} · {chapter.title}</button>)}</aside><section className="editor-card writing-area"><h2>{chapterTitle || 'Select a chapter'}</h2>{chapterId ? <><div className="block-list">{blocks.map((block) => <div key={block.id} className="content-block">{block.type === 'IMAGE' ? <img src={block.imageUrl} alt={block.altText || ''} /> : block.text}</div>)}</div><label>Add a text block<textarea id="new-block" rows={8} maxLength={100000} placeholder="Write a scene…" /></label><div className="editor-actions"><button type="button" className="quiet-button" onClick={saveTextBlock} disabled={loading}>Save block</button><button type="button" className="product-button" onClick={publishChapter}>Publish chapter</button></div></> : <p>Choose a chapter to edit its content blocks.</p>}</section></div>}{error && <p className="inline-error" role="alert">{error}</p>}</main>;
+}

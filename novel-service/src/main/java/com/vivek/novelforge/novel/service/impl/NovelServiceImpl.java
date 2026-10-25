@@ -63,7 +63,9 @@ public class NovelServiceImpl implements NovelService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(cacheNames = "publicNovels", key = "#novelId"),
-            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true)
+            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterDetails", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
     })
     public NovelResponseDto updateNovel(Long novelId, NovelRequestDto request,
                                         Authentication authentication, String authorization) {
@@ -107,7 +109,9 @@ public class NovelServiceImpl implements NovelService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(cacheNames = "publicNovels", key = "#novelId"),
-            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true)
+            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterDetails", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
     })
     public void deleteNovel(Long novelId, Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
@@ -123,7 +127,9 @@ public class NovelServiceImpl implements NovelService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(cacheNames = "publicNovels", key = "#novelId"),
-            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true)
+            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterDetails", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
     })
     public NovelResponseDto cancelDeletion(Long novelId, Authentication authentication, String authorization) {
         Novel novel = novelRepository.findById(novelId)
@@ -146,7 +152,9 @@ public class NovelServiceImpl implements NovelService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(cacheNames = "publicNovels", key = "#novelId"),
-            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true)
+            @CacheEvict(cacheNames = "publicNovelSearch", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterDetails", allEntries = true),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
     })
     public NovelResponseDto publishNovel(Long novelId, Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);

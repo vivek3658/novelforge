@@ -60,6 +60,12 @@ services:
         value: https://identity-service-0jgj.onrender.com
       - key: NOTIFICATION_SERVICE_URL
         value: https://notification-service-ng1j.onrender.com
+      - key: STUDIO_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: ENGAGEMENT_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: NOTIFICATION_IDENTITY_INTERNAL_SECRET
+        sync: false
       - key: NOVEL_SERVICE_URL
         value: https://novel-service.onrender.com
 
@@ -153,7 +159,7 @@ services:
         value: https://identity-service-0jgj.onrender.com
       - key: JWT_SECRET_KEY
         sync: false
-      - key: IDENTITY_INTERNAL_CLIENT_SECRET
+      - key: ENGAGEMENT_IDENTITY_INTERNAL_SECRET
         sync: false
 
   # -------------------------------------------------------------
@@ -178,6 +184,8 @@ services:
         sync: false # Set securely in Render dashboard
       - key: SPRING_MAIL_PASSWORD
         sync: false # Set securely in Render dashboard
+      - key: NOTIFICATION_IDENTITY_INTERNAL_SECRET
+        sync: false
 
   # -------------------------------------------------------------
   # Frontend Client (React 19 + Vite + Nginx)

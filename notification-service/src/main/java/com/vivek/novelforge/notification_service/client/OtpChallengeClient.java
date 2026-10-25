@@ -12,7 +12,7 @@ import java.util.UUID;
 public class OtpChallengeClient {
     private final RestClient restClient;
 
-    @Value("${identity.internal.client-secret}")
+    @Value("${identity.internal.notification-client-secret}")
     private String internalClientSecret;
 
     public OtpChallengeClient(

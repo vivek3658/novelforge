@@ -73,7 +73,9 @@ jwt:
 
 identity:
   internal:
-    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET:}
+    studio-client-secret: ${STUDIO_IDENTITY_INTERNAL_SECRET:}
+    engagement-client-secret: ${ENGAGEMENT_IDENTITY_INTERNAL_SECRET:}
+    notification-client-secret: ${NOTIFICATION_IDENTITY_INTERNAL_SECRET:}
   gateway:
     internal-secret: ${GATEWAY_INTERNAL_SECRET:}
   cookies:

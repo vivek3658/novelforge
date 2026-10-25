@@ -21,6 +21,8 @@ const NovelDetail = lazy(() => import('./pages/NovelDetail'));
 const Reader = lazy(() => import('./pages/Reader'));
 const Categories = lazy(() => import('./pages/Categories'));
 const Community = lazy(() => import('./pages/Community'));
+const Library = lazy(() => import('./pages/Library'));
+const StudioEditor = lazy(() => import('./pages/StudioEditor'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Accessible, responsive loading skeleton for route transitions
@@ -54,6 +56,8 @@ const AppContent = () => {
             <Route path="/read/:novelId/:chapterId" element={<Reader />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/community" element={<Community />} />
+            <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+            <Route path="/studio" element={<ProtectedRoute><StudioEditor /></ProtectedRoute>} />
 
             {/* Authentication Pages (Only accessible to unauthenticated guests) */}
             <Route

@@ -109,6 +109,20 @@ spring:
               filters:
                 - RewritePath=/api/v1/studios(?<segment>/.*), /studios${segment}
 
+            - id: ENGAGEMENT-SERVICE-ROOT
+              uri: ${ENGAGEMENT_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/engagement
+              filters:
+                - SetPath=/
+
+            - id: ENGAGEMENT-SERVICE
+              uri: ${ENGAGEMENT_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/engagement/**
+              filters:
+                - RewritePath=/api/v1/engagement(?<segment>/.*), ${segment}
+
 server:
   port: 8080
 

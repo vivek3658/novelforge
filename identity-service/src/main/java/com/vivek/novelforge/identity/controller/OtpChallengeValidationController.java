@@ -24,8 +24,8 @@ public class OtpChallengeValidationController {
     private final RegistrationService registrationService;
     private final PasswordResetService passwordResetService;
 
-    @Value("${identity.internal.client-secret:}")
-    private String internalClientSecret;
+    @Value("${identity.internal.notification-client-secret:}")
+    private String notificationClientSecret;
 
     @GetMapping("/{challengeId}")
     public ResponseEntity<Void> validateCurrentChallenge(
@@ -53,10 +53,10 @@ public class OtpChallengeValidationController {
     }
 
     private boolean validInternalSecret(String supplied) {
-        if (internalClientSecret == null || internalClientSecret.isBlank()
+        if (notificationClientSecret == null || notificationClientSecret.isBlank()
                 || supplied == null) return false;
         return MessageDigest.isEqual(
-                internalClientSecret.getBytes(StandardCharsets.UTF_8),
+                notificationClientSecret.getBytes(StandardCharsets.UTF_8),
                 supplied.getBytes(StandardCharsets.UTF_8)
         );
     }

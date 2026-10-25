@@ -15,9 +15,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 @RestController
 @RequestMapping("/studios")
@@ -25,6 +28,10 @@ import java.util.UUID;
 public class StudioController {
 
     private final StudioService studioService;
+    @Value("${studio.internal.novel-client-secret:}")
+    private String novelClientSecret;
+    @Value("${studio.internal.engagement-client-secret:}")
+    private String engagementClientSecret;
 
     @PostMapping
     public ResponseEntity<StudioResponseDto> createStudio(
@@ -136,9 +143,19 @@ public class StudioController {
     @GetMapping("/{studioId}/members/me")
     public ResponseEntity<MyStudioMembershipDto> getMyMembership(
             @PathVariable UUID studioId,
-            Authentication authentication
+            Authentication authentication,
+            @RequestHeader(value = "X-Internal-Service-Key", required = false) String suppliedSecret
     ) {
+        if (!matchesSecret(novelClientSecret, suppliedSecret)
+                && !matchesSecret(engagementClientSecret, suppliedSecret)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
         return ResponseEntity.ok(
                 studioService.getMyMembership(studioId, authentication));
+    }
+
+    private boolean matchesSecret(String expected, String supplied) {
+        return expected != null && !expected.isBlank() && supplied != null
+                && MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), supplied.getBytes(StandardCharsets.UTF_8));
     }
 }

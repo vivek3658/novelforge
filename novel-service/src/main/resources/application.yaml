@@ -52,6 +52,7 @@ management:
 studio:
   service:
     base-url: ${STUDIO_SERVICE_BASE_URL:http://localhost:8087}
+    client-secret: ${NOVEL_STUDIO_INTERNAL_SECRET:}
 
 novelforge:
   security:

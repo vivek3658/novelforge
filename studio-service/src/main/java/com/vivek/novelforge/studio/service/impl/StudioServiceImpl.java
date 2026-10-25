@@ -347,6 +347,7 @@ public class StudioServiceImpl implements StudioService {
         switch (role) {
             case OWNER -> permissions = java.util.EnumSet.allOf(StudioPermission.class);
             case EDITOR -> permissions.addAll(java.util.EnumSet.of(
+                    StudioPermission.STUDIO_POST_CREATE,
                     StudioPermission.NOVEL_READ, StudioPermission.NOVEL_LIST,
                     StudioPermission.NOVEL_CREATE, StudioPermission.NOVEL_EDIT,
                     StudioPermission.NOVEL_PUBLISH,

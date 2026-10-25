@@ -126,6 +126,7 @@ class StudioServiceImplEligibilityTest {
         assertEquals(42L, membership.getUserId());
         assertTrue(membership.getPermissions().contains("NOVEL_EDIT"));
         assertTrue(membership.getPermissions().contains("CHAPTER_TEXT_EDIT"));
+        assertTrue(membership.getPermissions().contains("STUDIO_POST_CREATE"));
         assertFalse(membership.getPermissions().contains("NOVEL_DELETE"));
     }
 }

@@ -130,6 +130,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET:?Set GATEWAY_INTERNAL_SECRET in .env}
       GATEWAY_TRUSTED_PROXY_HOPS: ${GATEWAY_TRUSTED_PROXY_HOPS:-0}
+      ENGAGEMENT_SERVICE_URL: http://engagement-service:8084
     depends_on:
       eureka-server:
         condition: service_started
@@ -157,7 +158,9 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       NOVELFORGE_SECURITY_JWT_SECRET_KEY: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:-${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}}
       OTP_HMAC_SECRET: ${OTP_HMAC_SECRET:?Set OTP_HMAC_SECRET in .env}
-      IDENTITY_INTERNAL_CLIENT_SECRET: ${IDENTITY_INTERNAL_CLIENT_SECRET:?Set IDENTITY_INTERNAL_CLIENT_SECRET in .env}
+      STUDIO_IDENTITY_INTERNAL_SECRET: ${STUDIO_IDENTITY_INTERNAL_SECRET:?Set STUDIO_IDENTITY_INTERNAL_SECRET in .env}
+      ENGAGEMENT_IDENTITY_INTERNAL_SECRET: ${ENGAGEMENT_IDENTITY_INTERNAL_SECRET:?Set ENGAGEMENT_IDENTITY_INTERNAL_SECRET in .env}
+      NOTIFICATION_IDENTITY_INTERNAL_SECRET: ${NOTIFICATION_IDENTITY_INTERNAL_SECRET:?Set NOTIFICATION_IDENTITY_INTERNAL_SECRET in .env}
       GATEWAY_INTERNAL_SECRET: ${GATEWAY_INTERNAL_SECRET:?Set GATEWAY_INTERNAL_SECRET in .env}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
@@ -196,7 +199,7 @@ services:
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-novelforge}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
       IDENTITY_SERVICE_URL: http://identity-service:8081
-      IDENTITY_INTERNAL_CLIENT_SECRET: ${IDENTITY_INTERNAL_CLIENT_SECRET:?Set IDENTITY_INTERNAL_CLIENT_SECRET in .env}
+      NOTIFICATION_IDENTITY_INTERNAL_SECRET: ${NOTIFICATION_IDENTITY_INTERNAL_SECRET:?Set NOTIFICATION_IDENTITY_INTERNAL_SECRET in .env}
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-}
       NOTIFICATION_EMAIL_PROVIDER: ${NOTIFICATION_EMAIL_PROVIDER:-smtp}
@@ -227,8 +230,8 @@ services:
     image: novelforge/studio-service:latest
     container_name: studio-service
     restart: unless-stopped
-    ports:
-      - "8087:8087"
+    expose:
+      - "8087"
     environment:
       SERVER_PORT: 8087
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/studioDB
@@ -236,7 +239,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
       IDENTITY_SERVICE_BASE_URL: http://identity-service:8081
-      IDENTITY_INTERNAL_CLIENT_SECRET: ${IDENTITY_INTERNAL_CLIENT_SECRET:?Set IDENTITY_INTERNAL_CLIENT_SECRET in .env}
+      STUDIO_IDENTITY_INTERNAL_SECRET: ${STUDIO_IDENTITY_INTERNAL_SECRET:?Set STUDIO_IDENTITY_INTERNAL_SECRET in .env}
+      NOVEL_STUDIO_INTERNAL_SECRET: ${NOVEL_STUDIO_INTERNAL_SECRET:?Set NOVEL_STUDIO_INTERNAL_SECRET in .env}
+      ENGAGEMENT_STUDIO_INTERNAL_SECRET: ${ENGAGEMENT_STUDIO_INTERNAL_SECRET:?Set ENGAGEMENT_STUDIO_INTERNAL_SECRET in .env}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -258,8 +263,8 @@ services:
     image: novelforge/novel-service:latest
     container_name: novel-service
     restart: unless-stopped
-    ports:
-      - "8083:8083"
+    expose:
+      - "8083"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/novelDB
       SPRING_DATASOURCE_USERNAME: postgres
@@ -272,6 +277,7 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
       STUDIO_SERVICE_BASE_URL: http://studio-service:8087
+      NOVEL_STUDIO_INTERNAL_SECRET: ${NOVEL_STUDIO_INTERNAL_SECRET:?Set NOVEL_STUDIO_INTERNAL_SECRET in .env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -291,16 +297,48 @@ services:
   # -------------------------------------------------------------
   engagement-service:
     build:
-      context: ./engagement-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./engagement-service/Dockerfile
     image: novelforge/engagement-service:latest
+    container_name: engagement-service
     restart: unless-stopped
+    expose:
+      - "8084"
     environment:
       SERVER_PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/engagementDB
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-novelforge}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      NOVELFORGE_SECURITY_JWT_SECRET_KEY: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:-${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}}
+      ENGAGEMENT_IDENTITY_INTERNAL_SECRET: ${ENGAGEMENT_IDENTITY_INTERNAL_SECRET:?Set ENGAGEMENT_IDENTITY_INTERNAL_SECRET in .env}
+      ENGAGEMENT_STUDIO_INTERNAL_SECRET: ${ENGAGEMENT_STUDIO_INTERNAL_SECRET:?Set ENGAGEMENT_STUDIO_INTERNAL_SECRET in .env}
+      STUDIO_SERVICE_BASE_URL: http://studio-service:8087
+      IDENTITY_SERVICE_BASE_URL: http://identity-service:8081
+      NOVEL_SERVICE_BASE_URL: http://novel-service:8083
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
     depends_on:
-      - eureka-server
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      studio-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      novel-service:
+        condition: service_started
     networks:
       - novelforge-network
 
@@ -353,6 +391,8 @@ services:
     build:
       context: ./novelforge-client
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     image: novelforge/novelforge-client:latest
     container_name: novelforge-client
     restart: unless-stopped

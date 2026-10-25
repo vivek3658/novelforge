@@ -44,6 +44,7 @@ const Navbar = () => {
     { name: 'Novels', path: '/novels' },
     { name: 'Categories', path: '/categories' },
     { name: 'Community', path: '/community' },
+    ...(isAuthenticated ? [{ name: 'My Library', path: '/library' }, { name: 'Studio', path: '/studio' }] : []),
   ];
 
   return (

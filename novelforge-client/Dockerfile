@@ -8,9 +8,7 @@ RUN npm install
 
 # Pass API Gateway URL at build time (e.g. from Render or Docker Compose)
 ARG VITE_API_BASE_URL
-ARG VITE_API_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_API_URL=$VITE_API_URL
 
 COPY . .
 RUN npm run build

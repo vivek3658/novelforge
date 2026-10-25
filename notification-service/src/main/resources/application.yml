@@ -39,7 +39,7 @@ identity:
   service:
     url: ${IDENTITY_SERVICE_URL:http://identity-service:8081}
   internal:
-    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET:}
+    client-secret: ${NOTIFICATION_IDENTITY_INTERNAL_SECRET:}
 
 novelforge:
   messaging:

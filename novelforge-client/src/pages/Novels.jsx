@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { novelStore } from '../services/novelStore';
 import { useAuth } from '../context/AuthContext';
 import './Home.css';
 
 const Novels = () => {
-  const { isAuthenticated, isCreator } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [novels, setNovels] = useState([]);
@@ -15,9 +15,12 @@ const Novels = () => {
   const [sortBy, setSortBy] = useState('rating');
   const [viewMode, setViewMode] = useState('grid');
   const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [isDemoCatalog, setIsDemoCatalog] = useState(false);
+  const [pageNumber, setPageNumber] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
 
   // Fetch novels from store
-  const fetchNovels = useCallback(async (query = '') => {
+  const fetchNovels = useCallback(async (query = '', page = 0) => {
     setLoading(true);
     try {
       let result;
@@ -28,6 +31,9 @@ const Novels = () => {
       }
       setNovels(result.novels || []);
       setIsLiveConnected(Boolean(result.isLiveBackendAvailable));
+      setIsDemoCatalog(Boolean(result.isDemo));
+      setPageNumber(result.page?.number || 0);
+      setHasNext(Boolean(result.page && !result.page.last));
     } catch (err) {
       console.warn('Failed to load novels:', err.message);
       setIsLiveConnected(false);
@@ -55,9 +61,6 @@ const Novels = () => {
       return (n.categoryType || 'FICTION').toUpperCase() === categoryFilter.toUpperCase();
     })
     .sort((a, b) => {
-      if (sortBy === 'rating') {
-        return (b.rating || 0) - (a.rating || 0);
-      }
       if (sortBy === 'title') {
         return (a.title || '').localeCompare(b.title || '');
       }
@@ -91,7 +94,7 @@ const Novels = () => {
                 border: `1px solid ${isLiveConnected ? '#10b981' : '#818cf8'}`,
               }}
             >
-              {isLiveConnected ? '● Live Backend Service' : '○ Curated Catalog Showcase'}
+              {isLiveConnected ? '● Live catalog' : '○ Backend offline'}
             </span>
           </div>
           <p className="section-subtitle">
@@ -102,28 +105,7 @@ const Novels = () => {
         {/* Action Controls */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {isAuthenticated ? (
-            isCreator ? (
-              <button
-                onClick={() => navigate('/profile?tab=creator')}
-                className="btn-primary"
-                style={{ padding: '0.65rem 1.35rem', fontSize: '0.92rem' }}
-              >
-                + Open Creator Studio
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate('/profile')}
-                className="btn-primary"
-                style={{
-                  padding: '0.65rem 1.35rem',
-                  fontSize: '0.92rem',
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  border: 'none',
-                }}
-              >
-                ✨ Become an Author
-              </button>
-            )
+              <button onClick={() => navigate('/studio')} className="btn-primary" style={{ padding: '0.65rem 1.35rem', fontSize: '0.92rem' }}>Open Studio</button>
           ) : (
             <button
               onClick={() => navigate('/login')}
@@ -189,7 +171,7 @@ const Novels = () => {
             style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}
             aria-label="Sort novels"
           >
-            <option value="rating">Top Rated</option>
+            <option value="recent">Recently published</option>
             <option value="title">Alphabetical (A-Z)</option>
           </select>
 
@@ -272,10 +254,9 @@ const Novels = () => {
                 <div className="novel-author">by {novel.author || 'Author Unknown'}</div>
                 <p className="novel-synopsis">{novel.synopsis}</p>
 
-                <div className="novel-stats">
-                  <span className="novel-rating">★ {novel.rating || '4.9'}</span>
-                  <span>{novel.chapters?.length || 0} Chs</span>
-                  <span>{novel.views || '1.2K'} reads</span>
+            <div className="novel-stats">
+                  <span>{novel.categoryType || 'FICTION'}</span>
+                  <span>{novel.publicationState || 'PUBLISHED'}</span>
                 </div>
 
                 <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -302,6 +283,8 @@ const Novels = () => {
           ))}
         </div>
       )}
+      {isDemoCatalog && <p className="catalog-disclaimer-box">Sample catalog data is shown for local preview. Live results will replace these when the Novel service is running.</p>}
+      {!loading && isLiveConnected && novels.length > 0 && <div className="pagination-row"><button className="action-btn-secondary" disabled={pageNumber === 0} onClick={() => fetchNovels(search, Math.max(0, pageNumber - 1))}>Previous</button><span>Page {pageNumber + 1}</span><button className="action-btn-secondary" disabled={!hasNext} onClick={() => fetchNovels(search, pageNumber + 1)}>Next</button></div>}
     </div>
   );
 };

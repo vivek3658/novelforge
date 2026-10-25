@@ -1,6 +1,7 @@
 package com.vivek.novelforge.studio.type;
 
 public enum StudioPermission {
+    STUDIO_POST_CREATE,
     NOVEL_READ,
     NOVEL_LIST,
     NOVEL_CREATE,

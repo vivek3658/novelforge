@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +26,7 @@ public class ChapterPublicationScheduler {
     private final ChapterRepository chapterRepository;
     private final NovelRepository novelRepository;
     private final MongoTemplate mongoTemplate;
+    private final CacheManager cacheManager;
 
     /** Persisted SCHEDULED records survive restarts; the conditional update makes multiple replicas safe. */
     @Scheduled(fixedDelayString = "${novelforge.chapters.publish-poll-ms:10000}")
@@ -53,6 +55,7 @@ public class ChapterPublicationScheduler {
                 Chapter published = mongoTemplate.findAndModify(
                         claim, publish, FindAndModifyOptions.options().returnNew(true), Chapter.class);
                 if (published != null) {
+                    evictPublicChapterCaches(published.getNovelId(), published.getId());
                     log.info("Published scheduled chapter chapterId={} novelId={}",
                             published.getId(), published.getNovelId());
                 }
@@ -60,5 +63,12 @@ public class ChapterPublicationScheduler {
                 log.error("Scheduled chapter publication failed chapterId={}", candidate.getId(), exception);
             }
         }
+    }
+
+    private void evictPublicChapterCaches(Long novelId, String chapterId) {
+        var detailCache = cacheManager.getCache("publicChapterDetails");
+        if (detailCache != null) detailCache.evict(novelId + ":" + chapterId);
+        var pageCache = cacheManager.getCache("publicChapterPages");
+        if (pageCache != null) pageCache.clear();
     }
 }

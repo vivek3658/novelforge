@@ -41,7 +41,12 @@ novelforge:
 identity:
   service:
     base-url: ${IDENTITY_SERVICE_BASE_URL:http://localhost:8081}
-    client-secret: ${IDENTITY_INTERNAL_CLIENT_SECRET}
+    client-secret: ${STUDIO_IDENTITY_INTERNAL_SECRET:}
+
+studio:
+  internal:
+    novel-client-secret: ${NOVEL_STUDIO_INTERNAL_SECRET:}
+    engagement-client-secret: ${ENGAGEMENT_STUDIO_INTERNAL_SECRET:}
 
 eureka:
   client:

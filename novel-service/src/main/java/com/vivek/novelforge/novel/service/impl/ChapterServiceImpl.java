@@ -28,6 +28,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 import java.net.URI;
 import java.time.Instant;
@@ -54,6 +57,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final StudioMembershipClient studioMembershipClient;
 
     @Override
+    @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
     public ChapterResponseDto createChapter(Long novelId, CreateChapterRequestDto request,
                                             Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
@@ -67,6 +71,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public ChapterResponseDto updateChapter(Long novelId, String chapterId, UpdateChapterRequestDto request,
                                             Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
@@ -90,6 +98,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public ChapterResponseDto addBlock(Long novelId, String chapterId, ChapterBlockRequestDto request,
                                        Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
@@ -113,6 +125,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public ChapterResponseDto updateBlock(Long novelId, String chapterId, String blockId,
                                           ChapterBlockRequestDto request, Authentication authentication,
                                           String authorization) {
@@ -154,6 +170,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public void deleteBlock(Long novelId, String chapterId, String blockId,
                             Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
@@ -174,6 +194,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public void deleteChapter(Long novelId, String chapterId, Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
         requirePermission(novel, authentication, authorization, StudioPermission.CHAPTER_DELETE);
@@ -187,6 +211,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public ChapterResponseDto publishChapter(Long novelId, String chapterId,
                                              Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
@@ -202,6 +230,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public ChapterResponseDto scheduleChapter(Long novelId, String chapterId,
                                               ScheduleChapterRequestDto request,
                                               Authentication authentication, String authorization) {
@@ -222,6 +254,10 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId"),
+            @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
+    })
     public ChapterResponseDto cancelSchedule(Long novelId, String chapterId,
                                              Authentication authentication, String authorization) {
         Novel novel = requireNovel(novelId);
@@ -237,6 +273,7 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Cacheable(cacheNames = "publicChapterDetails", key = "#novelId + ':' + #chapterId")
     public ChapterResponseDto getPublicChapter(Long novelId, String chapterId) {
         Novel novel = requirePublishedNovelById(novelId);
         Chapter chapter = requireChapter(novelId, chapterId);
@@ -256,6 +293,7 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @Cacheable(cacheNames = "publicChapterPages", key = "#novelId + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort")
     public Page<ChapterResponseDto> getPublicChapters(Long novelId, Pageable pageable) {
         requirePublishedNovelById(novelId);
         return chapterRepository.findByNovelIdAndDeletedAtIsNullAndPublicationStateIn(

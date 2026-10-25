@@ -47,7 +47,7 @@ export function normalizeBaseUrl(url) {
  * In production, empty string is permitted ONLY if relative reverse-proxy routing is used.
  */
 export function getApiBaseUrl() {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
   if (baseUrl) {
     return normalizeBaseUrl(baseUrl);
   }

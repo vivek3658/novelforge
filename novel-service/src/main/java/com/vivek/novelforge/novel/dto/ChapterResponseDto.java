@@ -5,11 +5,13 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.time.Instant;
+import java.io.Serializable;
 import java.util.List;
 
 @Value
 @Builder
-public class ChapterResponseDto {
+public class ChapterResponseDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     String id;
     Long novelId;
     Integer chapterNumber;

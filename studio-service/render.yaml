@@ -33,5 +33,9 @@ services:
         value: https://identity-service-0jgj.onrender.com
       - key: JWT_SECRET_KEY
         sync: false
-      - key: IDENTITY_INTERNAL_CLIENT_SECRET
+      - key: STUDIO_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: NOVEL_STUDIO_INTERNAL_SECRET
+        sync: false
+      - key: ENGAGEMENT_STUDIO_INTERNAL_SECRET
         sync: false
