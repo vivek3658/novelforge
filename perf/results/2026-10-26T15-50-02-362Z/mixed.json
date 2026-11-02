@@ -1,0 +1,2360 @@
+{
+  "key": "mixed",
+  "name": "6. Mixed Workload (80% Reads, 15% Auth Reads, 5% Writes)",
+  "service": "novel-service",
+  "port": 8083,
+  "topologies": {
+    "1x": {
+      "instances": 1,
+      "connections": {
+        "10": {
+          "connections": 10,
+          "minRps": 278.3,
+          "medianRps": 348.3,
+          "maxRps": 521.7,
+          "meanRps": 358.3,
+          "stdevRps": 82.9,
+          "spreadPercent": 69.9,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 360.5,
+          "littlesDeltaPercent": 3.5,
+          "latency": {
+            "mean": 27.7,
+            "p50": 10,
+            "p90": 81,
+            "p97_5": 91,
+            "p99": 96,
+            "max": 128,
+            "tailRatio": "9.6"
+          },
+          "throughputMB": 1.33,
+          "totalRequests": 1045,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 246,
+          "totalErrors": 246,
+          "errorRatePercent": 23.54,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-1": 5312
+          },
+          "stats": [
+            {
+              "name": "api-gateway",
+              "cpu": "0.34%",
+              "mem": "464MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "0.62%",
+              "mem": "507.4MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.41%",
+              "mem": "549.9MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.21%",
+              "mem": "274.1MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.28%",
+              "mem": "486.7MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.57%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.14%",
+              "mem": "85.36MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "1.57%",
+              "mem": "396.2MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.4MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "0.67%",
+              "mem": "292.1MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "6.29%",
+              "mem": "9.062MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "0.30%",
+              "mem": "166.9MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 278.34,
+              "meanLatency": 35.06,
+              "p50": 10,
+              "p90": 87,
+              "p97_5": 95,
+              "p99": 205,
+              "max": 301,
+              "throughputBytes": 1093034.67,
+              "totalRequests": 835,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 200,
+              "twoXx": 635
+            },
+            {
+              "rps": 294.67,
+              "meanLatency": 33.38,
+              "p50": 10,
+              "p90": 84,
+              "p97_5": 99,
+              "p99": 213,
+              "max": 307,
+              "throughputBytes": 1189973.34,
+              "totalRequests": 884,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 201,
+              "twoXx": 683
+            },
+            {
+              "rps": 309,
+              "meanLatency": 31.88,
+              "p50": 10,
+              "p90": 86,
+              "p97_5": 95,
+              "p99": 107,
+              "max": 128,
+              "throughputBytes": 1235797.34,
+              "totalRequests": 927,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 213,
+              "twoXx": 714
+            },
+            {
+              "rps": 398,
+              "meanLatency": 24.69,
+              "p50": 9,
+              "p90": 78,
+              "p97_5": 85,
+              "p99": 90,
+              "max": 96,
+              "throughputBytes": 1572010.67,
+              "totalRequests": 1194,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 284,
+              "twoXx": 910
+            },
+            {
+              "rps": 348.34,
+              "meanLatency": 27.74,
+              "p50": 10,
+              "p90": 81,
+              "p97_5": 91,
+              "p99": 96,
+              "max": 128,
+              "throughputBytes": 1389397.34,
+              "totalRequests": 1045,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 246,
+              "twoXx": 799
+            },
+            {
+              "rps": 521.67,
+              "meanLatency": 18.61,
+              "p50": 8,
+              "p90": 65,
+              "p97_5": 75,
+              "p99": 78,
+              "max": 88,
+              "throughputBytes": 2068480,
+              "totalRequests": 1565,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 369,
+              "twoXx": 1196
+            }
+          ]
+        },
+        "50": {
+          "connections": 50,
+          "minRps": 221,
+          "medianRps": 407.7,
+          "maxRps": 538.7,
+          "meanRps": 382.7,
+          "stdevRps": 96.92,
+          "spreadPercent": 77.9,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 411.8,
+          "littlesDeltaPercent": 1,
+          "latency": {
+            "mean": 121.4,
+            "p50": 106,
+            "p90": 200,
+            "p97_5": 209,
+            "p99": 292,
+            "max": 307,
+            "tailRatio": "2.8"
+          },
+          "throughputMB": 1.65,
+          "totalRequests": 1223,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 249,
+          "totalErrors": 249,
+          "errorRatePercent": 20.36,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-1": 6215
+          },
+          "stats": [
+            {
+              "name": "api-gateway",
+              "cpu": "1.61%",
+              "mem": "464.1MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "0.49%",
+              "mem": "507.4MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.41%",
+              "mem": "550.1MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.17%",
+              "mem": "274.1MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.40%",
+              "mem": "486.7MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.71%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.12%",
+              "mem": "85.24MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "1.76%",
+              "mem": "396MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.4MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "75.82%",
+              "mem": "292.3MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "0.91%",
+              "mem": "8.902MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "250.04%",
+              "mem": "167MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 421.34,
+              "meanLatency": 116.75,
+              "p50": 103,
+              "p90": 201,
+              "p97_5": 211,
+              "p99": 291,
+              "max": 394,
+              "throughputBytes": 1836032,
+              "totalRequests": 1264,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 250,
+              "twoXx": 1014
+            },
+            {
+              "rps": 321.34,
+              "meanLatency": 133.64,
+              "p50": 100,
+              "p90": 205,
+              "p97_5": 699,
+              "p99": 1096,
+              "max": 1403,
+              "throughputBytes": 1370282.67,
+              "totalRequests": 964,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 182,
+              "twoXx": 782
+            },
+            {
+              "rps": 221,
+              "meanLatency": 199.58,
+              "p50": 104,
+              "p90": 491,
+              "p97_5": 1203,
+              "p99": 1399,
+              "max": 1698,
+              "throughputBytes": 1067733.34,
+              "totalRequests": 663,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 68,
+              "twoXx": 595
+            },
+            {
+              "rps": 407.67,
+              "meanLatency": 121.43,
+              "p50": 106,
+              "p90": 200,
+              "p97_5": 209,
+              "p99": 292,
+              "max": 307,
+              "throughputBytes": 1729024,
+              "totalRequests": 1223,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 249,
+              "twoXx": 974
+            },
+            {
+              "rps": 538.67,
+              "meanLatency": 91.81,
+              "p50": 98,
+              "p90": 174,
+              "p97_5": 200,
+              "p99": 212,
+              "max": 306,
+              "throughputBytes": 2327381.34,
+              "totalRequests": 1616,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 284,
+              "twoXx": 1332
+            },
+            {
+              "rps": 386,
+              "meanLatency": 125.68,
+              "p50": 108,
+              "p90": 203,
+              "p97_5": 279,
+              "p99": 295,
+              "max": 313,
+              "throughputBytes": 1601365.34,
+              "totalRequests": 1158,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 250,
+              "twoXx": 908
+            }
+          ]
+        },
+        "100": {
+          "connections": 100,
+          "minRps": 218.7,
+          "medianRps": 415,
+          "maxRps": 468.3,
+          "meanRps": 382.6,
+          "stdevRps": 80.45,
+          "spreadPercent": 60.2,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 424.9,
+          "littlesDeltaPercent": 2.4,
+          "latency": {
+            "mean": 235.4,
+            "p50": 208,
+            "p90": 312,
+            "p97_5": 406,
+            "p99": 469,
+            "max": 543,
+            "tailRatio": "2.3"
+          },
+          "throughputMB": 1.98,
+          "totalRequests": 1245,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 81,
+          "totalErrors": 81,
+          "errorRatePercent": 6.51,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-1": 7441
+          },
+          "stats": [
+            {
+              "name": "api-gateway",
+              "cpu": "1.42%",
+              "mem": "464MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "0.69%",
+              "mem": "507.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.58%",
+              "mem": "556.1MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.35%",
+              "mem": "274.1MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.45%",
+              "mem": "486.7MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.55%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.18%",
+              "mem": "85.67MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "2.15%",
+              "mem": "396MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.41MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "0.90%",
+              "mem": "292.6MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "1.34%",
+              "mem": "9.082MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "2.00%",
+              "mem": "167.4MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 399.67,
+              "meanLatency": 239.83,
+              "p50": 210,
+              "p90": 318,
+              "p97_5": 408,
+              "p99": 438,
+              "max": 589,
+              "throughputBytes": 2005162.67,
+              "totalRequests": 1199,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 66,
+              "twoXx": 1133
+            },
+            {
+              "rps": 468.34,
+              "meanLatency": 207.29,
+              "p50": 198,
+              "p90": 305,
+              "p97_5": 409,
+              "p99": 497,
+              "max": 783,
+              "throughputBytes": 2267989.34,
+              "totalRequests": 1405,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 134,
+              "twoXx": 1271
+            },
+            {
+              "rps": 218.67,
+              "meanLatency": 349.11,
+              "p50": 299,
+              "p90": 516,
+              "p97_5": 1102,
+              "p99": 1500,
+              "max": 1901,
+              "throughputBytes": 1252522.67,
+              "totalRequests": 656,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 2,
+              "twoXx": 654
+            },
+            {
+              "rps": 415,
+              "meanLatency": 235.37,
+              "p50": 208,
+              "p90": 312,
+              "p97_5": 406,
+              "p99": 469,
+              "max": 543,
+              "throughputBytes": 2076842.67,
+              "totalRequests": 1245,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 81,
+              "twoXx": 1164
+            },
+            {
+              "rps": 359,
+              "meanLatency": 258.34,
+              "p50": 206,
+              "p90": 399,
+              "p97_5": 701,
+              "p99": 1007,
+              "max": 1400,
+              "throughputBytes": 1853440,
+              "totalRequests": 1077,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 33,
+              "twoXx": 1044
+            },
+            {
+              "rps": 434.67,
+              "meanLatency": 218.72,
+              "p50": 204,
+              "p90": 314,
+              "p97_5": 404,
+              "p99": 487,
+              "max": 693,
+              "throughputBytes": 2156202.67,
+              "totalRequests": 1304,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 100,
+              "twoXx": 1204
+            }
+          ]
+        },
+        "200": {
+          "connections": 200,
+          "minRps": 228.7,
+          "medianRps": 331.7,
+          "maxRps": 423.7,
+          "meanRps": 320.5,
+          "stdevRps": 71.5,
+          "spreadPercent": 58.8,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 351.1,
+          "littlesDeltaPercent": 5.9,
+          "latency": {
+            "mean": 569.6,
+            "p50": 508,
+            "p90": 815,
+            "p97_5": 907,
+            "p99": 985,
+            "max": 1093,
+            "tailRatio": "1.9"
+          },
+          "throughputMB": 2.08,
+          "totalRequests": 995,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "totalErrors": 0,
+          "errorRatePercent": 0,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-1": 6953
+          },
+          "stats": [
+            {
+              "name": "api-gateway",
+              "cpu": "0.20%",
+              "mem": "464MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "0.42%",
+              "mem": "507.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.72%",
+              "mem": "565.4MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.26%",
+              "mem": "274.1MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.62%",
+              "mem": "486.7MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.27%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.10%",
+              "mem": "85.78MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "3.64%",
+              "mem": "396MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.43MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "0.63%",
+              "mem": "292.7MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "0.83%",
+              "mem": "9.688MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "1.39%",
+              "mem": "167.4MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 388.34,
+              "meanLatency": 497.09,
+              "p50": 495,
+              "p90": 624,
+              "p97_5": 817,
+              "p99": 906,
+              "max": 2100,
+              "throughputBytes": 2420906.67,
+              "totalRequests": 1165,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 0,
+              "twoXx": 1165
+            },
+            {
+              "rps": 331.67,
+              "meanLatency": 569.6,
+              "p50": 508,
+              "p90": 815,
+              "p97_5": 907,
+              "p99": 985,
+              "max": 1093,
+              "throughputBytes": 2182314.67,
+              "totalRequests": 995,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 0,
+              "twoXx": 995
+            },
+            {
+              "rps": 423.67,
+              "meanLatency": 448.55,
+              "p50": 415,
+              "p90": 601,
+              "p97_5": 774,
+              "p99": 864,
+              "max": 882,
+              "throughputBytes": 2565802.67,
+              "totalRequests": 1271,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 0,
+              "twoXx": 1271
+            },
+            {
+              "rps": 312.67,
+              "meanLatency": 582.53,
+              "p50": 584,
+              "p90": 901,
+              "p97_5": 1155,
+              "p99": 1327,
+              "max": 1592,
+              "throughputBytes": 1904469.34,
+              "totalRequests": 938,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 0,
+              "twoXx": 938
+            },
+            {
+              "rps": 228.67,
+              "meanLatency": 706.96,
+              "p50": 658,
+              "p90": 1055,
+              "p97_5": 1741,
+              "p99": 1900,
+              "max": 2103,
+              "throughputBytes": 1313706.67,
+              "totalRequests": 686,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 0,
+              "twoXx": 686
+            },
+            {
+              "rps": 238,
+              "meanLatency": 728.98,
+              "p50": 680,
+              "p90": 997,
+              "p97_5": 1720,
+              "p99": 1749,
+              "max": 2023,
+              "throughputBytes": 1400320,
+              "totalRequests": 714,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 0,
+              "twoXx": 714
+            }
+          ]
+        }
+      }
+    },
+    "2x": {
+      "instances": 2,
+      "connections": {
+        "10": {
+          "connections": 10,
+          "minRps": 182.3,
+          "medianRps": 248,
+          "maxRps": 310.7,
+          "meanRps": 253.6,
+          "stdevRps": 45.05,
+          "spreadPercent": 51.7,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 257.3,
+          "littlesDeltaPercent": 3.7,
+          "latency": {
+            "mean": 38.9,
+            "p50": 10,
+            "p90": 96,
+            "p97_5": 158,
+            "p99": 193,
+            "max": 202,
+            "tailRatio": "19.3"
+          },
+          "throughputMB": 0.95,
+          "totalRequests": 744,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 167,
+          "totalErrors": 167,
+          "errorRatePercent": 22.45,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-2": 1903,
+            "novelforge-server-novel-service-1": 1900
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "3.80%",
+              "mem": "467.8MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "1.61%",
+              "mem": "464.1MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "6.75%",
+              "mem": "500.9MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.30%",
+              "mem": "546.2MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.22%",
+              "mem": "274.1MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.27%",
+              "mem": "487MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.56%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "4.03%",
+              "mem": "110.7MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "1.53%",
+              "mem": "396.1MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.4MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "87.30%",
+              "mem": "292.6MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "0.83%",
+              "mem": "8.895MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "0.33%",
+              "mem": "167.2MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 182.34,
+              "meanLatency": 53.73,
+              "p50": 10,
+              "p90": 173,
+              "p97_5": 193,
+              "p99": 202,
+              "max": 293,
+              "throughputBytes": 751189.34,
+              "totalRequests": 547,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 119,
+              "twoXx": 428
+            },
+            {
+              "rps": 227.34,
+              "meanLatency": 42.69,
+              "p50": 10,
+              "p90": 99,
+              "p97_5": 173,
+              "p99": 188,
+              "max": 283,
+              "throughputBytes": 919466.67,
+              "totalRequests": 682,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 155,
+              "twoXx": 527
+            },
+            {
+              "rps": 244.34,
+              "meanLatency": 40.38,
+              "p50": 10,
+              "p90": 98,
+              "p97_5": 135,
+              "p99": 190,
+              "max": 199,
+              "throughputBytes": 986026.67,
+              "totalRequests": 733,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 165,
+              "twoXx": 568
+            },
+            {
+              "rps": 308.67,
+              "meanLatency": 31.78,
+              "p50": 10,
+              "p90": 91,
+              "p97_5": 97,
+              "p99": 100,
+              "max": 163,
+              "throughputBytes": 1236138.67,
+              "totalRequests": 926,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 217,
+              "twoXx": 709
+            },
+            {
+              "rps": 248,
+              "meanLatency": 38.87,
+              "p50": 10,
+              "p90": 96,
+              "p97_5": 158,
+              "p99": 193,
+              "max": 202,
+              "throughputBytes": 1001301.34,
+              "totalRequests": 744,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 167,
+              "twoXx": 577
+            },
+            {
+              "rps": 310.67,
+              "meanLatency": 31.55,
+              "p50": 10,
+              "p90": 90,
+              "p97_5": 98,
+              "p99": 100,
+              "max": 141,
+              "throughputBytes": 1242282.67,
+              "totalRequests": 932,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 217,
+              "twoXx": 715
+            }
+          ]
+        },
+        "50": {
+          "connections": 50,
+          "minRps": 206,
+          "medianRps": 398,
+          "maxRps": 421.7,
+          "meanRps": 353.3,
+          "stdevRps": 75.95,
+          "spreadPercent": 54.2,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 428.1,
+          "littlesDeltaPercent": 7.6,
+          "latency": {
+            "mean": 116.8,
+            "p50": 16,
+            "p90": 359,
+            "p97_5": 406,
+            "p99": 482,
+            "max": 576,
+            "tailRatio": "30.1"
+          },
+          "throughputMB": 1.62,
+          "totalRequests": 1194,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 236,
+          "totalErrors": 236,
+          "errorRatePercent": 19.77,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-2": 2888,
+            "novelforge-server-novel-service-1": 2886
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "0.59%",
+              "mem": "471.9MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "0.24%",
+              "mem": "464.2MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "0.38%",
+              "mem": "501MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.27%",
+              "mem": "546.7MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.23%",
+              "mem": "274.3MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.36%",
+              "mem": "487MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.27%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.06%",
+              "mem": "106.9MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "1.28%",
+              "mem": "396.1MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.41MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "0.78%",
+              "mem": "292.6MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "5.76%",
+              "mem": "9.027MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "1.41%",
+              "mem": "167.4MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 302.34,
+              "meanLatency": 156.97,
+              "p50": 15,
+              "p90": 451,
+              "p97_5": 583,
+              "p99": 598,
+              "max": 2271,
+              "throughputBytes": 1348778.67,
+              "totalRequests": 907,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 149,
+              "twoXx": 758
+            },
+            {
+              "rps": 206,
+              "meanLatency": 159.94,
+              "p50": 13,
+              "p90": 391,
+              "p97_5": 577,
+              "p99": 1590,
+              "max": 2189,
+              "throughputBytes": 919381.34,
+              "totalRequests": 618,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 101,
+              "twoXx": 517
+            },
+            {
+              "rps": 392,
+              "meanLatency": 118.65,
+              "p50": 14,
+              "p90": 303,
+              "p97_5": 400,
+              "p99": 483,
+              "max": 1690,
+              "throughputBytes": 1714005.34,
+              "totalRequests": 1176,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 209,
+              "twoXx": 967
+            },
+            {
+              "rps": 398,
+              "meanLatency": 116.8,
+              "p50": 16,
+              "p90": 359,
+              "p97_5": 406,
+              "p99": 482,
+              "max": 576,
+              "throughputBytes": 1694720,
+              "totalRequests": 1194,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 236,
+              "twoXx": 958
+            },
+            {
+              "rps": 399.67,
+              "meanLatency": 118.25,
+              "p50": 16,
+              "p90": 307,
+              "p97_5": 404,
+              "p99": 544,
+              "max": 663,
+              "throughputBytes": 1727658.67,
+              "totalRequests": 1199,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 234,
+              "twoXx": 965
+            },
+            {
+              "rps": 421.67,
+              "meanLatency": 116.96,
+              "p50": 88,
+              "p90": 294,
+              "p97_5": 389,
+              "p99": 399,
+              "max": 497,
+              "throughputBytes": 1823232,
+              "totalRequests": 1265,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 242,
+              "twoXx": 1023
+            }
+          ]
+        },
+        "100": {
+          "connections": 100,
+          "minRps": 360.7,
+          "medianRps": 416,
+          "maxRps": 509.7,
+          "meanRps": 414.4,
+          "stdevRps": 50.45,
+          "spreadPercent": 35.8,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 459.6,
+          "littlesDeltaPercent": 10.5,
+          "latency": {
+            "mean": 217.6,
+            "p50": 67,
+            "p90": 583,
+            "p97_5": 695,
+            "p99": 718,
+            "max": 984,
+            "tailRatio": "10.7"
+          },
+          "throughputMB": 1.96,
+          "totalRequests": 1248,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 118,
+          "totalErrors": 118,
+          "errorRatePercent": 9.46,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-2": 3829,
+            "novelforge-server-novel-service-1": 3829
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "21.75%",
+              "mem": "482.4MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "0.23%",
+              "mem": "464.3MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "3.13%",
+              "mem": "501.1MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.29%",
+              "mem": "546.9MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "1.03%",
+              "mem": "274.3MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "1.12%",
+              "mem": "487MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.26%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.15%",
+              "mem": "107.3MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "2.08%",
+              "mem": "396.1MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "21.56%",
+              "mem": "22.41MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "1.57%",
+              "mem": "292.6MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "0.82%",
+              "mem": "9.137MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "213.35%",
+              "mem": "236.7MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 416,
+              "meanLatency": 217.58,
+              "p50": 67,
+              "p90": 583,
+              "p97_5": 695,
+              "p99": 718,
+              "max": 984,
+              "throughputBytes": 2052949.34,
+              "totalRequests": 1248,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 118,
+              "twoXx": 1130
+            },
+            {
+              "rps": 360.67,
+              "meanLatency": 231.83,
+              "p50": 63,
+              "p90": 596,
+              "p97_5": 723,
+              "p99": 888,
+              "max": 1185,
+              "throughputBytes": 1858901.34,
+              "totalRequests": 1082,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 78,
+              "twoXx": 1004
+            },
+            {
+              "rps": 442,
+              "meanLatency": 204.86,
+              "p50": 83,
+              "p90": 504,
+              "p97_5": 602,
+              "p99": 709,
+              "max": 797,
+              "throughputBytes": 2152448,
+              "totalRequests": 1326,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 136,
+              "twoXx": 1190
+            },
+            {
+              "rps": 383.34,
+              "meanLatency": 242.73,
+              "p50": 86,
+              "p90": 602,
+              "p97_5": 804,
+              "p99": 1580,
+              "max": 2074,
+              "throughputBytes": 1934336,
+              "totalRequests": 1150,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 104,
+              "twoXx": 1046
+            },
+            {
+              "rps": 374.67,
+              "meanLatency": 241.49,
+              "p50": 28,
+              "p90": 655,
+              "p97_5": 787,
+              "p99": 954,
+              "max": 1196,
+              "throughputBytes": 1935872,
+              "totalRequests": 1124,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 73,
+              "twoXx": 1051
+            },
+            {
+              "rps": 509.67,
+              "meanLatency": 188.8,
+              "p50": 63,
+              "p90": 491,
+              "p97_5": 583,
+              "p99": 606,
+              "max": 706,
+              "throughputBytes": 2357418.67,
+              "totalRequests": 1529,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 203,
+              "twoXx": 1326
+            }
+          ]
+        },
+        "200": {
+          "connections": 200,
+          "minRps": 275,
+          "medianRps": 346.3,
+          "maxRps": 389.3,
+          "meanRps": 334.6,
+          "stdevRps": 36.85,
+          "spreadPercent": 33,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 441.5,
+          "littlesDeltaPercent": 27.5,
+          "latency": {
+            "mean": 453,
+            "p50": 274,
+            "p90": 1096,
+            "p97_5": 1249,
+            "p99": 1357,
+            "max": 1534,
+            "tailRatio": "5.0"
+          },
+          "throughputMB": 1.96,
+          "totalRequests": 1039,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 10,
+          "totalErrors": 10,
+          "errorRatePercent": 0.96,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-2": 3603,
+            "novelforge-server-novel-service-1": 3606
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "0.79%",
+              "mem": "499.9MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "0.37%",
+              "mem": "464.5MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "1.24%",
+              "mem": "501.1MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.92%",
+              "mem": "550.2MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.33%",
+              "mem": "274.3MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.47%",
+              "mem": "487MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.42%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "1.25%",
+              "mem": "107.4MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "2.34%",
+              "mem": "396.1MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.4MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "1.09%",
+              "mem": "293.1MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "1.44%",
+              "mem": "8.957MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "0.95%",
+              "mem": "167.5MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 334,
+              "meanLatency": 454.12,
+              "p50": 242,
+              "p90": 1233,
+              "p97_5": 1477,
+              "p99": 1581,
+              "max": 1800,
+              "throughputBytes": 1988608,
+              "totalRequests": 1002,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 6,
+              "twoXx": 996
+            },
+            {
+              "rps": 389.34,
+              "meanLatency": 442.16,
+              "p50": 220,
+              "p90": 1111,
+              "p97_5": 1293,
+              "p99": 1399,
+              "max": 1554,
+              "throughputBytes": 2272085.34,
+              "totalRequests": 1168,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 8,
+              "twoXx": 1160
+            },
+            {
+              "rps": 275,
+              "meanLatency": 571.38,
+              "p50": 463,
+              "p90": 1095,
+              "p97_5": 1398,
+              "p99": 1509,
+              "max": 1840,
+              "throughputBytes": 1677482.67,
+              "totalRequests": 825,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 0,
+              "twoXx": 825
+            },
+            {
+              "rps": 346.34,
+              "meanLatency": 453.01,
+              "p50": 274,
+              "p90": 1096,
+              "p97_5": 1249,
+              "p99": 1357,
+              "max": 1534,
+              "throughputBytes": 2057728,
+              "totalRequests": 1039,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 10,
+              "twoXx": 1029
+            },
+            {
+              "rps": 304.67,
+              "meanLatency": 536.69,
+              "p50": 108,
+              "p90": 1594,
+              "p97_5": 1836,
+              "p99": 1979,
+              "max": 2456,
+              "throughputBytes": 1795072,
+              "totalRequests": 914,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 7,
+              "twoXx": 907
+            },
+            {
+              "rps": 358.34,
+              "meanLatency": 452.54,
+              "p50": 205,
+              "p90": 1182,
+              "p97_5": 1289,
+              "p99": 1461,
+              "max": 1661,
+              "throughputBytes": 2125482.67,
+              "totalRequests": 1075,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 8,
+              "twoXx": 1067
+            }
+          ]
+        }
+      }
+    },
+    "3x": {
+      "instances": 3,
+      "connections": {
+        "10": {
+          "connections": 10,
+          "minRps": 306.3,
+          "medianRps": 429,
+          "maxRps": 471.7,
+          "meanRps": 407.4,
+          "stdevRps": 54.96,
+          "spreadPercent": 38.5,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 445.2,
+          "littlesDeltaPercent": 3.8,
+          "latency": {
+            "mean": 22.5,
+            "p50": 8,
+            "p90": 80,
+            "p97_5": 94,
+            "p99": 97,
+            "max": 102,
+            "tailRatio": "12.1"
+          },
+          "throughputMB": 1.61,
+          "totalRequests": 1287,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 308,
+          "totalErrors": 308,
+          "errorRatePercent": 23.93,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-3": 2007,
+            "novelforge-server-novel-service-2": 2004,
+            "novelforge-server-novel-service-1": 2005
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-3",
+              "cpu": "0.36%",
+              "mem": "454.4MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "1.21%",
+              "mem": "480.4MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "1.40%",
+              "mem": "464.1MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "0.54%",
+              "mem": "501.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "1.08%",
+              "mem": "545.7MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.34%",
+              "mem": "274.4MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.46%",
+              "mem": "487MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.68%",
+              "mem": "552.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.98%",
+              "mem": "124.9MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "2.65%",
+              "mem": "396.3MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.41MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "1.22%",
+              "mem": "293.2MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "1.11%",
+              "mem": "8.875MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "0.30%",
+              "mem": "167.2MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 306.34,
+              "meanLatency": 31.56,
+              "p50": 8,
+              "p90": 98,
+              "p97_5": 179,
+              "p99": 186,
+              "max": 199,
+              "throughputBytes": 1232042.67,
+              "totalRequests": 919,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 212,
+              "twoXx": 707
+            },
+            {
+              "rps": 378.67,
+              "meanLatency": 25.88,
+              "p50": 8,
+              "p90": 86,
+              "p97_5": 99,
+              "p99": 110,
+              "max": 266,
+              "throughputBytes": 1515690.67,
+              "totalRequests": 1136,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 266,
+              "twoXx": 870
+            },
+            {
+              "rps": 429,
+              "meanLatency": 22.46,
+              "p50": 8,
+              "p90": 80,
+              "p97_5": 94,
+              "p99": 97,
+              "max": 102,
+              "throughputBytes": 1688405.34,
+              "totalRequests": 1287,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 308,
+              "twoXx": 979
+            },
+            {
+              "rps": 402,
+              "meanLatency": 24.28,
+              "p50": 8,
+              "p90": 84,
+              "p97_5": 98,
+              "p99": 112,
+              "max": 197,
+              "throughputBytes": 1598976,
+              "totalRequests": 1206,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 283,
+              "twoXx": 923
+            },
+            {
+              "rps": 457,
+              "meanLatency": 21.28,
+              "p50": 8,
+              "p90": 77,
+              "p97_5": 90,
+              "p99": 94,
+              "max": 192,
+              "throughputBytes": 1808042.67,
+              "totalRequests": 1371,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 328,
+              "twoXx": 1043
+            },
+            {
+              "rps": 471.67,
+              "meanLatency": 20.29,
+              "p50": 8,
+              "p90": 73,
+              "p97_5": 89,
+              "p99": 93,
+              "max": 156,
+              "throughputBytes": 1874773.34,
+              "totalRequests": 1415,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 336,
+              "twoXx": 1079
+            }
+          ]
+        },
+        "50": {
+          "connections": 50,
+          "minRps": 315.7,
+          "medianRps": 604.3,
+          "maxRps": 726.3,
+          "meanRps": 536.9,
+          "stdevRps": 137.32,
+          "spreadPercent": 68,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 637.5,
+          "littlesDeltaPercent": 5.5,
+          "latency": {
+            "mean": 78.4,
+            "p50": 16,
+            "p90": 267,
+            "p97_5": 357,
+            "p99": 396,
+            "max": 501,
+            "tailRatio": "24.8"
+          },
+          "throughputMB": 2.43,
+          "totalRequests": 1813,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 369,
+          "totalErrors": 369,
+          "errorRatePercent": 20.35,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-3": 2833,
+            "novelforge-server-novel-service-2": 2832,
+            "novelforge-server-novel-service-1": 2834
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-3",
+              "cpu": "3.01%",
+              "mem": "457.3MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "0.30%",
+              "mem": "480.9MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "0.24%",
+              "mem": "464.2MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "6.48%",
+              "mem": "501.9MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.62%",
+              "mem": "545.7MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.25%",
+              "mem": "274.4MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.75%",
+              "mem": "487.2MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.28%",
+              "mem": "552.4MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.09%",
+              "mem": "128.1MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "1.92%",
+              "mem": "396.3MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.41MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "1.99%",
+              "mem": "293.4MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "0.85%",
+              "mem": "8.91MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "1.72%",
+              "mem": "167.3MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 315.67,
+              "meanLatency": 146.84,
+              "p50": 13,
+              "p90": 399,
+              "p97_5": 673,
+              "p99": 1232,
+              "max": 2827,
+              "throughputBytes": 1421141.34,
+              "totalRequests": 947,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 153,
+              "twoXx": 794
+            },
+            {
+              "rps": 622.67,
+              "meanLatency": 76.74,
+              "p50": 14,
+              "p90": 277,
+              "p97_5": 366,
+              "p99": 399,
+              "max": 474,
+              "throughputBytes": 2619733.34,
+              "totalRequests": 1868,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 379,
+              "twoXx": 1489
+            },
+            {
+              "rps": 409,
+              "meanLatency": 114.12,
+              "p50": 11,
+              "p90": 440,
+              "p97_5": 578,
+              "p99": 663,
+              "max": 794,
+              "throughputBytes": 1769301.34,
+              "totalRequests": 1227,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 231,
+              "twoXx": 996
+            },
+            {
+              "rps": 543.34,
+              "meanLatency": 87.44,
+              "p50": 12,
+              "p90": 297,
+              "p97_5": 397,
+              "p99": 471,
+              "max": 579,
+              "throughputBytes": 2323968,
+              "totalRequests": 1630,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 318,
+              "twoXx": 1312
+            },
+            {
+              "rps": 726.34,
+              "meanLatency": 66.09,
+              "p50": 11,
+              "p90": 244,
+              "p97_5": 304,
+              "p99": 370,
+              "max": 482,
+              "throughputBytes": 2981546.67,
+              "totalRequests": 2179,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 470,
+              "twoXx": 1709
+            },
+            {
+              "rps": 604.34,
+              "meanLatency": 78.43,
+              "p50": 16,
+              "p90": 267,
+              "p97_5": 357,
+              "p99": 396,
+              "max": 501,
+              "throughputBytes": 2543957.34,
+              "totalRequests": 1813,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 369,
+              "twoXx": 1444
+            }
+          ]
+        },
+        "100": {
+          "connections": 100,
+          "minRps": 605,
+          "medianRps": 732.7,
+          "maxRps": 748.7,
+          "meanRps": 695.8,
+          "stdevRps": 57.46,
+          "spreadPercent": 19.6,
+          "isNoisy": false,
+          "theoreticalLittlesRps": 773.9,
+          "littlesDeltaPercent": 5.6,
+          "latency": {
+            "mean": 129.2,
+            "p50": 21,
+            "p90": 444,
+            "p97_5": 602,
+            "p99": 705,
+            "max": 1188,
+            "tailRatio": "33.6"
+          },
+          "throughputMB": 3.09,
+          "totalRequests": 2198,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 391,
+          "totalErrors": 391,
+          "errorRatePercent": 17.79,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-3": 3189,
+            "novelforge-server-novel-service-2": 3192,
+            "novelforge-server-novel-service-1": 3189
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-3",
+              "cpu": "29.44%",
+              "mem": "475.8MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "1.40%",
+              "mem": "481.7MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "0.20%",
+              "mem": "464.3MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "1.04%",
+              "mem": "502MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.44%",
+              "mem": "546.1MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.30%",
+              "mem": "274.4MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.39%",
+              "mem": "487.2MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.38%",
+              "mem": "552.4MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "0.13%",
+              "mem": "128.2MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "2.08%",
+              "mem": "396.3MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.41MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "26.28%",
+              "mem": "293.1MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "1.25%",
+              "mem": "8.992MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "0.50%",
+              "mem": "167.3MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 651,
+              "meanLatency": 146.63,
+              "p50": 19,
+              "p90": 539,
+              "p97_5": 698,
+              "p99": 798,
+              "max": 999,
+              "throughputBytes": 2913280,
+              "totalRequests": 1953,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 330,
+              "twoXx": 1623
+            },
+            {
+              "rps": 732.67,
+              "meanLatency": 129.21,
+              "p50": 21,
+              "p90": 444,
+              "p97_5": 602,
+              "p99": 705,
+              "max": 1188,
+              "throughputBytes": 3245056,
+              "totalRequests": 2198,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 391,
+              "twoXx": 1807
+            },
+            {
+              "rps": 741.67,
+              "meanLatency": 124.15,
+              "p50": 31,
+              "p90": 394,
+              "p97_5": 588,
+              "p99": 675,
+              "max": 890,
+              "throughputBytes": 3244032,
+              "totalRequests": 2225,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 405,
+              "twoXx": 1820
+            },
+            {
+              "rps": 748.67,
+              "meanLatency": 129.28,
+              "p50": 20,
+              "p90": 436,
+              "p97_5": 579,
+              "p99": 657,
+              "max": 1488,
+              "throughputBytes": 3209557.34,
+              "totalRequests": 2246,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 435,
+              "twoXx": 1811
+            },
+            {
+              "rps": 605,
+              "meanLatency": 151.77,
+              "p50": 13,
+              "p90": 584,
+              "p97_5": 781,
+              "p99": 873,
+              "max": 1139,
+              "throughputBytes": 2743978.67,
+              "totalRequests": 1815,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 284,
+              "twoXx": 1531
+            }
+          ]
+        },
+        "200": {
+          "connections": 200,
+          "minRps": 433.3,
+          "medianRps": 568.7,
+          "maxRps": 709,
+          "meanRps": 569.9,
+          "stdevRps": 86.91,
+          "spreadPercent": 48.5,
+          "isNoisy": true,
+          "theoreticalLittlesRps": 673.8,
+          "littlesDeltaPercent": 18.5,
+          "latency": {
+            "mean": 296.8,
+            "p50": 48,
+            "p90": 1099,
+            "p97_5": 1371,
+            "p99": 1509,
+            "max": 1772,
+            "tailRatio": "31.4"
+          },
+          "throughputMB": 2.94,
+          "totalRequests": 1706,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 77,
+          "totalErrors": 77,
+          "errorRatePercent": 4.51,
+          "perInstanceDistribution": {
+            "novelforge-server-novel-service-3": 3741,
+            "novelforge-server-novel-service-2": 3739,
+            "novelforge-server-novel-service-1": 3739
+          },
+          "stats": [
+            {
+              "name": "novelforge-server-novel-service-3",
+              "cpu": "2.19%",
+              "mem": "491.8MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-2",
+              "cpu": "0.76%",
+              "mem": "483.7MiB / 768MiB"
+            },
+            {
+              "name": "api-gateway",
+              "cpu": "0.31%",
+              "mem": "464.5MiB / 1GiB"
+            },
+            {
+              "name": "novelforge-server-engagement-service-1",
+              "cpu": "0.61%",
+              "mem": "502MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-novel-service-1",
+              "cpu": "0.44%",
+              "mem": "548.5MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-notification-service-1",
+              "cpu": "0.31%",
+              "mem": "274.4MiB / 512MiB"
+            },
+            {
+              "name": "novelforge-server-studio-service-1",
+              "cpu": "0.96%",
+              "mem": "487.2MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-server-identity-service-1",
+              "cpu": "0.44%",
+              "mem": "552.8MiB / 768MiB"
+            },
+            {
+              "name": "novelforge-client",
+              "cpu": "0.00%",
+              "mem": "17.12MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-postgres",
+              "cpu": "7.18%",
+              "mem": "128.5MiB / 7.606GiB"
+            },
+            {
+              "name": "eureka-server",
+              "cpu": "2.34%",
+              "mem": "396.3MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mailpit",
+              "cpu": "0.00%",
+              "mem": "22.41MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-mongodb",
+              "cpu": "2.35%",
+              "mem": "292.9MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-redis",
+              "cpu": "1.26%",
+              "mem": "9.258MiB / 7.606GiB"
+            },
+            {
+              "name": "novelforge-rabbitmq",
+              "cpu": "0.49%",
+              "mem": "167.3MiB / 7.606GiB"
+            }
+          ],
+          "rawReps": [
+            {
+              "rps": 568.67,
+              "meanLatency": 296.84,
+              "p50": 48,
+              "p90": 1099,
+              "p97_5": 1371,
+              "p99": 1509,
+              "max": 1772,
+              "throughputBytes": 3079168,
+              "totalRequests": 1706,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 77,
+              "twoXx": 1629
+            },
+            {
+              "rps": 709,
+              "meanLatency": 243.44,
+              "p50": 104,
+              "p90": 756,
+              "p97_5": 984,
+              "p99": 1092,
+              "max": 1251,
+              "throughputBytes": 3667968,
+              "totalRequests": 2127,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 147,
+              "twoXx": 1980
+            },
+            {
+              "rps": 433.34,
+              "meanLatency": 353.15,
+              "p50": 112,
+              "p90": 1156,
+              "p97_5": 1371,
+              "p99": 1484,
+              "max": 1781,
+              "throughputBytes": 2450432,
+              "totalRequests": 1300,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 36,
+              "twoXx": 1264
+            },
+            {
+              "rps": 639.34,
+              "meanLatency": 266.25,
+              "p50": 53,
+              "p90": 1064,
+              "p97_5": 1286,
+              "p99": 1363,
+              "max": 1590,
+              "throughputBytes": 3359402.67,
+              "totalRequests": 1918,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 127,
+              "twoXx": 1791
+            },
+            {
+              "rps": 537.34,
+              "meanLatency": 308.11,
+              "p50": 75,
+              "p90": 1253,
+              "p97_5": 1481,
+              "p99": 1579,
+              "max": 1786,
+              "throughputBytes": 2996906.67,
+              "totalRequests": 1612,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 53,
+              "twoXx": 1559
+            },
+            {
+              "rps": 532,
+              "meanLatency": 328.36,
+              "p50": 162,
+              "p90": 995,
+              "p97_5": 1261,
+              "p99": 1374,
+              "max": 1980,
+              "throughputBytes": 2956288,
+              "totalRequests": 1596,
+              "errors": 0,
+              "timeouts": 0,
+              "non2xx": 44,
+              "twoXx": 1552
+            }
+          ]
+        }
+      }
+    }
+  }
+}

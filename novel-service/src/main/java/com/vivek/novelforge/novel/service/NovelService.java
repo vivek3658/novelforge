@@ -7,35 +7,46 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
 import java.util.UUID;
+import com.vivek.novelforge.novel.types.CategoryType;
 
 public interface NovelService {
 
     NovelResponseDto createNovel(
             UUID studioId,
             NovelRequestDto request,
-            Authentication authentication
+            Authentication authentication,
+            String authorization
     );
 
     NovelResponseDto updateNovel(
             Long novelId,
             NovelRequestDto request,
-            Authentication authentication
+            Authentication authentication,
+            String authorization
     );
 
-    NovelResponseDto getNovel(Long novelId, Authentication authentication);
+    NovelResponseDto getNovel(Long novelId);
 
-    void deleteNovel(Long novelId, Authentication authentication);
+    NovelResponseDto getStudioNovel(UUID studioId, Long novelId, Authentication authentication, String authorization);
 
-    NovelResponseDto publishNovel(Long novelId, Authentication authentication);
+    void deleteNovel(Long novelId, Authentication authentication, String authorization);
+
+    NovelResponseDto cancelDeletion(Long novelId, Authentication authentication, String authorization);
+
+    NovelResponseDto publishNovel(Long novelId, Authentication authentication, String authorization);
 
     Page<NovelResponseDto> getStudioNovels(
             UUID studioId,
             Pageable pageable,
-            Authentication authentication
+            Authentication authentication,
+            String authorization
     );
 
     Page<NovelResponseDto> searchPublicNovels(
             String query,
+            CategoryType category,
+            String genre,
+            String tag,
             Pageable pageable
     );
 }

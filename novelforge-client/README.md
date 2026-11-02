@@ -1,159 +1,207 @@
-# NovelForge Web Client
+# NovelForge — Client Application
 
-A production-quality, responsive web application for NovelForge built with React 19, Vite, and React Router 7. Features complete Identity Service microservice integration with HttpOnly cookie refresh token rotation, multi-step email OTP verification, user profile lifecycle management, accessible reader typography, and a curated catalog showcase.
+> Modern serial fiction reading & creator publishing platform ("YouTube + Instagram for serialized novels").
 
----
-
-## 🌟 Architecture & Key Features
-
-- **Microservice API Gateway Routing**:
-  - All frontend API calls route exclusively through the **Spring Cloud API Gateway** via `VITE_API_BASE_URL`.
-  - Zero hard-coded production domains, direct service URLs, or internal discovery endpoints leaked in client bundles.
-  - Transparent error handling and automated silent 401 token refresh queue.
-- **Identity & Authentication Workflows**:
-  - **Login (`/login`)**: Supports identifier (username or email) and password with stateless JWT access tokens and secure HttpOnly cookie refresh tokens.
-  - **Multi-Step Registration (`/register`)**: 
-    1. Email submission (`POST /api/v1/identity/register/send-otp`)
-    2. 6-digit OTP verification with countdown timer (`POST /api/v1/identity/register/verify-otp`)
-    3. Profile creation with client-side password strength validation (`POST /api/v1/identity/register`)
-  - **Forgot Password Recovery (`/forgot-password`)**:
-    1. Send recovery OTP (`POST /api/v1/identity/auth/forgot-password`)
-    2. Verify 6-digit OTP (`POST /api/v1/identity/auth/forgot-password/verify`)
-    3. Set new password (`POST /api/v1/identity/auth/forgot-password/reset`)
-  - **User Profile & Creator Privileges (`/profile`, `/me`)**:
-    - Live profile syncing (`GET /api/v1/identity/profile/me` & `/auth/me`).
-    - Profile metadata updates (display name, author bio, public/private visibility via `PATCH /api/v1/identity/profile/me`).
-    - Real author activation/deactivation (`POST /api/v1/identity/profile/creator` and `POST /api/v1/identity/profile/creator/deactivate`).
-    - Account deletion lifecycle with 30-day grace period request and cancel deletion (`DELETE /api/v1/identity/account` and `POST /api/v1/identity/account/cancel-deletion`).
-- **Reading & Discovery Platform**:
-  - **Novel Directory (`/novels`)**: Search across title, author, genre, and tags with real-time category filtering and list/grid layout toggle.
-  - **Novel Detail Page (`/novels/:id`)**: Comprehensive synopsis, metadata, bookmarking, and chapter directory.
-  - **Distraction-Free Chapter Reader (`/read/:novelId/:chapterId`)**:
-    - Scroll progress bar.
-    - Typography preferences: Serif, Sans-Serif, and Monospace font families.
-    - Adjustable font sizing (`A-` / `A+`) and reading width toggles.
-    - Dual reading themes: Minimal Light, Deep Dark, and warm Sepia paper mode.
-    - Accessible keyboard navigation (Left/Right arrows for flipping chapters).
-  - **Trending Leaderboard (`/trending`)**: Ranked web fiction serializations.
-  - **Categories Explorer (`/categories`)**: Genre and craft guide exploration with active query filters.
-- **Creator Studio & Workspace**:
-  - Local author draft workspace for novel synopses and metadata.
-  - Explicit transparency: Never simulates fake backend server publishing.
-- **Accessibility & Ergonomics**:
-  - High-contrast visible focus indicators (`:focus-visible`).
-  - Screen reader semantic elements (`<header>`, `<nav>`, `<main>`, `<article>`, `<section>`, `<footer>`, ARIA labels).
-  - Touch-friendly tap targets (minimum 44px on mobile devices).
-  - Reduced-motion compliance (`@media (prefers-reduced-motion: reduce)`).
-- **Performance & Code Splitting**:
-  - Route-level lazy loading (`React.lazy` + `Suspense`) for fast first-contentful paint.
+Built with **React 19**, **TypeScript** (strict mode), **Vite**, **Tailwind CSS**, **TanStack Query**, **Zustand**, **Axios**, and **@dnd-kit**.
 
 ---
 
-## ⚙️ Environment Configuration
+## 🎨 Design System & Visual Palette
 
-Copy `.env.example` to `.env` or set environment variables in your deployment environment:
+NovelForge features a custom **white + green** design language with fully persistent dark mode support:
 
-```bash
-cp .env.example .env
+- **Light Mode Palette:**
+  - Background: `#FFFFFF` (`--color-bg`)
+  - Surface: `#F4F8F5` (`--color-surface`)
+  - Surface Hover: `#E9F1EC` (`--color-surface-hover`)
+  - Primary: `#16A34A` (`--color-primary`)
+  - Primary Hover: `#15803D` (`--color-primary-hover`)
+  - Text: `#0F1A14` (`--color-text`)
+  - Muted: `#5B6B62` (`--color-muted`)
+  - Border: `#E2EAE4` (`--color-border`)
+
+- **Dark Mode Palette:**
+  - Background: `#0B120E`
+  - Surface: `#121C16`
+  - Surface Hover: `#19271F`
+  - Primary: `#22C55E`
+  - Primary Hover: `#16A34A`
+  - Text: `#E8F0EA`
+  - Muted: `#8FA396`
+  - Border: `#22302A`
+
+- **Typography:**
+  - UI: `Inter`, system-ui
+  - Reader & Prose: `Lora`, `Merriweather`, Georgia, serif
+- **Theme Persistence:** Defaults to user's OS preference (`prefers-color-scheme`), persisted to `localStorage`, with an inline head script to guarantee **zero flash of unstyled content (FOUC)** on page load.
+
+---
+
+## 🛡️ Access Control & RBAC Architecture
+
+NovelForge permissions decide UI capabilities dynamically, rather than hardcoded role names:
+
+### 1. Global Platform Roles & Permissions (`identity-service`)
+- **Roles:** `USER`, `MODERATOR`, `ADMIN`
+- **Permissions:**
+  - Novel access: `NOVEL_READ`, `NOVEL_UPDATE`, `NOVEL_DELETE`
+  - Chapter access: `CHAPTER_READ`, `CHAPTER_UPDATE`, `CHAPTER_DELETE`
+  - Creator status: `BECOME_CREATOR`
+  - User admin: `USER_READ`, `USER_UPDATE`, `USER_DELETE`
+  - Moderation: `MODERATOR_CREATE`, `MODERATOR_READ`, `MODERATOR_UPDATE`, `MODERATOR_DELETE`
+
+### 2. Studio Roles & Scoped Permissions (`studio-service`)
+- **Studio Roles:** `OWNER`, `EDITOR`, `WRITER`, `ILLUSTRATOR`, `TRANSLATOR`
+- **Studio Permissions:**
+  - `STUDIO_POST_CREATE`
+  - `NOVEL_READ`, `NOVEL_LIST`, `NOVEL_CREATE`, `NOVEL_EDIT`, `NOVEL_DELETE`, `NOVEL_DELETE_CANCEL`, `NOVEL_PUBLISH`
+  - `CHAPTER_READ`, `CHAPTER_CREATE`, `CHAPTER_METADATA_EDIT`, `CHAPTER_EDIT_PUBLISHED`, `CHAPTER_TEXT_EDIT`, `CHAPTER_ILLUSTRATION_EDIT`, `CHAPTER_DELETE`, `CHAPTER_PUBLISH`, `CHAPTER_SCHEDULE`, `CHAPTER_SCHEDULE_CANCEL`
+
+### 3. Frontend RBAC Helpers & Route Guards
+- `usePermission(perm: PermissionType)`: Reactive hook checking current user's JWT permission set or admin bypass.
+- `useIsCreator()`: Checks whether user has activated `creatorStatus: ACTIVE`.
+- `<Can permission="..." requiresCreator>`: Conditionally renders UI actions/buttons.
+- `<RequirePermission permission="..." requiresCreator>`: Route guard blocking direct URL access with a clean `403 / Access Restricted` page.
+- `<ProtectedRoute>`: Redirects unauthenticated visitors to `/login`, preserving return path.
+
+---
+
+## 🚀 Key Feature Highlights
+
+### 1. Reader & Discover Experience
+- **Discover / Home (`/`):** Live keyword search, genre filter chips, category toggle (Fiction / Non-fiction), Trending and New Releases rows, and a "Continue Reading" shelf for saved library items.
+- **Novel Detail (`/novels/:novelId`):** Hero cover display, synopsis, tags, Studio author details with follow action, like counter, and table of contents.
+- **Distraction-Free Reader (`/novels/:novelId/chapters/:chapterId`):**
+  - Ordered block rendering (text prose and responsive illustrations).
+  - Top scroll reading progress bar.
+  - Reader appearance controls (font size: A- / A / A+, line height: normal / relaxed / loose, theme: default / sepia warm / dark).
+  - Previous / Next chapter navigation.
+  - **Preview Limit Enforcement:** Unauthenticated readers browsing beyond chapter 5 are greeted with an elegant unlock / sign-in card.
+
+### 2. Authentication Flow
+- Real 3-step registration matching the backend OTP challenge:
+  1. Email submission (`POST /api/v1/identity/register/send-otp`)
+  2. 6-digit OTP verification with auto-focusing numeric input boxes, paste handling, and 60-second resend timer (`POST /api/v1/identity/register/verify-otp`)
+  3. Profile setup with optional avatar upload and password creation (`POST /api/v1/identity/register`)
+- Login with identifier (username or email) and password (`POST /api/v1/identity/auth/login`).
+- Silent refresh token rotation with HTTP-only cookies and automatic request replay.
+- Password recovery flow with OTP verification and reset (`POST /api/v1/identity/auth/forgot-password`).
+
+### 3. Creator Studio (`/studio`)
+- **Dashboard:** 28-day readership trend chart using `recharts`, live follower count, published novel count, and quick "Continue Writing" jump.
+- **Studio Switcher & Creation:** Multi-studio support allowing authors to manage distinct imprints/studios.
+- **Novel Management (`/studio/novels`):** Create, update, publish, and soft-delete novels (with 30-day restore capability).
+- **Chapter List (`/studio/novels/:novelId/chapters`):** Manage serialized chapters, publishing lifecycle, and deletion.
+
+### 4. Notion-Style Chapter Editor (`/studio/novels/:novelId/chapters/:chapterId/edit`)
+- **Unlimited polymorphic block ordering:** Mix prose text blocks and illustration blocks freely in any sequence.
+- **Subtle '+' block inserter:** Positioned between every two blocks and at the bottom.
+- **Hover toolbar per block:** Drag-and-drop reordering with `@dnd-kit`, Move Up, Move Down, Duplicate, and Delete.
+- **Auto-growing text areas:** Clean prose editing without awkward scrollbars.
+- **File Upload Illustration Blocks:** Drag-and-drop or file picker with live preview, upload progress, and caption/alt text inputs — **strictly no URL input field**.
+- **Debounced Autosave (1500ms):** Visual indicator ("All changes saved" / "Saving changes..."), with `beforeunload` unsaved changes warning.
+- **Live Reader Preview Toggle:** One-click preview identical to the reader view.
+
+### 5. Unified ImageKit Upload Pipeline (`useImageUpload` & `<ImageUploader />`)
+- Single, robust implementation reused across:
+  - User avatar upload
+  - Profile banner upload
+  - Novel cover art
+  - Chapter illustration blocks
+  - Community post attachments
+- Client-side validation: Max 5 MB, supported formats (`image/jpeg`, `image/png`, `image/webp`).
+- Client upload directly to ImageKit; only the resulting URL string is saved to backend entities.
+- ImageKit thumbnail transformation helper (`getImageKitUrl(url, width, height)`).
+
+### 6. Social Community & Library
+- **Community Feed (`/community`):** Public posts from creators and studios, with like, share, and flat comments thread (create, edit, delete comments).
+- **User Library (`/library`):** System-managed Watch Later collection plus user-created custom collections with item management.
+
+### 7. Moderation & Admin
+- **Moderation Area (`/moderation`):** Review reported content, take down flagged novels/comments, and dismiss reports.
+- **Admin Console (`/admin`):** User accounts directory, role and permission reassignment, user account blocking/unblocking, and platform health telemetry.
+
+---
+
+## 🛠️ Project Structure
+
+```
+novelforge-client/
+├── docs/
+│   └── frontend-contract.md    # Exhaustive API contract & backend investigation
+├── src/
+│   ├── api/                    # Typed API clients (identity, novel, studio, engagement)
+│   │   ├── client.ts           # Axios instance with 401 refresh & 403 interceptor
+│   │   ├── identity.ts
+│   │   ├── novel.ts
+│   │   ├── studio.ts
+│   │   └── engagement.ts
+│   ├── components/             # Reusable UI primitives
+│   │   ├── auth/               # <Can /> component
+│   │   ├── common/             # 403 ForbiddenPage
+│   │   ├── editor/             # SortableBlock, TextBlock, IllustrationBlock, BlockInserter
+│   │   ├── engagement/         # PostCard with comments & likes
+│   │   ├── layout/             # Navbar, Footer, AppLayout
+│   │   ├── novel/              # NovelCard
+│   │   └── ui/                 # ImageUploader, Modal, Skeleton, EmptyState, ErrorState, Toast
+│   ├── features/               # Domain feature modules
+│   │   ├── admin/              # Global admin console
+│   │   ├── auth/               # Login, Register (3-step OTP), ForgotPassword, CreatorOnboarding
+│   │   ├── community/          # Social community feed
+│   │   ├── discover/           # Reader discover/home
+│   │   ├── editor/             # Notion-style Chapter Block Editor
+│   │   ├── library/            # Saved library & collections
+│   │   ├── moderation/         # Content moderation center
+│   │   ├── novel/              # Novel detail page
+│   │   ├── profile/            # User/creator profile
+│   │   ├── reader/             # Distraction-free chapter reader
+│   │   └── studio/             # Studio layout, dashboard, novels CRUD, chapters list, settings
+│   ├── hooks/                  # usePermission, useImageUpload
+│   ├── lib/                    # ImageKit helper, theme store, utility functions
+│   ├── routes/                 # ProtectedRoute, RequirePermission, PublicOnlyRoute, router
+│   ├── store/                  # authStore (Zustand), toastStore
+│   └── types/                  # Generated TypeScript interfaces mirroring backend DTOs
+├── tailwind.config.js          # Design system CSS variables & tokens
+├── postcss.config.js
+├── tsconfig.json               # Strict TypeScript configuration
+└── vite.config.ts              # Vite configuration with '@/' path alias
 ```
 
-### Environment Variables
-
-| Variable | Description | Local Value | Production Example |
-| :--- | :--- | :--- | :--- |
-| `VITE_API_BASE_URL` | Base URL of the API Gateway | `http://localhost:8080` | `https://api.yourdomain.com` |
-| `VITE_IMAGEKIT_URL_ENDPOINT` | Optional: Public ImageKit URL endpoint | `https://ik.imagekit.io/demo` | `https://ik.imagekit.io/your_id` |
-| `VITE_IMAGEKIT_PUBLIC_KEY` | Optional: Public client key for ImageKit | `public_placeholder_key` | `public_live_key` |
-
-> **Security Warning**: All `VITE_*` variables are public and embedded in client bundle assets. Never place JWT secrets, database credentials, or ImageKit private API keys in client environment files.
-
 ---
 
-## 🛠️ Available Pages & Routes
+## ⚙️ Environment Variables
 
-| Path | Access | Description |
-| :--- | :--- | :--- |
-| `/` | Public | Home landing page with search, featured serials, and architecture overview |
-| `/novels` | Public | Novel directory with category filters, sort options, and search |
-| `/novels/:id` | Public | Dedicated novel detail page with chapter list and bookmarking |
-| `/read/:novelId/:chapterId` | Public | Distraction-free chapter reader with typography controls and keyboard shortcuts |
-| `/trending` | Public | Ranked leaderboard of top web fiction serials |
-| `/categories` | Public | Genre and category directory with search links |
-| `/community` | Public | Community discussion forum preview |
-| `/login` | Guest Only | Identifier and password login |
-| `/register` | Guest Only | 3-step registration wizard with email OTP verification |
-| `/forgot-password` | Guest Only | Multi-step password recovery via OTP |
-| `/profile` or `/me` | Protected | Account dashboard, author drafts, bookmarks, and security lifecycle |
+Create a `.env` file in `novelforge-client`:
 
----
+```env
+# API Gateway entry point (default: http://localhost:8080)
+VITE_API_BASE_URL=http://localhost:8080
 
-## 🔌 API Gateway & Backend Dependencies
+# ImageKit credentials for direct client uploads
+VITE_IMAGEKIT_PUBLIC_KEY=public_novelforge_demo
+VITE_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/novelforge
 
-The client communicates with the backend exclusively through the API Gateway:
-
-```mermaid
-flowchart LR
-    Client["NovelForge Client<br>(React 19 + Vite)"] --> Gateway["API Gateway<br>(:8080)"]
-    Gateway --> Identity["Identity Service<br>(/api/v1/identity/**)"]
-    Gateway --> Novel["Novel Service<br>(/api/v1/novels/**)"]
-    Gateway --> Notification["Notification Service<br>(/api/v1/notifications/**)"]
+# Enable fallback mocks for scaffolded/missing backend endpoints
+VITE_USE_MOCKS=false
 ```
 
-### Confirmed Live Backend Endpoints
-
-- **Auth**: `POST /api/v1/identity/auth/login`, `POST /api/v1/identity/auth/refresh`, `GET /api/v1/identity/auth/me`, `POST /api/v1/identity/auth/logout`, `POST /api/v1/identity/auth/forgot-password`, `POST /api/v1/identity/auth/forgot-password/verify`, `POST /api/v1/identity/auth/forgot-password/reset`
-- **Registration**: `POST /api/v1/identity/register/send-otp`, `POST /api/v1/identity/register/verify-otp`, `POST /api/v1/identity/register`
-- **Profile**: `GET /api/v1/identity/profile/me`, `GET /api/v1/identity/profile/{userId}`, `PATCH /api/v1/identity/profile/me`, `POST /api/v1/identity/profile/creator`, `POST /api/v1/identity/profile/creator/deactivate`
-- **Account Lifecycle**: `DELETE /api/v1/identity/account`, `POST /api/v1/identity/account/cancel-deletion`
-
-### Known Backend Gaps & Status
-
-1. **Novel Service Endpoints (`/api/v1/novels/**`)**:
-   - The API Gateway defines routes to `novel-service`, but `NovelController.java` is currently an empty class without published endpoints.
-   - *Client Handling*: Uses an isolated Curated Showcase Catalog for discovery and chapter reading. Novel publishing from the Creator Studio is clearly marked with an informative "Backend Novel Service Pending" banner rather than simulating fake server saves.
-2. **Studio Service Routing (`/api/v1/studios/**`)**:
-   - The `studio-service` contains internal controllers, but the API Gateway (`application.yml`) has no route configured for `studio-service`.
-   - *Client Handling*: Displays a "Gateway Route Pending" notice in the Studio tab and describes the upcoming team co-authoring features.
-3. **ImageKit Direct Upload Signature**:
-   - No backend endpoint currently generates ImageKit client upload signatures.
-   - *Client Handling*: Direct file uploads are disabled with an explicit tooltip. Initials-based avatars and preset themes are used instead.
-
 ---
 
-## 🚀 Development & Build Commands
+## 💻 Development & Build Scripts
 
 ```bash
-# Install dependencies
-npm install
+# Navigate to client workspace
+cd novelforge-client
 
-# Run Vite development server
+# Run strict TypeScript type check
+npx tsc --noEmit
+
+# Run local development server
 npm run dev
 
-# Run ESLint validation
-npm run lint
-
-# Build for production
+# Build optimized production bundle
 npm run build
 
-# Preview production build
+# Preview production build locally
 npm run preview
 ```
-
-### Docker & Production Deployment
-
-The client includes a multi-stage Docker build (`Dockerfile`) and Nginx configuration (`nginx.conf`).
-Deep links are handled seamlessly via Nginx's `try_files $uri $uri/ /index.html;` directive.
-
-```bash
-# Build Docker image
-docker build -t novelforge-client .
-
-# Run container
-docker run -p 80:80 novelforge-client
-```
-
----
-
-## 📋 Testing Follow-up Notice
-
-No unit/integration test framework was present in the client repository. In accordance with project instructions, adding a large test framework stack has been deferred and reported as an upcoming follow-up task.

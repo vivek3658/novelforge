@@ -1,0 +1,80 @@
+# NovelForge Performance Test Docker Compose Override (Rigorous Benchmark Edition)
+# Enables horizontal scaling, per-instance Eureka ID, metrics exposure,
+# 4.0 vCPU Gateway headroom, disabled debug log spam, and hard Brevo isolation.
+
+services:
+  api-gateway:
+    environment:
+      IDENTITY_SERVICE_URL: lb://identity-service
+      NOVEL_SERVICE_URL: lb://novel-service
+      STUDIO_SERVICE_URL: lb://studio-service
+      ENGAGEMENT_SERVICE_URL: lb://engagement-service
+      LOGGING_LEVEL_COM_VIVEK_NOVELFORGE_API_CONFIG_DEBUGFILTER: WARN
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus,gateway"
+      EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: 5
+      SPRING_CLOUD_LOADBALANCER_CACHE_TTL: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: '1024M'
+
+  identity-service:
+    environment:
+      EUREKA_INSTANCE_INSTANCE_ID: $${HOSTNAME}:identity-service:8081
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+      EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '768M'
+
+  novel-service:
+    container_name: !reset
+    environment:
+      EUREKA_INSTANCE_INSTANCE_ID: $${HOSTNAME}:novel-service:8083
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+      EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '768M'
+
+  engagement-service:
+    container_name: !reset
+    environment:
+      EUREKA_INSTANCE_INSTANCE_ID: $${HOSTNAME}:engagement-service:8084
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+      EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '768M'
+
+  studio-service:
+    container_name: !reset
+    environment:
+      EUREKA_INSTANCE_INSTANCE_ID: $${HOSTNAME}:studio-service:8087
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+      EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '768M'
+
+  notification-service:
+    environment:
+      NOTIFICATION_EMAIL_PROVIDER: smtp
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+      BREVO_API_KEY: disabled-perf-no-brevo
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512M'

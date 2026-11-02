@@ -7,6 +7,7 @@ import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.entity.UserProfile;
 import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.type.ProfileVisibility;
+import com.vivek.novelforge.identity.type.CreatorStatus;
 import com.vivek.novelforge.identity.repository.UserProfileRepository;
 import com.vivek.novelforge.identity.repository.UserRepository;
 import com.vivek.novelforge.identity.service.UserProfileService;
@@ -26,12 +27,22 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final UserProfileRepository userProfileRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public UserProfileResponseDto getMyProfile(
             Authentication authentication
     ) {
         User user = getAuthenticatedUser(authentication);
-        UserProfile profile = getProfile(user.getId());
+        UserProfile profile = userProfileRepository.findById(user.getId())
+                .orElseGet(() -> {
+                    UserProfile newProfile = UserProfile.builder()
+                            .id(user.getId())
+                            .user(user)
+                            .displayName(user.getUsername() != null ? user.getUsername() : "Reader")
+                            .visibility(ProfileVisibility.PUBLIC)
+                            .creatorStatus(CreatorStatus.NONE)
+                            .build();
+                    return userProfileRepository.save(newProfile);
+                });
 
         return toResponseDto(profile);
     }

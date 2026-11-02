@@ -1,6 +1,7 @@
 # ==============================================================================
 # NovelForge Render Blueprint Specification (Infrastructure as Code)
 # Docs: https://render.com/docs/blueprint-spec
+# Optimized for Render Free Tier (0.1 vCPU / 512MB RAM Containers)
 # ==============================================================================
 
 databases:
@@ -35,8 +36,12 @@ services:
     region: oregon
     healthCheckPath: /
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: JAVA_OPTS
-        value: "-Xmx350m -Xms200m"
+        value: "-Xms64m -Xmx160m -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+      - key: RENDER_SERVICE_NAME
+        value: novelforge-eureka-server
 
   # -------------------------------------------------------------
   # API Gateway
@@ -50,18 +55,35 @@ services:
     region: oregon
     healthCheckPath: /actuator/health
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: JAVA_OPTS
-        value: "-Xmx350m -Xms200m"
+        value: "-Xms96m -Xmx200m -XX:MaxMetaspaceSize=110m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=64m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Dio.netty.eventLoopThreads=2 -Dreactor.netty.ioWorkerCount=2 -Djava.security.egd=file:/dev/./urandom"
+      - key: REDIS_URL
+        fromService:
+          name: novelforge-redis
+          type: keyvalue
+          property: connectionString
+      - key: EUREKA_CLIENT_ENABLED
+        value: "true"
       - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: http://novelforge-eureka-server:8761/eureka/
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
       - key: IDENTITY_SERVICE_URL
-        value: https://identity-service-0jgj.onrender.com
-      - key: NOTIFICATION_SERVICE_URL
-        value: https://notification-service-ng1j.onrender.com
+        value: http://novelforge-identity-service:8081
       - key: NOVEL_SERVICE_URL
-        value: https://novel-service.onrender.com
+        value: http://novelforge-novel-service:8083
+      - key: STUDIO_SERVICE_URL
+        value: http://novelforge-studio-service:8087
+      - key: ENGAGEMENT_SERVICE_URL
+        value: http://novelforge-engagement-service:8084
+      - key: NOTIFICATION_SERVICE_URL
+        value: http://novelforge-notification-service:8082
+      - key: GATEWAY_INTERNAL_SECRET
+        sync: false
+      - key: GATEWAY_TRUSTED_PROXY_HOPS
+        value: "1"
 
   # -------------------------------------------------------------
   # Identity Service (Auth, Users, JWT, Sessions)
@@ -75,25 +97,51 @@ services:
     region: oregon
     healthCheckPath: /actuator/health
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: JAVA_OPTS
-        value: "-Xmx350m -Xms200m"
+        value: "-Xms96m -Xmx200m -XX:MaxMetaspaceSize=110m -XX:ReservedCodeCacheSize=48m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
       - key: DATABASE_URL
         fromDatabase:
           name: novelforge-postgres
           property: connectionString
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: novelforge-postgres
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: novelforge-postgres
+          property: password
       - key: REDIS_URL
         fromService:
           name: novelforge-redis
           type: keyvalue
           property: connectionString
+      - key: EUREKA_CLIENT_ENABLED
+        value: "true"
       - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: http://novelforge-eureka-server:8761/eureka/
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
-      - key: JWT_SECRETKEY
+      - key: JWT_SECRET_KEY
         value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+      - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
+        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+      - key: OTP_HMAC_SECRET
+        sync: false
+      - key: GATEWAY_INTERNAL_SECRET
+        sync: false
+      - key: STUDIO_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: ENGAGEMENT_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: NOTIFICATION_IDENTITY_INTERNAL_SECRET
+        sync: false
       - key: NOTIFICATION_SERVICE_URL
-        value: https://notification-service-ng1j.onrender.com
+        value: http://novelforge-notification-service:8082
+      - key: COOKIE_SECURE
+        value: "true"
 
   # -------------------------------------------------------------
   # Novel Service (Novel Metadata, Chapters, Content)
@@ -107,16 +155,41 @@ services:
     region: oregon
     healthCheckPath: /actuator/health
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: JAVA_OPTS
-        value: "-Xmx350m -Xms200m"
+        value: "-Xms96m -Xmx200m -XX:MaxMetaspaceSize=110m -XX:ReservedCodeCacheSize=48m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
       - key: DATABASE_URL
         fromDatabase:
           name: novelforge-postgres
           property: connectionString
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: novelforge-postgres
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: novelforge-postgres
+          property: password
+      - key: REDIS_URL
+        fromService:
+          name: novelforge-redis
+          type: keyvalue
+          property: connectionString
+      - key: SPRING_MONGODB_URI
+        sync: false # Set to MongoDB Atlas connection string in Render dashboard
+      - key: EUREKA_CLIENT_ENABLED
+        value: "true"
       - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: http://novelforge-eureka-server:8761/eureka/
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
+      - key: STUDIO_SERVICE_BASE_URL
+        value: http://novelforge-studio-service:8087
+      - key: NOVEL_STUDIO_INTERNAL_SECRET
+        sync: false
+      - key: JWT_SECRET_KEY
+        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
       - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
         value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
 
@@ -132,8 +205,10 @@ services:
     region: oregon
     healthCheckPath: /actuator/health
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: JAVA_OPTS
-        value: "-Xmx350m -Xms200m"
+        value: "-Xms96m -Xmx200m -XX:MaxMetaspaceSize=110m -XX:ReservedCodeCacheSize=48m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
       - key: DATABASE_URL
         fromDatabase:
           name: novelforge-postgres
@@ -142,19 +217,85 @@ services:
         fromDatabase:
           name: novelforge-postgres
           property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: novelforge-postgres
+          property: password
       - key: REDIS_URL
         fromService:
           name: novelforge-redis
           type: keyvalue
           property: connectionString
+      - key: EUREKA_CLIENT_ENABLED
+        value: "true"
       - key: EUREKA_URL
         value: http://novelforge-eureka-server:8761/eureka/
+      - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        value: http://novelforge-eureka-server:8761/eureka/
       - key: IDENTITY_SERVICE_BASE_URL
-        value: https://identity-service-0jgj.onrender.com
+        value: http://novelforge-identity-service:8081
       - key: JWT_SECRET_KEY
+        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+      - key: STUDIO_IDENTITY_INTERNAL_SECRET
         sync: false
-      - key: IDENTITY_INTERNAL_CLIENT_SECRET
+      - key: NOVEL_STUDIO_INTERNAL_SECRET
         sync: false
+      - key: ENGAGEMENT_STUDIO_INTERNAL_SECRET
+        sync: false
+
+  # -------------------------------------------------------------
+  # Engagement Service (Likes, Comments, Ratings, Follows)
+  # -------------------------------------------------------------
+  - type: web
+    name: novelforge-engagement-service
+    runtime: docker
+    dockerfilePath: ./engagement-service/Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JAVA_OPTS
+        value: "-Xms96m -Xmx200m -XX:MaxMetaspaceSize=110m -XX:ReservedCodeCacheSize=48m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: novelforge-postgres
+          property: connectionString
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: novelforge-postgres
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: novelforge-postgres
+          property: password
+      - key: REDIS_URL
+        fromService:
+          name: novelforge-redis
+          type: keyvalue
+          property: connectionString
+      - key: EUREKA_CLIENT_ENABLED
+        value: "true"
+      - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+        value: http://novelforge-eureka-server:8761/eureka/
+      - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+        value: "true"
+      - key: STUDIO_SERVICE_BASE_URL
+        value: http://novelforge-studio-service:8087
+      - key: IDENTITY_SERVICE_BASE_URL
+        value: http://novelforge-identity-service:8081
+      - key: NOVEL_SERVICE_BASE_URL
+        value: http://novelforge-novel-service:8083
+      - key: ENGAGEMENT_STUDIO_INTERNAL_SECRET
+        sync: false
+      - key: ENGAGEMENT_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: JWT_SECRET_KEY
+        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+      - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
+        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
 
   # -------------------------------------------------------------
   # Notification Service (Email, OTPs)
@@ -163,21 +304,40 @@ services:
     name: novelforge-notification-service
     runtime: docker
     dockerfilePath: ./notification-service/Dockerfile
-    dockerContext: ./notification-service
+    dockerContext: .
     plan: free
     region: oregon
     healthCheckPath: /actuator/health
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: JAVA_OPTS
-        value: "-Xmx350m -Xms200m"
+        value: "-Xms64m -Xmx160m -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+      - key: REDIS_URL
+        fromService:
+          name: novelforge-redis
+          type: keyvalue
+          property: connectionString
+      - key: EUREKA_CLIENT_ENABLED
+        value: "true"
       - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: http://novelforge-eureka-server:8761/eureka/
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
+      - key: IDENTITY_SERVICE_URL
+        value: http://novelforge-identity-service:8081
+      - key: NOTIFICATION_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: NOTIFICATION_EMAIL_PROVIDER
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false # Set securely in Render dashboard
+      - key: BREVO_SENDER_EMAIL
+        sync: false # Set securely in Render dashboard
       - key: SPRING_MAIL_USERNAME
-        sync: false # Set securely in Render dashboard
+        sync: false # Set securely in Render dashboard if using SMTP
       - key: SPRING_MAIL_PASSWORD
-        sync: false # Set securely in Render dashboard
+        sync: false # Set securely in Render dashboard if using SMTP
 
   # -------------------------------------------------------------
   # Frontend Client (React 19 + Vite + Nginx)
@@ -192,6 +352,11 @@ services:
     healthCheckPath: /
     envVars:
       - key: VITE_API_URL
+        fromService:
+          name: novelforge-api-gateway
+          type: web
+          property: host
+      - key: VITE_API_BASE_URL
         fromService:
           name: novelforge-api-gateway
           type: web

@@ -26,6 +26,13 @@ public interface StudioMembershipRepository
             StudioMembershipStatus status
     );
 
+    long countByUserIdAndStatusAndDeletedAtIsNull(Long userId, StudioMembershipStatus status);
+
+    List<StudioMembership> findByUserIdAndStatusAndDeletedAtIsNull(
+            Long userId,
+            StudioMembershipStatus status
+    );
+
     Page<StudioMembership> findByStudioIdAndStatusAndDeletedAtIsNull(
             UUID studioId,
             StudioMembershipStatus status,

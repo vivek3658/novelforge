@@ -2,17 +2,44 @@ package com.vivek.novelforge.identity.exception;
 
 import com.vivek.novelforge.common.exception.ResourceNotFoundException;
 import com.vivek.novelforge.common.response.ErrorDetails;
+import com.vivek.novelforge.identity.service.OtpRateLimitExceededException;
+import com.vivek.novelforge.identity.exception.PasswordResetNotVerifiedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorDetails> handleAuthenticationFailure(
+            AuthenticationException exception, WebRequest request) {
+        ErrorDetails error = new ErrorDetails(
+                LocalDateTime.now(), "Invalid email/username or password", request.getDescription(false));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(OtpRateLimitExceededException.class)
+    public ResponseEntity<ErrorDetails> handleOtpRateLimit(
+            OtpRateLimitExceededException exception, WebRequest request) {
+        ErrorDetails error = new ErrorDetails(
+                LocalDateTime.now(), exception.getMessage(), request.getDescription(false));
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorDetails> handleInvalidOtp(IllegalArgumentException exception, WebRequest request) {
+        ErrorDetails error = new ErrorDetails(
+                LocalDateTime.now(), exception.getMessage(), request.getDescription(false));
+        return ResponseEntity.badRequest().body(error);
+    }
 
     @ExceptionHandler(UsernameAlreadyExistsException.class)
     public ResponseEntity<ErrorDetails> handleUsernameAlreadyExistsException(UsernameAlreadyExistsException exception, WebRequest webRequest){
@@ -50,9 +77,9 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
-    @ExceptionHandler(ResourceNotFoundException.class)
+    @ExceptionHandler({ResourceNotFoundException.class, jakarta.persistence.EntityNotFoundException.class})
     public ResponseEntity<ErrorDetails> handleNotFound(
-            ResourceNotFoundException ex,
+            Exception ex,
             HttpServletRequest request) {
 
         ErrorDetails error = new ErrorDetails(
@@ -65,6 +92,15 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND)
                 .body(error);
     }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorDetails> handleResponseStatusException(
+            ResponseStatusException exception, WebRequest request) {
+        ErrorDetails error = new ErrorDetails(
+                LocalDateTime.now(), exception.getReason(), request.getDescription(false));
+        return ResponseEntity.status(exception.getStatusCode()).body(error);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorDetails> handleRuntimeException(RuntimeException exception, WebRequest webRequest){
         ErrorDetails errorDetails = new ErrorDetails(

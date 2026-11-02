@@ -1,0 +1,102 @@
+server:
+  port: ${PORT:8083}
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2
+    accept-count: 50
+    max-connections: 100
+
+spring:
+  application:
+    name: novel-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://novelforge-postgres:5432/novelDB}}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:}}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 1500000
+      leak-detection-threshold: 60000
+
+  mongodb:
+    uri: ${SPRING_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27017/novelforge_chapters}}
+
+  data:
+    mongodb:
+      auto-index-creation: false
+    redis:
+      url: ${REDIS_URL:}
+      host: ${SPRING_DATA_REDIS_HOST:novelforge-redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 3000ms
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60s
+      cache-null-values: false
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://novelforge-eureka-server:8761/eureka/}
+    registry-fetch-interval-seconds: 15
+  instance:
+    hostname: ${RENDER_EXTERNAL_HOSTNAME:${RENDER_SERVICE_NAME:localhost}}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    lease-renewal-interval-in-seconds: 15
+    lease-expiration-duration-in-seconds: 45
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+studio:
+  service:
+    base-url: ${STUDIO_SERVICE_BASE_URL:http://novelforge-studio-service:8087}
+    client-secret: ${NOVEL_STUDIO_INTERNAL_SECRET:}
+
+novelforge:
+  security:
+    jwt:
+      secret-key: ${NOVELFORGE_SECURITY_JWT_SECRET_KEY:${JWT_SECRET_KEY:}}
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN
+    org.hibernate: WARN
+    org.springframework.data.mongodb: WARN
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO

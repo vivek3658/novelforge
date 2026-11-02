@@ -1,84 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DUMMY_NOVELS } from '../services/dummyNovels';
-import './Home.css';
+import NovelCard from '../components/NovelCard';
+import { novelApi } from '../services/api';
+import { Button, EmptyState, Skeleton } from '../components/ui';
 
-const Trending = () => {
-  const [filter, setFilter] = useState('all');
+export default function Trending() {
+  const [novels, setNovels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const filtered = DUMMY_NOVELS.filter((item) => {
-    if (filter === 'fantasy') return (item.genre || '').toLowerCase().includes('fantasy');
-    if (filter === 'scifi') return (item.genre || '').toLowerCase().includes('sci-fi') || (item.genre || '').toLowerCase().includes('cyberpunk');
-    if (filter === 'nonfiction') return item.categoryType === 'NONFICTION';
-    return true;
-  });
+  const fetchTrendingNovels = async () => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const res = await novelApi.searchNovels('', 0, 16);
+      setNovels(res?.content || []);
+    } catch (err) {
+      setErrorMessage(err.message || 'Novels are currently unavailable.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrendingNovels();
+  }, []);
 
   return (
-    <div className="app-container" style={{ padding: '3rem 1.5rem 5rem 1.5rem' }}>
-      <div className="section-header">
+    <section className="product-page">
+      <header className="product-heading">
         <div>
-          <h1 className="section-title">🔥 Trending Web Novels</h1>
-          <p className="section-subtitle">Real-time reader rankings, popular serializations & community favorites</p>
+          <p className="eyebrow">Recently published</p>
+          <h1>Fresh from the page.</h1>
+          <p>The latest published novels from NovelForge creators.</p>
         </div>
-      </div>
+        <Link className="quiet-button" to="/novels">
+          Browse full catalog <span aria-hidden="true">→</span>
+        </Link>
+      </header>
 
-      {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-        {[
-          { id: 'all', label: 'All Works' },
-          { id: 'fantasy', label: 'Fantasy & Cultivation' },
-          { id: 'scifi', label: 'Sci-Fi & Cyberpunk' },
-          { id: 'nonfiction', label: 'Non-Fiction' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setFilter(tab.id)}
-            style={{
-              padding: '0.5rem 1.25rem',
-              borderRadius: '20px',
-              border: filter === tab.id ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
-              background: filter === tab.id ? 'var(--primary-light)' : 'var(--bg-surface)',
-              color: filter === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.88rem',
-              cursor: 'pointer',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {errorMessage && (
+        <div className="error-banner" role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{errorMessage}</span>
+          <Button variant="outline" size="sm" onClick={fetchTrendingNovels}>
+            Try again
+          </Button>
+        </div>
+      )}
 
-      <div className="novels-grid">
-        {filtered.map((novel, idx) => (
-          <Link
-            key={novel.id}
-            to={`/novels/${novel.id}`}
-            className="novel-card"
-            style={{ textDecoration: 'none', color: 'inherit' }}
-            aria-label={`View trending novel #${idx + 1}: ${novel.title}`}
-          >
-            <div className="novel-cover-placeholder" style={{ background: novel.gradient }}>
-              <span className="novel-badge-tag">#{idx + 1} Trending</span>
-              <span style={{ fontSize: '1.25rem', letterSpacing: '-0.5px' }}>{novel.title}</span>
+      {loading ? (
+        <div className="story-grid home-book-shelf" style={{ marginTop: '1.5rem' }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <Skeleton height="260px" borderRadius="14px" />
+              <Skeleton height="18px" width="75%" />
+              <Skeleton height="14px" width="50%" />
             </div>
-            <div className="novel-info">
-              <h2 className="novel-title" style={{ fontSize: '1.15rem', margin: '0 0 0.35rem 0' }}>
-                {novel.title}
-              </h2>
-              <div className="novel-author">by {novel.author}</div>
-              <p className="novel-synopsis">{novel.synopsis}</p>
-              <div className="novel-stats">
-                <span className="novel-rating">★ {novel.rating}</span>
-                <span>{novel.chapters?.length || 0} Chs</span>
-                <span>{novel.views} reads</span>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      ) : novels.length > 0 ? (
+        <div className="story-grid home-book-shelf">
+          {novels.map((novel) => (
+            <NovelCard key={novel.id} novel={novel} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon="📖"
+          title="Nothing published yet"
+          description="When a creator publishes a novel, it will appear here fresh from the press."
+          action={
+            <Link to="/studio" className="ui-btn ui-btn-primary">
+              Launch Creator Studio
+            </Link>
+          }
+          secondaryAction={
+            <Link to="/novels" className="ui-btn ui-btn-secondary">
+              Explore Catalog
+            </Link>
+          }
+        />
+      )}
+    </section>
   );
-};
-
-export default Trending;
+}

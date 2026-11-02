@@ -1,0 +1,10 @@
+{
+  "scenario": "read-heavy with novel-service failure",
+  "totalRequests": 4365,
+  "rps": 161.67,
+  "p50": 12,
+  "p99": 3832,
+  "errors": 50,
+  "non2xx": 0,
+  "timeouts": 50
+}

@@ -10,6 +10,7 @@ import com.vivek.novelforge.identity.security.AuthUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,8 @@ public class AuthServiceImpl implements AuthService {
     public LoginResultDto login(LoginRequestDto loginRequestDto) {
         String username;
         if(loginRequestDto.getIdentifier().contains("@")){
-            User user = userRepository.findByEmail(loginRequestDto.getIdentifier()).orElseThrow();
+            User user = userRepository.findByEmail(loginRequestDto.getIdentifier())
+                    .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
             username = user.getUsername();
         }else{
             username = loginRequestDto.getIdentifier();

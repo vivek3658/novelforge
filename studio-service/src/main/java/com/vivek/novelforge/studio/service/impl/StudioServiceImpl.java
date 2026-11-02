@@ -9,6 +9,7 @@ import com.vivek.novelforge.studio.dto.request.InviteStudioMemberRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioMemberRoleRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioRequestDto;
 import com.vivek.novelforge.studio.dto.response.StudioMembershipResponseDto;
+import com.vivek.novelforge.studio.dto.response.MyStudioMembershipDto;
 import com.vivek.novelforge.studio.dto.response.StudioResponseDto;
 import com.vivek.novelforge.studio.entity.Studio;
 import com.vivek.novelforge.studio.entity.StudioMembership;
@@ -16,6 +17,7 @@ import com.vivek.novelforge.studio.repository.StudioMembershipRepository;
 import com.vivek.novelforge.studio.repository.StudioRepository;
 import com.vivek.novelforge.studio.service.StudioService;
 import com.vivek.novelforge.studio.type.StudioMembershipStatus;
+import com.vivek.novelforge.studio.type.StudioPermission;
 import com.vivek.novelforge.studio.type.StudioRoleType;
 import com.vivek.novelforge.studio.type.StudioStatus;
 import com.vivek.novelforge.studio.type.VisibilityType;
@@ -41,12 +43,34 @@ public class StudioServiceImpl implements StudioService {
     private final CreatorEligibilityClient creatorEligibilityClient;
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.List<StudioResponseDto> myStudios(Authentication authentication) {
+        Long userId = authenticatedUserId(authentication);
+        return membershipRepository.findByUserIdAndStatusAndDeletedAtIsNull(
+                        userId, StudioMembershipStatus.ACTIVE).stream()
+                .map(membership -> studioRepository.findByIdAndDeletedAtIsNull(membership.getStudioId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .map(this::toStudioResponse)
+                .toList();
+    }
+
+    @Override
     public StudioResponseDto createStudio(
             CreateStudioRequestDto request,
             Authentication authentication
     ) {
         Long userId = authenticatedUserId(authentication);
         creatorEligibilityClient.requireActiveCreator(userId);
+
+        if (studioRepository.existsByOwnerUserIdAndDeletedAtIsNull(userId)) {
+            throw new BadRequestException("An account can only create one Studio.");
+        }
+
+        long activeCount = membershipRepository.countByUserIdAndStatusAndDeletedAtIsNull(
+                userId, StudioMembershipStatus.ACTIVE);
+        if (activeCount >= 5) {
+            throw new BadRequestException("You have reached the maximum limit of 5 joined Studios.");
+        }
 
         String handle = request.getStudioHandle().trim().toLowerCase();
 
@@ -204,6 +228,12 @@ public class StudioServiceImpl implements StudioService {
                     "An invitation cannot assign the OWNER role.");
         }
 
+        long inviteeActiveCount = membershipRepository.countByUserIdAndStatusAndDeletedAtIsNull(
+                inviteeId, StudioMembershipStatus.ACTIVE);
+        if (inviteeActiveCount >= 5) {
+            throw new BadRequestException("This user has already joined the maximum limit of 5 Studios.");
+        }
+
         StudioMembership membership = membershipRepository
                 .findByStudioIdAndUserId(studioId, inviteeId)
                 .orElse(null);
@@ -253,6 +283,13 @@ public class StudioServiceImpl implements StudioService {
         }
 
         requireActiveStudio(membership.getStudioId());
+
+        long activeCount = membershipRepository.countByUserIdAndStatusAndDeletedAtIsNull(
+                userId, StudioMembershipStatus.ACTIVE);
+        if (activeCount >= 5) {
+            throw new BadRequestException("You have reached the maximum limit of 5 joined Studios.");
+        }
+
         membership.setStatus(StudioMembershipStatus.ACTIVE);
         membership.setJoinedAt(Instant.now());
 
@@ -322,6 +359,49 @@ public class StudioServiceImpl implements StudioService {
                         StudioMembershipStatus.ACTIVE,
                         pageable)
                 .map(this::toMembershipResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MyStudioMembershipDto getMyMembership(
+            UUID studioId,
+            Authentication authentication
+    ) {
+        Long userId = authenticatedUserId(authentication);
+        requireActiveStudio(studioId);
+        StudioMembership membership = requireActiveMembership(studioId, userId);
+        return MyStudioMembershipDto.builder()
+                .studioId(membership.getStudioId())
+                .userId(membership.getUserId())
+                .permissions(permissionsFor(membership.getRole()))
+                .build();
+    }
+
+    private java.util.Set<String> permissionsFor(StudioRoleType role) {
+        java.util.EnumSet<StudioPermission> permissions = java.util.EnumSet.noneOf(StudioPermission.class);
+        switch (role) {
+            case OWNER -> permissions = java.util.EnumSet.allOf(StudioPermission.class);
+            case EDITOR -> permissions.addAll(java.util.EnumSet.of(
+                    StudioPermission.STUDIO_POST_CREATE,
+                    StudioPermission.NOVEL_READ, StudioPermission.NOVEL_LIST,
+                    StudioPermission.NOVEL_CREATE, StudioPermission.NOVEL_EDIT,
+                    StudioPermission.NOVEL_PUBLISH,
+                    StudioPermission.CHAPTER_READ, StudioPermission.CHAPTER_CREATE,
+                    StudioPermission.CHAPTER_METADATA_EDIT, StudioPermission.CHAPTER_EDIT_PUBLISHED,
+                    StudioPermission.CHAPTER_TEXT_EDIT, StudioPermission.CHAPTER_ILLUSTRATION_EDIT,
+                    StudioPermission.CHAPTER_DELETE, StudioPermission.CHAPTER_PUBLISH,
+                    StudioPermission.CHAPTER_SCHEDULE, StudioPermission.CHAPTER_SCHEDULE_CANCEL));
+            case WRITER -> permissions.addAll(java.util.EnumSet.of(
+                    StudioPermission.NOVEL_READ, StudioPermission.NOVEL_LIST, StudioPermission.CHAPTER_READ,
+                    StudioPermission.CHAPTER_CREATE, StudioPermission.CHAPTER_METADATA_EDIT,
+                    StudioPermission.CHAPTER_TEXT_EDIT, StudioPermission.CHAPTER_DELETE));
+            case ILLUSTRATOR -> permissions.addAll(java.util.EnumSet.of(
+                    StudioPermission.NOVEL_READ, StudioPermission.NOVEL_LIST, StudioPermission.CHAPTER_READ,
+                    StudioPermission.CHAPTER_ILLUSTRATION_EDIT));
+            case TRANSLATOR -> permissions.addAll(java.util.EnumSet.of(
+                    StudioPermission.NOVEL_READ, StudioPermission.NOVEL_LIST, StudioPermission.CHAPTER_READ));
+        }
+        return permissions.stream().map(Enum::name).collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     private Studio requireActiveStudio(UUID studioId) {

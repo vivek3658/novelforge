@@ -20,8 +20,11 @@ public class CreatorEligibilityController {
 
     private final CreatorEligibilityService creatorEligibilityService;
 
-    @Value("${identity.internal.client-secret}")
-    private String expectedClientSecret;
+    @Value("${identity.internal.studio-client-secret:}")
+    private String studioClientSecret;
+
+    @Value("${identity.internal.engagement-client-secret:}")
+    private String engagementClientSecret;
 
     @GetMapping("/{userId}/creator-eligibility")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -37,16 +40,18 @@ public class CreatorEligibilityController {
     }
 
     private void verifyClientSecret(String suppliedSecret) {
-        if (expectedClientSecret == null
-                || expectedClientSecret.isBlank()
-                || suppliedSecret == null
-                || !MessageDigest.isEqual(
-                expectedClientSecret.getBytes(StandardCharsets.UTF_8),
-                suppliedSecret.getBytes(StandardCharsets.UTF_8))) {
+        if (!matchesSecret(studioClientSecret, suppliedSecret)
+                && !matchesSecret(engagementClientSecret, suppliedSecret)) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Invalid service credentials."
             );
         }
+    }
+
+    private boolean matchesSecret(String expected, String supplied) {
+        return expected != null && !expected.isBlank() && supplied != null
+                && MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
+                supplied.getBytes(StandardCharsets.UTF_8));
     }
 }

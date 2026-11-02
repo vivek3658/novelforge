@@ -9,7 +9,7 @@ import com.vivek.novelforge.identity.type.CreatorStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-//@AutoConfigureMockMvc
+@AutoConfigureMockMvc
 @Transactional
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:h2:mem:identity-eligibility;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
@@ -29,10 +29,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.data.redis.url=redis://localhost:6379",
         "spring.data.redis.repositories.enabled=false",
         "eureka.client.enabled=false",
         "spring.cloud.discovery.enabled=false",
-        "identity.internal.client-secret=integration-test-secret",
+        "novelforge.otp.hmac-secret=integration-test-otp-hmac-secret-that-is-at-least-32-bytes",
+        "identity.internal.studio-client-secret=integration-test-secret",
         "novelforge.security.jwt.secret-key=integration-test-jwt-secret-key-which-is-long-enough"
 })
 class CreatorEligibilityControllerIntegrationTest {

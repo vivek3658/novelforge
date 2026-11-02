@@ -1,0 +1,114 @@
+{
+  "10": {
+    "concurrency": 10,
+    "topology": "1x container (1 vCPU, 768 MB)",
+    "rps": 57,
+    "twoXx": 285,
+    "non2xx": 0,
+    "timeouts": 0,
+    "errors": 0,
+    "distinctPairsSent": 295,
+    "rowsBefore": 0,
+    "rowsAfter": 295,
+    "netRowsPersisted": 295,
+    "persistenceMatch": false,
+    "latency": {
+      "mean": 173.4,
+      "p50": 192,
+      "p97_5": 296,
+      "p99": 354,
+      "max": 357
+    },
+    "littlesLaw": {
+      "concurrency": 10,
+      "meanLatencyMs": 173.4,
+      "expectedRps": "57.7",
+      "actualRps": "57.0",
+      "deviationPct": "1.2%"
+    }
+  },
+  "50": {
+    "concurrency": 50,
+    "topology": "1x container (1 vCPU, 768 MB)",
+    "rps": 95.4,
+    "twoXx": 477,
+    "non2xx": 0,
+    "timeouts": 0,
+    "errors": 0,
+    "distinctPairsSent": 527,
+    "rowsBefore": 0,
+    "rowsAfter": 495,
+    "netRowsPersisted": 495,
+    "persistenceMatch": false,
+    "latency": {
+      "mean": 494.1,
+      "p50": 494,
+      "p97_5": 1095,
+      "p99": 1305,
+      "max": 1794
+    },
+    "littlesLaw": {
+      "concurrency": 50,
+      "meanLatencyMs": 494.1,
+      "expectedRps": "101.2",
+      "actualRps": "95.4",
+      "deviationPct": "5.7%"
+    }
+  },
+  "100": {
+    "concurrency": 100,
+    "topology": "1x container (1 vCPU, 768 MB)",
+    "rps": 101.8,
+    "twoXx": 509,
+    "non2xx": 0,
+    "timeouts": 0,
+    "errors": 0,
+    "distinctPairsSent": 609,
+    "rowsBefore": 0,
+    "rowsAfter": 541,
+    "netRowsPersisted": 541,
+    "persistenceMatch": false,
+    "latency": {
+      "mean": 867.72,
+      "p50": 808,
+      "p97_5": 2208,
+      "p99": 3079,
+      "max": 3693
+    },
+    "littlesLaw": {
+      "concurrency": 100,
+      "meanLatencyMs": 867.72,
+      "expectedRps": "115.2",
+      "actualRps": "101.8",
+      "deviationPct": "11.7%"
+    }
+  },
+  "200": {
+    "concurrency": 200,
+    "topology": "1x container (1 vCPU, 768 MB)",
+    "rps": 122,
+    "twoXx": 610,
+    "non2xx": 0,
+    "timeouts": 0,
+    "errors": 0,
+    "distinctPairsSent": 810,
+    "rowsBefore": 0,
+    "rowsAfter": 644,
+    "netRowsPersisted": 644,
+    "persistenceMatch": false,
+    "latency": {
+      "mean": 1409.18,
+      "p50": 1487,
+      "p97_5": 3202,
+      "p99": 3409,
+      "max": 4704
+    },
+    "littlesLaw": {
+      "concurrency": 200,
+      "meanLatencyMs": 1409.18,
+      "expectedRps": "141.9",
+      "actualRps": "122.0",
+      "deviationPct": "14.0%"
+    }
+  }
+}

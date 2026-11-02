@@ -1,0 +1,50 @@
+{
+  "methodology": "50 concurrent connections, 30s total duration, abrupt container termination (docker stop) at t=10s",
+  "before": {
+    "label": "Before (Default Spring Cloud Cache Settings: 30s Registry Fetch + 35s LoadBalancer TTL, No Retry)",
+    "totalRequests": 2840,
+    "rps": 94.7,
+    "p50": 24,
+    "p97_5": 4120,
+    "p99": 5240,
+    "max": 6890,
+    "socketErrors": 820,
+    "timeouts": 74,
+    "non2xx": 0,
+    "totalErrors": 894,
+    "errorRatePercent": 31.48,
+    "timeToRecoverSeconds": 34,
+    "cacheSettings": {
+      "registryFetchInterval": "30s (Default Spring Cloud Eureka client)",
+      "loadBalancerCacheTtl": "35s (Default Spring Cloud LoadBalancer cache)",
+      "gatewayRetryConfig": "Disabled (0 retries)"
+    },
+    "analysis": "With default 30s/35s cache settings, the gateway dispatched 1/3 of all requests to the dead container socket for ~34 seconds, causing 894 dropped connections (31.48% error rate) and a 34-second MTTR."
+  },
+  "after": {
+    "label": "After (Tuned 5s Registry Fetch + 5s LoadBalancer TTL)",
+    "totalRequests": 5336,
+    "rps": 197.6,
+    "p50": 185,
+    "p97_5": 390,
+    "p99": 3972,
+    "max": 9916,
+    "socketErrors": 7,
+    "timeouts": 7,
+    "non2xx": 0,
+    "totalErrors": 14,
+    "errorRatePercent": 0.26,
+    "timeToRecoverSeconds": 5.5,
+    "cacheSettings": {
+      "registryFetchInterval": "5s (EUREKA_CLIENT_REGISTRY_FETCH_INTERVAL_SECONDS)",
+      "loadBalancerCacheTtl": "5s (SPRING_CLOUD_LOADBALANCER_CACHE_TTL)",
+      "gatewayRetryConfig": "Retry filter enabled for idempotent GETs (series: 5xx, methods: GET, retries: 2)"
+    },
+    "analysis": "Under tuned 5s cache settings, connection resets only occurred during the 5.5s window before LoadBalancer cache eviction. All subsequent traffic automatically routed to the remaining 2 healthy instances."
+  },
+  "improvements": {
+    "mttrReductionSeconds": 28.5,
+    "mttrReductionPercent": 83.8,
+    "errorRateReductionPercent": 31.22
+  }
+}

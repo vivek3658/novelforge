@@ -1,309 +1,276 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { novelStore } from '../services/novelStore';
+import { Link, useSearchParams } from 'react-router-dom';
+import NovelCard from '../components/NovelCard';
 import { useAuth } from '../context/AuthContext';
-import './Home.css';
+import { useToast } from '../context/ToastContext';
+import { novelApi, engagementApi } from '../services/api';
+import { Button, Input, Select, Pagination, EmptyState, Skeleton } from '../components/ui';
 
-const Novels = () => {
-  const { isAuthenticated, isCreator } = useAuth();
-  const navigate = useNavigate();
+const GENRES = ['All', 'Fantasy', 'Cyberpunk', 'Sci-Fi', 'Xianxia', 'Action', 'Drama'];
 
-  const [novels, setNovels] = useState([]);
+export default function Novels() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { isAuthenticated } = useAuth();
+  const { success, error: toastError } = useToast();
+
+  const queryParam = searchParams.get('q') || '';
+  const categoryParam = searchParams.get('category') || '';
+  const genreParam = searchParams.get('genre') || '';
+  const tagParam = searchParams.get('tag') || '';
+  const pageParam = Number(searchParams.get('page') || 0);
+
+  const [query, setQuery] = useState(queryParam);
+  const [category, setCategory] = useState(categoryParam);
+  const [genre, setGenre] = useState(genreParam);
+  const [tag, setTag] = useState(tagParam);
+  const [page, setPage] = useState(pageParam);
+  const [showFilters, setShowFilters] = useState(Boolean(categoryParam || genreParam || tagParam));
+
+  const [pageData, setPageData] = useState({ content: [], totalPages: 0, totalElements: 0 });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [sortBy, setSortBy] = useState('rating');
-  const [viewMode, setViewMode] = useState('grid');
-  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [savedNovelIds, setSavedNovelIds] = useState(new Set());
 
-  // Fetch novels from store
-  const fetchNovels = useCallback(async (query = '') => {
+  // Keep state in sync when URL search params change (e.g. from back/forward)
+  useEffect(() => {
+    setQuery(searchParams.get('q') || '');
+    setCategory(searchParams.get('category') || '');
+    setGenre(searchParams.get('genre') || '');
+    setTag(searchParams.get('tag') || '');
+    setPage(Number(searchParams.get('page') || 0));
+  }, [searchParams]);
+
+  const updateUrlParams = useCallback(
+    (newParams) => {
+      setSearchParams(
+        (prev) => {
+          const updated = new URLSearchParams(prev);
+          Object.entries(newParams).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') {
+              updated.set(k, String(v));
+            } else {
+              updated.delete(k);
+            }
+          });
+          return updated;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const fetchNovels = useCallback(async () => {
     setLoading(true);
+    setErrorMessage('');
     try {
-      let result;
-      if (query.trim().length > 0) {
-        result = await novelStore.searchNovels(query.trim());
-      } else {
-        result = await novelStore.loadAllNovels();
-      }
-      setNovels(result.novels || []);
-      setIsLiveConnected(Boolean(result.isLiveBackendAvailable));
+      const res = await novelApi.searchNovels(query.trim(), page, 16, {
+        category: category || undefined,
+        genre: genre || undefined,
+        tag: tag || undefined,
+      });
+      setPageData(res || { content: [], totalPages: 0, totalElements: 0 });
     } catch (err) {
-      console.warn('Failed to load novels:', err.message);
-      setIsLiveConnected(false);
+      setErrorMessage(err.message || 'Could not load novels from catalog.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [query, page, category, genre, tag]);
 
-  useEffect(() => {
-    fetchNovels();
-  }, [fetchNovels]);
-
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchNovels(search);
-    }, 350);
+      fetchNovels();
+    }, query || genre || tag ? 250 : 0);
     return () => clearTimeout(timer);
-  }, [search, fetchNovels]);
+  }, [fetchNovels, query, genre, tag]);
 
-  // Filter & Sort novels
-  const processedNovels = novels
-    .filter((n) => {
-      if (categoryFilter === 'ALL') return true;
-      return (n.categoryType || 'FICTION').toUpperCase() === categoryFilter.toUpperCase();
-    })
-    .sort((a, b) => {
-      if (sortBy === 'rating') {
-        return (b.rating || 0) - (a.rating || 0);
-      }
-      if (sortBy === 'title') {
-        return (a.title || '').localeCompare(b.title || '');
-      }
-      return 0;
-    });
+  const handleSaveToLibrary = async (novel) => {
+    if (!isAuthenticated) {
+      toastError('Sign in to save a novel to your reading queue.');
+      return;
+    }
+    try {
+      await engagementApi.saveNovel(novel.id);
+      setSavedNovelIds((prev) => new Set([...prev, novel.id]));
+      success(`"${novel.title}" saved to your reading shelf.`);
+    } catch (err) {
+      toastError(err.message || 'Unable to save this novel.');
+    }
+  };
+
+  const handleClearFilters = () => {
+    setQuery('');
+    setCategory('');
+    setGenre('');
+    setTag('');
+    setPage(0);
+    updateUrlParams({ q: '', category: '', genre: '', tag: '', page: 0 });
+  };
 
   return (
-    <div className="app-container" style={{ padding: '3rem 1.5rem 5rem 1.5rem' }}>
-      {/* Header Section */}
-      <div
-        className="section-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
+    <section className="product-page">
+      <header className="product-heading">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            <h1 className="section-title" style={{ margin: 0 }}>📚 Novel Directory</h1>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                padding: '0.2rem 0.65rem',
-                borderRadius: '999px',
-                fontWeight: 700,
-                backgroundColor: isLiveConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                color: isLiveConnected ? '#10b981' : '#818cf8',
-                border: `1px solid ${isLiveConnected ? '#10b981' : '#818cf8'}`,
-              }}
-            >
-              {isLiveConnected ? '● Live Backend Service' : '○ Curated Catalog Showcase'}
-            </span>
-          </div>
-          <p className="section-subtitle">
-            Explore serial web fiction, read chapters, and discover community authors
-          </p>
+          <p className="eyebrow">THE NOVEL CATALOG</p>
+          <h1>Find your next favorite.</h1>
+          <p>Search serialized fiction and nonfiction by title, genre, or mood.</p>
         </div>
+        <Link className="quiet-button" to="/studio">
+          Write with Studio <span aria-hidden="true">→</span>
+        </Link>
+      </header>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {isAuthenticated ? (
-            isCreator ? (
-              <button
-                onClick={() => navigate('/profile?tab=creator')}
-                className="btn-primary"
-                style={{ padding: '0.65rem 1.35rem', fontSize: '0.92rem' }}
-              >
-                + Open Creator Studio
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate('/profile')}
-                className="btn-primary"
-                style={{
-                  padding: '0.65rem 1.35rem',
-                  fontSize: '0.92rem',
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  border: 'none',
-                }}
-              >
-                ✨ Become an Author
-              </button>
-            )
-          ) : (
-            <button
-              onClick={() => navigate('/login')}
-              className="btn-primary"
-              style={{ padding: '0.65rem 1.35rem', fontSize: '0.92rem' }}
-            >
-              Sign In to Write
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '1rem',
-          marginBottom: '2rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ flex: '1', minWidth: '260px', maxWidth: '440px' }}>
+      {/* Hero Search Bar */}
+      <div className="catalog-search-hero">
+        <label className="catalog-search" htmlFor="catalog-search-input">
+          <span aria-hidden="true">⌕</span>
           <input
-            type="text"
-            placeholder="Search by title, author, genre, or tag..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="form-input no-icon"
-            style={{ width: '100%' }}
+            id="catalog-search-input"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(0);
+              updateUrlParams({ q: e.target.value, page: 0 });
+            }}
+            placeholder="Search novels, authors, or genres…"
             aria-label="Search novels"
           />
-        </div>
-
-        {/* Category Filter Chips */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {['ALL', 'FICTION', 'NONFICTION'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: categoryFilter === cat ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
-                backgroundColor: categoryFilter === cat ? 'var(--primary-light)' : 'var(--bg-surface)',
-                color: categoryFilter === cat ? 'var(--primary)' : 'var(--text-secondary)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {cat === 'ALL' ? 'All Works' : cat === 'FICTION' ? 'Fiction' : 'Non-Fiction'}
-            </button>
-          ))}
-
-          {/* Sort Selector */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="form-input no-icon"
-            style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}
-            aria-label="Sort novels"
-          >
-            <option value="rating">Top Rated</option>
-            <option value="title">Alphabetical (A-Z)</option>
-          </select>
-
-          {/* View mode toggle */}
-          <button
-            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            className="action-btn-secondary"
-            style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}
-            aria-label={`Switch to ${viewMode === 'grid' ? 'list' : 'grid'} view`}
-            title={`Switch to ${viewMode === 'grid' ? 'list' : 'grid'} view`}
-          >
-            {viewMode === 'grid' ? '☰ List' : '☵ Grid'}
-          </button>
-        </div>
+        </label>
+        <button
+          type="button"
+          className="catalog-filter-toggle"
+          onClick={() => setShowFilters((prev) => !prev)}
+          aria-expanded={showFilters}
+        >
+          ☷ Filters
+        </button>
       </div>
 
-      {/* Loading state */}
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--text-muted)' }}>
-          <div className="spinner-sm" style={{ margin: '0 auto 1rem auto', width: '28px', height: '28px' }} />
-          <p>Syncing novel catalog...</p>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && processedNovels.length === 0 && (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '4rem 1rem',
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-color)',
-          }}
-        >
-          <p style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-            No novels found
-          </p>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            {search ? `No novels match query "${search}". Try another keyword.` : 'No novels in this category.'}
-          </p>
-          {search && (
-            <button onClick={() => setSearch('')} className="btn-primary" style={{ padding: '0.6rem 1.4rem' }}>
-              Clear Search
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Novels Grid / List */}
-      {!loading && processedNovels.length > 0 && (
-        <div className={viewMode === 'grid' ? 'novels-grid' : 'novels-list-view'}>
-          {processedNovels.map((novel) => (
-            <article
-              key={novel.id}
-              className="novel-card"
-              onClick={() => navigate(`/novels/${novel.id}`)}
-              style={{ cursor: 'pointer' }}
-              tabIndex={0}
-              role="button"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  navigate(`/novels/${novel.id}`);
-                }
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="catalog-filter-panel">
+          <div className="catalog-filter">
+            <Select
+              label="Category"
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(0);
+                updateUrlParams({ category: e.target.value, page: 0 });
               }}
-              aria-label={`View novel ${novel.title} by ${novel.author || 'Author Unknown'}`}
             >
-              <div
-                className="novel-cover-placeholder"
-                style={{ background: novel.gradient || 'linear-gradient(135deg, #1e3a8a, #3b82f6)' }}
-              >
-                <span className="novel-badge-tag">{novel.categoryType || 'FICTION'}</span>
-                <span style={{ fontSize: '1.2rem', letterSpacing: '-0.5px' }}>{novel.title}</span>
-              </div>
+              <option value="">All categories</option>
+              <option value="FICTION">Fiction</option>
+              <option value="NONFICTION">Nonfiction</option>
+            </Select>
+          </div>
+          <div className="catalog-filter">
+            <Input
+              label="Genre"
+              placeholder="e.g. Fantasy, Cyberpunk"
+              value={genre}
+              onChange={(e) => {
+                setGenre(e.target.value);
+                setPage(0);
+                updateUrlParams({ genre: e.target.value, page: 0 });
+              }}
+            />
+          </div>
+          <div className="catalog-filter">
+            <Input
+              label="Tag"
+              placeholder="e.g. magic, cultivation"
+              value={tag}
+              onChange={(e) => {
+                setTag(e.target.value);
+                setPage(0);
+                updateUrlParams({ tag: e.target.value, page: 0 });
+              }}
+            />
+          </div>
+          <Button variant="quiet" onClick={handleClearFilters}>
+            Clear filters
+          </Button>
+        </div>
+      )}
 
-              <div className="novel-info">
-                <h2 className="novel-title" style={{ fontSize: '1.15rem', margin: '0 0 0.35rem 0' }}>
-                  {novel.title}
-                </h2>
-                <div className="novel-author">by {novel.author || 'Author Unknown'}</div>
-                <p className="novel-synopsis">{novel.synopsis}</p>
+      {/* Quick Genre Pills */}
+      <div className="catalog-quick-genres" aria-label="Quick genre filters">
+        {GENRES.filter((g) => g !== 'All').map((g) => {
+          const isActive = genre.toLowerCase() === g.toLowerCase();
+          return (
+            <button
+              type="button"
+              key={g}
+              className={isActive ? 'active' : ''}
+              onClick={() => {
+                const nextGenre = isActive ? '' : g;
+                setGenre(nextGenre);
+                setPage(0);
+                updateUrlParams({ genre: nextGenre, page: 0 });
+              }}
+            >
+              {g}
+            </button>
+          );
+        })}
+      </div>
 
-                <div className="novel-stats">
-                  <span className="novel-rating">★ {novel.rating || '4.9'}</span>
-                  <span>{novel.chapters?.length || 0} Chs</span>
-                  <span>{novel.views || '1.2K'} reads</span>
-                </div>
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="error-banner" role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{errorMessage}</span>
+          <Button variant="outline" size="sm" onClick={fetchNovels}>
+            Try again
+          </Button>
+        </div>
+      )}
 
-                <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>
-                    Read Story →
-                  </span>
-                  {novel.isDraft && (
-                    <span
-                      style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        color: 'var(--warning)',
-                        background: 'var(--warning-light)',
-                        padding: '0.15rem 0.5rem',
-                        borderRadius: '999px',
-                      }}
-                    >
-                      Local Draft
-                    </span>
-                  )}
-                </div>
-              </div>
-            </article>
+      {/* Catalog Grid */}
+      {loading ? (
+        <div className="story-grid home-book-shelf">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <Skeleton height="260px" borderRadius="14px" />
+              <Skeleton height="18px" width="80%" />
+              <Skeleton height="14px" width="55%" />
+            </div>
           ))}
         </div>
+      ) : pageData.content?.length > 0 ? (
+        <div className="story-grid home-book-shelf">
+          {pageData.content.map((novel) => (
+            <NovelCard
+              key={novel.id}
+              novel={novel}
+              onSave={handleSaveToLibrary}
+              saved={savedNovelIds.has(novel.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon="🔍"
+          title="No novels matched your search"
+          description="Try adjusting your query, clearing filters, or exploring different genres."
+          action={
+            <Button variant="secondary" onClick={handleClearFilters}>
+              Reset all filters
+            </Button>
+          }
+        />
       )}
-    </div>
-  );
-};
 
-export default Novels;
+      {/* Pagination */}
+      <Pagination
+        currentPage={page}
+        totalPages={pageData.totalPages || 0}
+        onPageChange={(nextPage) => {
+          setPage(nextPage);
+          updateUrlParams({ page: nextPage });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    </section>
+  );
+}

@@ -2,24 +2,16 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
-
-  if (isLoading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <p>Loading NovelForge session...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return children;
+const ProtectedRoute = ({
+  children: u
+}) => {
+  const {
+      isAuthenticated: r,
+      isLoading: d
+    } = useAuth(),
+    o = useLocation();
+  return d ? <div className="loading-screen"><div className="spinner" /><p>Loading NovelForge session...</p></div> : r ? u : <Navigate to="/login" state={{
+    from: o
+  }} replace={!0} />;
 };
-
 export default ProtectedRoute;

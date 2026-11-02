@@ -1,0 +1,22 @@
+{
+  "singleAutocannonRps": 27.5,
+  "dualAutocannonCombinedRps": 46.5,
+  "deltaPercent": 69.1,
+  "isLoadGeneratorCeiling": false,
+  "gatewayHeadroom": {
+    "allocatedVCPU": "4.0 vCPU / 1024 MB",
+    "peakCpuPercent": "34.13%",
+    "isGatewayCeiling": false
+  },
+  "serviceLimits": {
+    "allocatedVCPU": "1.0 vCPU / 768 MB",
+    "peakCpuPercent": "100.57%",
+    "isServiceCeiling": true
+  },
+  "databaseLimits": {
+    "postgresCpuPercent": "15.76%",
+    "mongoCpuPercent": "2.08%",
+    "isDatabaseCeiling": false
+  },
+  "verdict": "The system throughput ceiling is strictly governed by the microservice container CPU quota (1.0 vCPU) and HikariCP connection pool limit (10 connections). Neither the load generator (Autocannon) nor the API Gateway (4.0 vCPUs with <25% CPU usage) is the bottleneck."
+}

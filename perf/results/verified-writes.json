@@ -1,0 +1,94 @@
+{
+  "10": {
+    "connections": 10,
+    "rps": 19.2,
+    "twoXx": 87,
+    "non2xx": 9,
+    "timeouts": 0,
+    "errors": 0,
+    "meanLatency": 792.12,
+    "p50": 296,
+    "p97_5": 4939,
+    "p99": 8210,
+    "max": 8210,
+    "rowsBefore": 0,
+    "rowsAfter": 11,
+    "netRowsPersisted": 11,
+    "persistenceMatch": false,
+    "hikari": {
+      "newAcquisitions": 0,
+      "acquireTimeSec": "0.00",
+      "activeConnections": 0,
+      "pendingThreads": 0
+    }
+  },
+  "50": {
+    "connections": 50,
+    "rps": 58,
+    "twoXx": 279,
+    "non2xx": 11,
+    "timeouts": 34,
+    "errors": 34,
+    "meanLatency": 1036.33,
+    "p50": 701,
+    "p97_5": 5865,
+    "p99": 9400,
+    "max": 9839,
+    "rowsBefore": 0,
+    "rowsAfter": 11,
+    "netRowsPersisted": 11,
+    "persistenceMatch": false,
+    "hikari": {
+      "newAcquisitions": 0,
+      "acquireTimeSec": "0.00",
+      "activeConnections": 0,
+      "pendingThreads": 0
+    }
+  },
+  "100": {
+    "connections": 100,
+    "rps": 60.6,
+    "twoXx": 296,
+    "non2xx": 7,
+    "timeouts": 84,
+    "errors": 84,
+    "meanLatency": 1491.31,
+    "p50": 1202,
+    "p97_5": 6303,
+    "p99": 8867,
+    "max": 9903,
+    "rowsBefore": 0,
+    "rowsAfter": 10,
+    "netRowsPersisted": 10,
+    "persistenceMatch": false,
+    "hikari": {
+      "newAcquisitions": 0,
+      "acquireTimeSec": "0.00",
+      "activeConnections": 0,
+      "pendingThreads": 0
+    }
+  },
+  "200": {
+    "connections": 200,
+    "rps": 15,
+    "twoXx": 69,
+    "non2xx": 6,
+    "timeouts": 191,
+    "errors": 191,
+    "meanLatency": 4322.31,
+    "p50": 4150,
+    "p97_5": 8333,
+    "p99": 9087,
+    "max": 9087,
+    "rowsBefore": 0,
+    "rowsAfter": 2,
+    "netRowsPersisted": 2,
+    "persistenceMatch": false,
+    "hikari": {
+      "newAcquisitions": 0,
+      "acquireTimeSec": "0.00",
+      "activeConnections": 0,
+      "pendingThreads": 0
+    }
+  }
+}

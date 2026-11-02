@@ -1,88 +1,125 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import './Home.css';
+import { novelApi } from '../services/api';
+import { Button, Skeleton } from '../components/ui';
 
 const CATEGORIES = [
   {
-    name: 'Fantasy & Cultivation',
-    searchKey: 'Fantasy',
-    count: '3 Featured Serials',
-    icon: '🔮',
-    desc: 'Cosmic ascension, martial sects, constellation spirits, and forgotten magical relics.',
+    id: 'FICTION',
+    title: 'Fiction',
+    note: 'Imagined worlds, unforgettable characters, and novels that keep unfolding.',
+    icon: '✦',
   },
   {
-    name: 'Sci-Fi & Cyberpunk',
-    searchKey: 'Sci-Fi',
-    count: '2 Featured Serials',
-    icon: '🤖',
-    desc: 'Neural consciousness networks, deep ocean abysses, AI hegemony, and high-tech dystopias.',
-  },
-  {
-    name: 'LitRPG & Game Systems',
-    searchKey: 'LitRPG',
-    count: '1 Featured Serial',
-    icon: '🎮',
-    desc: 'Skill trees, potion compounding ratios, leveling milestones, and system prompts.',
-  },
-  {
-    name: 'Epic Kingdoms & Intrigue',
-    searchKey: 'Kingdoms',
-    count: '1 Featured Serial',
-    icon: '👑',
-    desc: 'Dynastic betrayal, imperial succession wars, heraldry, and geopolitical strategy.',
-  },
-  {
-    name: 'Engineering & Systems Architecture',
-    searchKey: 'Distributed',
-    count: '1 Guidebook',
-    icon: '⚡',
-    desc: 'Enterprise microservices, distributed data persistence, and reactive API Gateways.',
-  },
-  {
-    name: 'Narrative Craft & Writing',
-    searchKey: 'Craft',
-    count: '1 Guidebook',
-    icon: '✍️',
-    desc: 'Serialized pacing, character tension loops, and digital reader engagement techniques.',
+    id: 'NONFICTION',
+    title: 'Nonfiction',
+    note: 'True stories, lived experience, and ideas grounded in the real world.',
+    icon: '◈',
   },
 ];
 
-const Categories = () => {
-  return (
-    <div className="app-container" style={{ padding: '3rem 1.5rem 5rem 1.5rem' }}>
-      <div className="section-header">
-        <div>
-          <h1 className="section-title">📂 Explore Genres & Categories</h1>
-          <p className="section-subtitle">Find your favorite storytelling worlds, tropes, and craft guides</p>
-        </div>
-      </div>
+export default function Categories() {
+  const [genres, setGenres] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
-      <div className="features-grid">
-        {CATEGORIES.map((cat, idx) => (
-          <Link
-            to={`/novels?search=${encodeURIComponent(cat.searchKey)}`}
-            key={idx}
-            className="feature-card"
-            style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column' }}
-            aria-label={`Explore ${cat.name} (${cat.count})`}
-          >
-            <div className="feature-icon-wrapper" style={{ fontSize: '1.75rem' }} aria-hidden="true">
-              {cat.icon}
-            </div>
-            <h2 className="feature-title" style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>
-              {cat.name}
-            </h2>
-            <p className="feature-desc" style={{ flex: 1, margin: 0 }}>
-              {cat.desc}
-            </p>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', marginTop: '1.25rem' }}>
-              {cat.count} →
+  const loadFacets = async () => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const res = await novelApi.searchNovels('', 0, 20);
+      const novels = res?.content || [];
+      const extractedGenres = [...new Set(novels.flatMap((n) => n.genres || []))].sort();
+      const extractedTags = [...new Set(novels.flatMap((n) => n.tags || []))].sort();
+      setGenres(extractedGenres);
+      setTags(extractedTags);
+    } catch (err) {
+      setErrorMessage(err.message || 'Unable to load categories and genre facets.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFacets();
+  }, []);
+
+  return (
+    <section className="product-page">
+      <header className="product-heading">
+        <div>
+          <p className="eyebrow">Browse by shelf</p>
+          <h1>Choose a world.</h1>
+          <p>Start with a category, then explore genres and tags creators use to describe their novels.</p>
+        </div>
+      </header>
+
+      {errorMessage && (
+        <div className="error-banner" role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{errorMessage}</span>
+          <Button variant="outline" size="sm" onClick={loadFacets}>
+            Try again
+          </Button>
+        </div>
+      )}
+
+      {/* Main Categories Grid */}
+      <div className="category-grid">
+        {CATEGORIES.map((cat) => (
+          <Link key={cat.id} className="category-tile" to={`/novels?category=${cat.id}`}>
+            <span className="category-icon" aria-hidden="true">{cat.icon}</span>
+            <span className="eyebrow">Category</span>
+            <h2>{cat.title}</h2>
+            <p>{cat.note}</p>
+            <span className="text-link">
+              Explore novels <span aria-hidden="true">→</span>
             </span>
           </Link>
         ))}
       </div>
-    </div>
-  );
-};
 
-export default Categories;
+      {/* Loading Skeletons */}
+      {loading && genres.length === 0 && (
+        <div style={{ marginTop: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <Skeleton height="32px" width="180px" />
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} height="36px" width="110px" borderRadius="999px" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Genres List */}
+      {genres.length > 0 && (
+        <section className="facet-section">
+          <p className="eyebrow">Creator genres</p>
+          <div className="facet-list">
+            {genres.map((genre) => (
+              <Link key={genre} to={`/novels?genre=${encodeURIComponent(genre)}`}>
+                {genre}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Tags List */}
+      {tags.length > 0 && (
+        <section className="facet-section">
+          <p className="eyebrow">Novel tags</p>
+          <div className="facet-list">
+            {tags.map((tag) => (
+              <Link key={tag} to={`/novels?tag=${encodeURIComponent(tag)}`}>
+                #{tag}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <p className="category-note">Genres and tags are drawn from published novels in the catalog.</p>
+    </section>
+  );
+}

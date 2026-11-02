@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.Set;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,6 +20,15 @@ public class NovelRequestDto {
     @Size(max = 2000)
     private String synopsis;
 
+    @Size(max = 1000)
+    private String coverImageUrl;
+
     @NotNull
     private CategoryType categoryType;
+
+    @Size(max = 5)
+    private Set<@NotBlank @Size(max = 60) String> genres;
+
+    @Size(max = 20)
+    private Set<@NotBlank @Size(max = 60) String> tags;
 }

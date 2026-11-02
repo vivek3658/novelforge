@@ -22,6 +22,21 @@ NovelForge is a modern digital novel and storytelling platform built with a dist
 
 ---
 
+## 📋 Implementation Status
+
+| Component | Status | Description |
+|---|---|---|
+| **`identity-service`** | ✅ Implemented | User registration, login, JWT issuance, OTP verification, password reset, creator eligibility |
+| **`novel-service`** | ✅ Implemented | Novel CRUD, chapter management in MongoDB, public catalog search, Redis caching |
+| **`engagement-service`** | ✅ Implemented | Social likes, comments, library collections, follower relationships |
+| **`notification-service`** | ✅ Implemented | Email delivery stubbed locally through Mailpit mock for local testing |
+| **`studio-service`** | ✅ Implemented | Creator studio, workspace collaboration, chapter drafting |
+| **`moderation-service`** | ⏳ Planned | Content moderation pipeline (no endpoints implemented yet) |
+| **`admin-service`** | ⏳ Planned | System administration & user ban enforcement (no endpoints implemented yet) |
+| **`novelforge-client`** | 🚧 In Progress | React 19 UI with TailwindCSS; core pages functional, client-service links in progress |
+
+---
+
 ## 🐳 Docker Deployment Guide
 
 ### Prerequisites
@@ -118,3 +133,31 @@ NovelForge includes a turnkey [Render Blueprint](file:///C:/Users/vivek/Desktop/
 | `/` | `eureka-server` dashboard at `http://localhost:8761` |
 | `http://localhost:3000` | Frontend Client (React) |
 
+---
+
+## ⚡ Performance & Scalability (1x vs 2x vs 3x Benchmark)
+
+NovelForge microservices were rigorously benchmarked under Docker Desktop across 1, 2, and 3 container instances per service (1.0 vCPU / 768 MB limit per container) using Autocannon with strict statistical controls (60s warm-up, 1 discarded run, 5 repetitions per cell, validated with a Little's Law cross-check):
+
+- **Relational Write Path (Verified Persistent Social Likes)**: Tested with dynamically unique `(user, targetId)` pairs per request, verifying 100% database persistence (1 HTTP 2xx == 1 SQL `INSERT` in `engagement_likes`). Throughput scaled from **57.0 writes/s** at 10 conns ($p50 = 192\text{ ms}$) to **95.4 writes/s** at 50 conns ($p50 = 494\text{ ms}$), **101.8 writes/s** at 100 conns ($p50 = 808\text{ ms}$), and **122.0 writes/s** at 200 conns ($p50 = 1,487\text{ ms}$) with zero socket errors or timeouts.
+- **Public Novel Read Scaling**: Throughput increased from **222.3 req/s** (1 instance) to **543.3 req/s** (2 instances, **2.44× speedup**) and **423.7 req/s** (3 instances, **1.91× speedup**) at 50 connections with sub-70ms $p50$. Peak throughput reached **669.0 req/s** at 200 connections.
+- **Chapter Content Read (MongoDB)**: Peaked at **1,121.7 req/s** at 200 connections across 3 instances with **8–17ms $p50$**.
+- **Stateless Authorization Overhead**: `GET /api/v1/identity/auth/me` verifies HMAC-SHA256 signatures statelessly with **< 1.5ms overhead** over unauthenticated reads, peaking at **1,904.7 req/s**.
+- **CPU-Bound BCrypt Authentication**: `POST /api/v1/identity/auth/login` (10-round key derivation) steady-state throughput on 1x container (1.0 vCPU) is **5.7 req/s** ($p50 = 1,689\text{ ms}$, mean $= 1,603\text{ ms}$) under Linux CFS quota throttling (`cpu.stat throttled_usec: 2870s`). Adding horizontal instances scaled throughput to **14.7 req/s** across 3 instances (**2.58× horizontal speedup**, 86% efficiency across 3 cores; $p50$ dropped to 582ms).
+- **Validation with Little's Law Cross-Check**: Every stable concurrency cell verified against Little's Law ($X \approx N / R$) within **< 3.5% variance**, confirming measurement validity without unmetered socket queuing.
+- **Resilience Engineering (MTTR -83.8%)**: Abrupt container termination under default Spring Cloud cache settings caused a 34.0s MTTR with 31.48% dropped connections. Tuning registry fetch to 5s and cache TTL to 5s collapsed MTTR down to **5.5 seconds** with **1.20% error rate** (and 0.00% client errors via gateway idempotent retry).
+- **Actuator Load Distribution Proof**: Per-instance request counting confirmed exact round-robin distribution: **50.0% / 50.0%** across 2 instances and **33.3% / 33.3% / 33.3%** across 3 instances.
+
+```mermaid
+xychart-beta
+    title "Public Novel Read Throughput (Median RPS vs Topologies)"
+    x-axis ["10 conn", "50 conn", "100 conn", "200 conn"]
+    y-axis "Requests / sec" 0 --> 750
+    line [149, 222, 130, 183]
+    line [326, 543, 614, 669]
+    line [247, 424, 500, 479]
+```
+
+👉 **Full Performance Report & Methodology**: [docs/performance/PERFORMANCE_REPORT.md](docs/performance/PERFORMANCE_REPORT.md)  
+👉 **Read vs Write Capacity Breakdown**: [docs/performance/CAPACITY_PROFILE.md](docs/performance/CAPACITY_PROFILE.md)  
+👉 **Architecture & Benchmark Context for Claude**: [docs/CLAUDE_CONTEXT.md](docs/CLAUDE_CONTEXT.md)

@@ -1,289 +1,298 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { novelStore } from '../services/novelStore';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import './NovelDetail.css';
+import { novelApi, chaptersApi, engagementApi } from '../services/api';
+import { Button, Textarea, Avatar, Skeleton, EmptyState } from '../components/ui';
 
-const NovelDetail = () => {
-  const { id } = useParams();
+export default function NovelDetail() {
+  const { novelId } = useParams();
   const navigate = useNavigate();
-  const { success } = useToast();
+  const { isAuthenticated } = useAuth();
+  const { success, error: toastError } = useToast();
 
   const [novel, setNovel] = useState(null);
+  const [chapters, setChapters] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const loadNovelData = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const [novelData, chaptersData] = await Promise.all([
+        novelApi.getNovelById(novelId),
+        chaptersApi.listPublic(novelId, 0, 50),
+      ]);
+      setNovel(novelData);
+      setChapters(chaptersData?.content || []);
+
+      // Fetch comments safely
+      try {
+        const commentsData = await engagementApi.comments('NOVEL', novelId);
+        setComments(commentsData?.content || []);
+      } catch {
+        setComments([]);
+      }
+
+      // Fetch like count safely
+      try {
+        const likeData = await engagementApi.likeCount('NOVEL', novelId);
+        setLikesCount(likeData?.count ?? 0);
+      } catch {
+        // Continue if like count fails
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'This novel could not be loaded.');
+    } finally {
+      setLoading(false);
+    }
+  }, [novelId]);
 
   useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
+    loadNovelData();
+  }, [loadNovelData]);
 
-    const loadNovel = async () => {
-      try {
-        const data = await novelStore.getNovelById(id);
-        if (isMounted) {
-          setNovel(data);
-          // Check local bookmark state
-          try {
-            const savedBookmarks = JSON.parse(localStorage.getItem('novelforge_bookmarks') || '[]');
-            setIsBookmarked(savedBookmarks.includes(String(id)));
-          } catch {
-            // ignore
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load novel:', err.message);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadNovel();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [id]);
-
-  const handleToggleBookmark = () => {
+  const handleSaveToLibrary = async () => {
+    if (!isAuthenticated) {
+      toastError('Sign in to save this novel to your library.');
+      return;
+    }
     try {
-      const savedBookmarks = JSON.parse(localStorage.getItem('novelforge_bookmarks') || '[]');
-      let updated;
-      if (isBookmarked) {
-        updated = savedBookmarks.filter((b) => b !== String(id));
-        setIsBookmarked(false);
-        success('Removed from bookmarks');
+      await engagementApi.saveNovel(novelId);
+      success('Novel saved to your reading shelf.');
+    } catch (err) {
+      toastError(err.message || 'Unable to save this novel.');
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!isAuthenticated) {
+      toastError('Sign in to like this novel.');
+      return;
+    }
+    try {
+      if (isLiked) {
+        const res = await engagementApi.unlike('NOVEL', novelId);
+        setIsLiked(false);
+        setLikesCount(res?.count ?? Math.max(0, likesCount - 1));
       } else {
-        updated = [...savedBookmarks, String(id)];
-        setIsBookmarked(true);
-        success('Added to your reading library bookmarks');
+        const res = await engagementApi.like('NOVEL', novelId);
+        setIsLiked(true);
+        setLikesCount(res?.count ?? likesCount + 1);
       }
-      localStorage.setItem('novelforge_bookmarks', JSON.stringify(updated));
-    } catch {
-      setIsBookmarked(!isBookmarked);
+    } catch (err) {
+      toastError(err.message || 'Unable to update your like.');
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    setSubmittingComment(true);
+    try {
+      await engagementApi.addComment('NOVEL', novelId, commentText.trim());
+      setCommentText('');
+      const commentsData = await engagementApi.comments('NOVEL', novelId);
+      setComments(commentsData?.content || []);
+      success('Comment added to the discussion!');
+    } catch (err) {
+      toastError(err.message || 'Unable to post your comment.');
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="novel-detail-container" style={{ textAlign: 'center', padding: '6rem 1.5rem' }}>
-        <div className="spinner" style={{ margin: '0 auto 1.5rem auto' }} />
-        <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Loading novel details...</h2>
-        <p style={{ color: 'var(--text-secondary)' }}>Preparing story overview and chapter directory</p>
-      </div>
+      <section className="product-page">
+        <Skeleton height="36px" width="120px" style={{ marginBottom: '1.5rem' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 280px) 1fr', gap: '2rem' }}>
+          <Skeleton height="380px" borderRadius="16px" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <Skeleton height="20px" width="100px" />
+            <Skeleton height="40px" width="60%" />
+            <Skeleton height="100px" width="90%" />
+            <div style={{ display: 'flex', gap: '0.8rem', marginTop: '1rem' }}>
+              <Skeleton height="44px" width="140px" borderRadius="10px" />
+              <Skeleton height="44px" width="140px" borderRadius="10px" />
+            </div>
+          </div>
+        </div>
+      </section>
     );
   }
 
-  if (!novel) {
+  if (errorMessage || !novel) {
     return (
-      <div className="novel-detail-container" style={{ textAlign: 'center', padding: '6rem 1.5rem' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📖</div>
-        <h1 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
-          Novel Not Found
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', maxWidth: '480px', margin: '0 auto 2rem auto' }}>
-          The requested novel does not exist or may have been removed from the catalog.
-        </p>
-        <button
-          onClick={() => navigate('/novels')}
-          className="btn-read-now"
-          style={{ display: 'inline-flex' }}
-        >
-          ← Browse Novel Catalog
-        </button>
-      </div>
+      <section className="product-page">
+        <div className="error-banner" role="alert">
+          {errorMessage || 'Novel not found or is no longer available.'}
+        </div>
+        <Link to="/novels" className="text-link">
+          ← Back to the catalog
+        </Link>
+      </section>
     );
   }
 
-  const chapters = Array.isArray(novel.chapters) ? novel.chapters : [];
-  const firstChapterId = chapters.length > 0 ? (chapters[0].id || 1) : null;
+  const allTags = [...(novel.genres || []), ...(novel.tags || [])];
 
   return (
-    <div className="novel-detail-container">
-      {/* Back to catalog navigation link */}
-      <Link to="/novels" className="novel-detail-back-link">
-        <span aria-hidden="true">←</span>
-        <span>Back to Novel Catalog</span>
+    <section className="product-page">
+      <Link to="/novels" className="back-link">
+        ← All novels
       </Link>
 
-      {/* Hero Card */}
-      <header className="novel-detail-hero">
-        <div
-          className="novel-cover-large"
-          style={{ background: novel.gradient || 'linear-gradient(135deg, #1e3a8a, #3b82f6)' }}
-        >
-          <span className="novel-cover-large-badge">
-            {novel.categoryType || 'FICTION'}
-          </span>
-          <span className="novel-cover-large-title">{novel.title}</span>
-        </div>
-
-        <div className="novel-detail-main">
-          <h1 className="novel-detail-title">{novel.title}</h1>
-          <div className="novel-detail-author">
-            by <strong>{novel.author || 'Author Unknown'}</strong>
-            {novel.isDraft && (
-              <span
-                style={{
-                  marginLeft: '0.75rem',
-                  fontSize: '0.75rem',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '999px',
-                  background: 'var(--warning-light)',
-                  color: 'var(--warning)',
-                  fontWeight: 700,
-                  border: '1px solid var(--warning)',
-                }}
-              >
-                Local Author Draft
-              </span>
-            )}
+      {/* Main Story Hero */}
+      <div className="story-detail">
+        {novel.coverImageUrl ? (
+          <div className="story-cover detail-cover" style={{ padding: 0, overflow: 'hidden' }}>
+            <img
+              src={novel.coverImageUrl}
+              alt={novel.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           </div>
+        ) : (
+          <div className="story-cover cover-forest detail-cover">
+            <span className="story-cover-kicker">{novel.categoryType || 'NOVEL'}</span>
+            <span className="story-cover-title">{novel.title}</span>
+            <span className="story-cover-mark">NF</span>
+          </div>
+        )}
 
-          {Array.isArray(novel.tags) && novel.tags.length > 0 && (
-            <div className="novel-tags-row">
-              {novel.tags.map((tag, idx) => (
-                <span key={idx} className="novel-tag-pill">
-                  #{tag}
-                </span>
+        <div className="story-detail-copy">
+          <p className="eyebrow">{novel.publicationState || 'Published Novel'}</p>
+          <h1>{novel.title}</h1>
+          <p>{novel.synopsis || 'A serialized story from a NovelForge creator.'}</p>
+
+          {allTags.length > 0 && (
+            <div className="story-tags">
+              {allTags.map((t, idx) => (
+                <span key={`${t}-${idx}`}>{t}</span>
               ))}
             </div>
           )}
 
-          <div className="novel-detail-stats">
-            <div className="stat-item">
-              <span className="stat-item-label">Rating</span>
-              <span className="stat-item-value" style={{ color: 'var(--warning)' }}>
-                ★ {novel.rating || '4.9'}
-              </span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-item-label">Chapters</span>
-              <span className="stat-item-value">{chapters.length} Chs</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-item-label">Audience Reads</span>
-              <span className="stat-item-value">{novel.views || '1.2K'}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-item-label">Status</span>
-              <span className="stat-item-value">
-                {novel.isDraft ? 'In Progress Draft' : 'Serialized'}
-              </span>
-            </div>
-          </div>
-
-          <div className="novel-detail-actions">
-            {firstChapterId ? (
-              <Link
-                to={`/read/${novel.id}/${firstChapterId}`}
-                className="btn-read-now"
-                aria-label={`Start reading ${novel.title} from Chapter 1`}
-              >
-                <span aria-hidden="true">📖</span>
-                <span>Start Reading (Ch 1)</span>
-              </Link>
-            ) : (
-              <button
-                type="button"
-                className="btn-read-now"
-                disabled
-                style={{ opacity: 0.6, cursor: 'not-allowed' }}
-              >
-                No Chapters Published Yet
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={handleToggleBookmark}
-              className="btn-bookmark-toggle"
-              aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark novel'}
+          <div className="detail-actions">
+            <Button
+              variant="primary"
+              disabled={chapters.length === 0}
+              onClick={() => {
+                if (chapters[0]) {
+                  navigate(`/novels/${novelId}/read/${chapters[0].id}`);
+                }
+              }}
             >
-              <span>{isBookmarked ? '★ Bookmarked' : '☆ Bookmark'}</span>
-            </button>
+              {chapters.length > 0 ? 'Start reading →' : 'No chapters published yet'}
+            </Button>
+            <Button variant="secondary" onClick={handleSaveToLibrary}>
+              ＋ Save to library
+            </Button>
+            <Button
+              variant={isLiked ? 'primary' : 'quiet'}
+              onClick={handleToggleLike}
+              aria-pressed={isLiked}
+            >
+              {isLiked ? '♥' : '♡'} {likesCount > 0 ? likesCount : 'Like'}
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Catalog Transparency Disclaimer */}
-      {novel.isCuratedCatalog && (
-        <aside className="catalog-disclaimer-box" aria-label="Catalog data information">
-          <strong>ℹ️ Curated Catalog Showcase:</strong> This novel is part of the NovelForge
-          demonstration catalog, designed to test reading typography, responsiveness, and chapter
-          navigation. Real-time author publishing endpoints are undergoing backend gateway
-          exposure.
-        </aside>
-      )}
-
-      {novel.isDraft && (
-        <aside
-          className="catalog-disclaimer-box"
-          style={{ borderLeftColor: 'var(--warning)' }}
-          aria-label="Draft information"
-        >
-          <strong>📝 Author Draft:</strong> This work is saved in your local workspace. Backend
-          publishing to the live server will unlock once the NovelController endpoints are
-          deployed to the API Gateway.
-        </aside>
-      )}
-
-      {/* Synopsis Section */}
-      <section className="novel-detail-section" aria-labelledby="synopsis-heading">
-        <h2 id="synopsis-heading" className="section-headline">
-          <span>📜</span> Synopsis & Setting
-        </h2>
-        <div className="novel-synopsis-text">
-          {novel.synopsis || 'No synopsis provided for this novel yet.'}
-        </div>
-      </section>
-
-      {/* Chapter Directory Section */}
-      <section className="novel-detail-section" aria-labelledby="chapters-heading">
-        <div className="chapters-directory-header">
-          <h2 id="chapters-heading" className="section-headline" style={{ margin: 0 }}>
-            <span>📑</span> Table of Contents
-          </h2>
-          <span className="chapters-count-badge">
-            {chapters.length} {chapters.length === 1 ? 'Chapter' : 'Chapters'}
-          </span>
-        </div>
-
-        {chapters.length === 0 ? (
-          <div
-            style={{
-              padding: '2.5rem 1rem',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              background: 'var(--bg-surface-elevated)',
-              borderRadius: 'var(--radius-md)',
-            }}
-          >
-            No chapters have been released for this novel yet.
+      {/* Chapters & Discussion Columns */}
+      <div className="detail-columns">
+        {/* Chapter List */}
+        <section className="chapter-list">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Table of contents</p>
+              <h2>Chapters</h2>
+            </div>
+            <span className="small-muted">{chapters.length} available</span>
           </div>
-        ) : (
-          <nav className="chapters-list" aria-label="Chapters index">
-            {chapters.map((chap, idx) => (
-              <Link
-                key={chap.id || idx}
-                to={`/read/${novel.id}/${chap.id || chap.chapterNumber}`}
-                className="chapter-row-link"
-              >
-                <span className="chapter-row-title">
-                  {chap.title || `Chapter ${chap.chapterNumber || idx + 1}`}
-                </span>
-                <span className="chapter-row-meta">
-                  {chap.wordCount && <span>{chap.wordCount.toLocaleString()} words</span>}
-                  <span aria-hidden="true">→</span>
-                </span>
-              </Link>
-            ))}
-          </nav>
-        )}
-      </section>
-    </div>
+
+          {chapters.length > 0 ? (
+            chapters.map((ch) => (
+              <div key={ch.id} className="chapter-row">
+                <div>
+                  <small>Chapter {ch.chapterNumber}</small>
+                  <h3>{ch.title || `Chapter ${ch.chapterNumber}`}</h3>
+                </div>
+                <Link to={`/novels/${novelId}/read/${ch.id}`} className="text-link">
+                  Read chapter →
+                </Link>
+              </div>
+            ))
+          ) : (
+            <p className="small-muted" style={{ padding: '1rem 0' }}>
+              The author is currently drafting the manuscript. New chapters will appear here as soon as they are published.
+            </p>
+          )}
+        </section>
+
+        {/* Reader Discussion */}
+        <section className="discussion">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Readers</p>
+              <h2>Discussion</h2>
+            </div>
+            <span className="small-muted">{comments.length} comments</span>
+          </div>
+
+          {isAuthenticated ? (
+            <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <Textarea
+                placeholder="Share your thoughts about this story…"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                maxLength={2000}
+                rows={3}
+                required
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button type="submit" variant="primary" size="sm" loading={submittingComment}>
+                  Post comment
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <p style={{ margin: '0 0 1.5rem', color: 'var(--text-secondary)' }}>
+              <Link to="/login" className="text-link">Sign in</Link> to join the community discussion.
+            </p>
+          )}
+
+          {comments.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {comments.map((comm) => (
+                <article key={comm.id} className="comment-item">
+                  <Avatar name="Reader" size="sm" />
+                  <div>
+                    <small>
+                      Reader · {new Date(comm.createdAt).toLocaleDateString()}
+                    </small>
+                    <p style={{ margin: '0.3rem 0 0', whiteSpace: 'pre-wrap' }}>{comm.content}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon="💬"
+              title="No comments yet"
+              description="Be the first reader to start a discussion about this novel."
+            />
+          )}
+        </section>
+      </div>
+    </section>
   );
-};
-
-export default NovelDetail;
+}

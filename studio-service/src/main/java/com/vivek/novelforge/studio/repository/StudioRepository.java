@@ -18,6 +18,8 @@ public interface StudioRepository extends JpaRepository<Studio, UUID> {
 
     Optional<Studio> findByIdAndDeletedAtIsNull(UUID id);
 
+    boolean existsByOwnerUserIdAndDeletedAtIsNull(Long ownerUserId);
+
     boolean existsByStudioHandleIgnoreCaseAndDeletedAtIsNull(String studioHandle);
 
     boolean existsByStudioHandleIgnoreCaseAndIdNotAndDeletedAtIsNull(

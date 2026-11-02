@@ -1,366 +1,478 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { novelStore } from '../services/novelStore';
-import './Reader.css';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { novelApi, chaptersApi, engagementApi } from '../services/api';
 
-const Reader = () => {
+export default function Reader() {
   const { novelId, chapterId } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { success, error } = useToast();
 
   const [novel, setNovel] = useState(null);
   const [chapter, setChapter] = useState(null);
+  const [chaptersList, setChaptersList] = useState([]);
+  const [errMsg, setErrMsg] = useState('');
   const [loading, setLoading] = useState(true);
-  const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Reader Customization Preferences
-  const [fontSize, setFontSize] = useState(() => {
-    return parseInt(localStorage.getItem('novelforge_reader_fontsize') || '18', 10);
-  });
-  const [fontFamily, setFontFamily] = useState(() => {
-    return localStorage.getItem('novelforge_reader_fontfamily') || 'serif';
-  });
-  const [readerWidth, setReaderWidth] = useState(() => {
-    return localStorage.getItem('novelforge_reader_width') || 'comfortable';
-  });
-  const [readerTheme, setReaderTheme] = useState(() => {
-    return localStorage.getItem('novelforge_reader_theme') || 'sepia';
-  });
+  // Reader Settings
+  const [readingTheme, setReadingTheme] = useState(() => localStorage.getItem('nf_reader_theme') || 'sepia');
+  const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('nf_reader_font_size')) || 18);
+  const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('nf_reader_font_family') || 'serif');
 
-  // Track reading scroll progress
+  // Chapter Comments & Engagement
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+
   useEffect(() => {
-    const handleScroll = () => {
-      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (totalHeight <= 0) {
-        setScrollProgress(100);
-        return;
-      }
-      const progress = (window.scrollY / totalHeight) * 100;
-      setScrollProgress(Math.min(100, Math.max(0, progress)));
-    };
+    localStorage.setItem('nf_reader_theme', readingTheme);
+  }, [readingTheme]);
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Save preferences to localStorage
-  const updateFontSize = (delta) => {
-    setFontSize((prev) => {
-      const next = Math.max(14, Math.min(26, prev + delta));
-      localStorage.setItem('novelforge_reader_fontsize', String(next));
-      return next;
-    });
-  };
-
-  const updateFontFamily = (family) => {
-    setFontFamily(family);
-    localStorage.setItem('novelforge_reader_fontfamily', family);
-  };
-
-  const updateReaderWidth = (width) => {
-    setReaderWidth(width);
-    localStorage.setItem('novelforge_reader_width', width);
-  };
-
-  const updateReaderTheme = (theme) => {
-    setReaderTheme(theme);
-    localStorage.setItem('novelforge_reader_theme', theme);
-  };
-
-  // Load chapter data
   useEffect(() => {
-    let isMounted = true;
+    localStorage.setItem('nf_reader_font_size', String(fontSize));
+  }, [fontSize]);
+
+  useEffect(() => {
+    localStorage.setItem('nf_reader_font_family', fontFamily);
+  }, [fontFamily]);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
+    setErrMsg('');
 
-    const loadChapter = async () => {
-      try {
-        const result = await novelStore.getChapter(novelId, chapterId);
-        if (isMounted) {
-          if (result) {
-            setNovel(result.novel);
-            setChapter(result.chapter);
-            window.scrollTo({ top: 0, behavior: 'instant' });
-          } else {
-            setNovel(null);
-            setChapter(null);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load chapter:', err.message);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadChapter();
+    Promise.all([
+      novelApi.getNovelById(novelId),
+      chaptersApi.getPublic(novelId, chapterId),
+      chaptersApi.listPublic(novelId, 0, 200),
+    ])
+      .then(([novelRes, chapterRes, listRes]) => {
+        if (!active) return;
+        setNovel(novelRes);
+        setChapter(chapterRes);
+        setChaptersList(listRes?.content || []);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setErrMsg(err.message || 'This chapter could not be loaded.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
     return () => {
-      isMounted = false;
+      active = false;
     };
   }, [novelId, chapterId]);
 
-  // Compute Prev & Next Chapters
-  const allChapters = novel?.chapters || [];
-  const currentIndex = allChapters.findIndex(
-    (c) => String(c.id) === String(chapterId) || String(c.chapterNumber) === String(chapterId)
-  );
+  // Load Chapter Comments
+  const loadComments = async () => {
+    if (!chapterId) return;
+    try {
+      const res = await engagementApi.comments('CHAPTER', chapterId, 0);
+      setComments(res?.content || []);
+    } catch {
+      // quiet fail
+    }
+  };
 
-  const prevChapter = currentIndex > 0 ? allChapters[currentIndex - 1] : null;
-  const nextChapter = currentIndex < allChapters.length - 1 ? allChapters[currentIndex + 1] : null;
+  const handleToggleComments = () => {
+    const next = !showComments;
+    setShowComments(next);
+    if (next && comments.length === 0) {
+      loadComments();
+    }
+  };
 
-  // Keyboard navigation (ArrowLeft = prev, ArrowRight = next)
-  const handleKeyDown = useCallback(
-    (e) => {
-      // Ignore if user is inside a form element
-      const tag = e.target.tagName.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      error('Please sign in to join the chapter discussion.');
+      return;
+    }
+    if (!commentText.trim()) return;
 
-      if (e.key === 'ArrowLeft' && prevChapter) {
-        navigate(`/read/${novelId}/${prevChapter.id || prevChapter.chapterNumber}`);
-      } else if (e.key === 'ArrowRight' && nextChapter) {
-        navigate(`/read/${novelId}/${nextChapter.id || nextChapter.chapterNumber}`);
+    setSubmittingComment(true);
+    try {
+      await engagementApi.addComment('CHAPTER', chapterId, commentText.trim());
+      setCommentText('');
+      success('Comment posted!');
+      loadComments();
+    } catch (err) {
+      error(err.message || 'Failed to post comment.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!isAuthenticated) {
+      error('Sign in to like this chapter.');
+      return;
+    }
+    try {
+      if (liked) {
+        await engagementApi.unlike('CHAPTER', chapterId);
+        setLiked(false);
+        setLikesCount((prev) => Math.max(0, prev - 1));
+      } else {
+        await engagementApi.like('CHAPTER', chapterId);
+        setLiked(true);
+        setLikesCount((prev) => prev + 1);
+        success('Chapter liked!');
       }
-    },
-    [navigate, novelId, prevChapter, nextChapter]
-  );
+    } catch (err) {
+      error(err.message || 'Unable to update like.');
+    }
+  };
+
+  const currentIndex = chapter ? chaptersList.findIndex((c) => c.id === chapter.id) : -1;
+  const prevChapter = currentIndex > 0 ? chaptersList[currentIndex - 1] : undefined;
+  const nextChapter = currentIndex >= 0 ? chaptersList[currentIndex + 1] : undefined;
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+    const handleChapterKeys = (event) => {
+      const target = event.target;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName))) return;
+      if (event.key === 'ArrowLeft' && prevChapter) {
+        event.preventDefault();
+        navigate(`/novels/${novelId}/read/${prevChapter.id}`);
+      }
+      if (event.key === 'ArrowRight' && nextChapter) {
+        event.preventDefault();
+        navigate(`/novels/${novelId}/read/${nextChapter.id}`);
+      }
+    };
+    window.addEventListener('keydown', handleChapterKeys);
+    return () => window.removeEventListener('keydown', handleChapterKeys);
+  }, [navigate, novelId, prevChapter, nextChapter]);
 
   if (loading) {
     return (
-      <div className={`reader-page-wrapper reader-theme-${readerTheme}`}>
-        <div style={{ textAlign: 'center', padding: '8rem 1.5rem', color: 'var(--reader-muted)' }}>
-          <div className="spinner" style={{ margin: '0 auto 1.5rem auto' }} />
-          <p>Loading chapter text and formatting typography...</p>
-        </div>
+      <div className="loading-row" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="spinner" /> Opening chapter…
       </div>
     );
   }
 
-  if (!chapter || !novel) {
+  if (errMsg || !chapter) {
     return (
-      <div className={`reader-page-wrapper reader-theme-${readerTheme}`}>
-        <div style={{ textAlign: 'center', padding: '6rem 1.5rem', maxWidth: '520px', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '1.75rem', marginBottom: '1rem' }}>Chapter Not Found</h1>
-          <p style={{ marginBottom: '2rem', color: 'var(--reader-muted)' }}>
-            The requested chapter could not be located. It may have been relocated or is yet to be published.
-          </p>
-          <Link
-            to={`/novels/${novelId}`}
-            className="reader-nav-btn"
-            style={{ display: 'inline-flex' }}
-          >
-            ← Return to Novel Overview
-          </Link>
-        </div>
-      </div>
+      <section className="reader-page" style={{ maxWidth: '800px', margin: '4rem auto', textAlign: 'center' }}>
+        <div className="error-banner" style={{ marginBottom: '1.5rem' }}>{errMsg || 'Chapter not found.'}</div>
+        <Link to={`/novels/${novelId}`} className="text-link">
+          ← Back to novel overview
+        </Link>
+      </section>
     );
   }
 
-  const paragraphs = Array.isArray(chapter.paragraphs) ? chapter.paragraphs : [];
+  // Sort blocks by position
+  const blocks = [...(chapter.blocks || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
 
   return (
-    <div className={`reader-page-wrapper reader-theme-${readerTheme}`}>
-      {/* Scroll Progress Bar */}
-      <div
-        className="reader-progress-bar"
-        style={{ width: `${scrollProgress}%` }}
-        role="progressbar"
-        aria-valuenow={Math.round(scrollProgress)}
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-label="Reading progress"
-      />
-
-      {/* Reader Toolbar */}
-      <header className="reader-toolbar">
-        <div className="reader-toolbar-inner">
-          <Link
-            to={`/novels/${novelId}`}
-            className="reader-nav-back"
-            aria-label={`Exit reader and return to ${novel.title}`}
-          >
-            <span aria-hidden="true">←</span>
-            <span>Table of Contents</span>
+    <div className={`reader-viewport reader-theme-${readingTheme}`}>
+      <article className="reader-page" style={{ maxWidth: '820px', margin: '0 auto', padding: '1.5rem 1rem 6rem' }}>
+        {/* Top Sticky Navigation Toolbar */}
+        <div className="reader-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <Link to={`/novels/${novelId}`} className="back-link" style={{ fontWeight: 600 }}>
+            ← {novel?.title || 'Back to Novel'}
           </Link>
 
-          <span className="reader-title-preview" title={chapter.title}>
-            {chapter.title}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {/* Quick Chapter Selector Dropdown */}
+            {chaptersList.length > 0 && (
+              <select
+                value={chapter.id}
+                onChange={(e) => navigate(`/novels/${novelId}/read/${e.target.value}`)}
+                className="reader-select-dropdown"
+                style={{
+                  background: 'var(--input-bg, #1e293b)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.85rem',
+                }}
+              >
+                {chaptersList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    Ch. {c.chapterNumber}: {c.title}
+                  </option>
+                ))}
+              </select>
+            )}
 
-          {/* Reading Controls Cluster */}
-          <div className="reader-controls-cluster" role="toolbar" aria-label="Reading preferences">
-            {/* Font Size */}
-            <button
-              className="reader-control-btn"
-              onClick={() => updateFontSize(-1)}
-              aria-label="Decrease font size"
-              title="Decrease font size"
-            >
-              A-
-            </button>
-            <button
-              className="reader-control-btn"
-              onClick={() => updateFontSize(1)}
-              aria-label="Increase font size"
-              title="Increase font size"
-            >
-              A+
-            </button>
+            {/* Reading Theme Toggle */}
+            <div className="reader-theme-toggles" style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+              <button
+                type="button"
+                className={`reader-mode-btn ${readingTheme === 'dark' ? 'active' : ''}`}
+                onClick={() => setReadingTheme('dark')}
+                title="Dark mode"
+                style={{ padding: '0.3rem 0.55rem', background: readingTheme === 'dark' ? '#0f172a' : '#1e293b', color: '#fff', border: 'none', cursor: 'pointer' }}
+              >
+                🌙
+              </button>
+              <button
+                type="button"
+                className={`reader-mode-btn ${readingTheme === 'sepia' ? 'active' : ''}`}
+                onClick={() => setReadingTheme('sepia')}
+                title="Warm Paper/Sepia mode"
+                style={{ padding: '0.3rem 0.55rem', background: readingTheme === 'sepia' ? '#f4ecd8' : '#e6dcbe', color: '#5c4b37', border: 'none', cursor: 'pointer' }}
+              >
+                📜
+              </button>
+              <button
+                type="button"
+                className={`reader-mode-btn ${readingTheme === 'light' ? 'active' : ''}`}
+                onClick={() => setReadingTheme('light')}
+                title="Light mode"
+                style={{ padding: '0.3rem 0.55rem', background: readingTheme === 'light' ? '#ffffff' : '#e2e8f0', color: '#000', border: 'none', cursor: 'pointer' }}
+              >
+                ☀️
+              </button>
+            </div>
 
-            {/* Font Family */}
-            <button
-              className={`reader-control-btn ${fontFamily === 'serif' ? 'active' : ''}`}
-              onClick={() => updateFontFamily('serif')}
-              title="Serif font"
-              aria-label="Use serif font"
-            >
-              Serif
-            </button>
-            <button
-              className={`reader-control-btn ${fontFamily === 'sans' ? 'active' : ''}`}
-              onClick={() => updateFontFamily('sans')}
-              title="Sans-serif font"
-              aria-label="Use sans-serif font"
-            >
-              Sans
-            </button>
-
-            {/* Reading Width */}
-            <button
-              className={`reader-control-btn ${readerWidth === 'comfortable' ? 'active' : ''}`}
-              onClick={() =>
-                updateReaderWidth(
-                  readerWidth === 'narrow'
-                    ? 'comfortable'
-                    : readerWidth === 'comfortable'
-                    ? 'wide'
-                    : 'narrow'
-                )
-              }
-              title={`Reading width: ${readerWidth}`}
-              aria-label={`Cycle reading width (currently ${readerWidth})`}
-            >
-              ↔
-            </button>
-
-            {/* Reading Themes */}
-            <button
-              className={`reader-control-btn ${readerTheme === 'sepia' ? 'active' : ''}`}
-              onClick={() => updateReaderTheme('sepia')}
-              title="Sepia warm paper mode"
-              aria-label="Sepia mode"
-            >
-              📜
-            </button>
-            <button
-              className={`reader-control-btn ${readerTheme === 'dark' ? 'active' : ''}`}
-              onClick={() => updateReaderTheme('dark')}
-              title="Dark reading mode"
-              aria-label="Dark mode"
-            >
-              🌙
-            </button>
-            <button
-              className={`reader-control-btn ${readerTheme === 'light' ? 'active' : ''}`}
-              onClick={() => updateReaderTheme('light')}
-              title="Light reading mode"
-              aria-label="Light mode"
-            >
-              ☀️
-            </button>
+            {/* Font Size Adjusters */}
+            <div style={{ display: 'inline-flex', gap: '0.2rem' }}>
+              <button
+                type="button"
+                onClick={() => setFontSize((s) => Math.max(14, s - 2))}
+                title="Decrease font size"
+                className="cr-btn-secondary"
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+              >
+                A-
+              </button>
+              <button
+                type="button"
+                onClick={() => setFontSize((s) => Math.min(28, s + 2))}
+                title="Increase font size"
+                className="cr-btn-secondary"
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+              >
+                A+
+              </button>
+              <button
+                type="button"
+                onClick={() => setFontFamily((f) => (f === 'serif' ? 'sans' : 'serif'))}
+                title="Toggle Serif / Sans font"
+                className="cr-btn-secondary"
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+              >
+                {fontFamily === 'serif' ? 'Serif' : 'Sans'}
+              </button>
+            </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Chapter Content */}
-      <main
-        className={`reader-content-container reader-width-${readerWidth} reader-font-${fontFamily}`}
-      >
-        <header className="reader-chapter-header">
-          <div className="reader-chapter-novel-title">{novel.title}</div>
-          <h1 className="reader-chapter-title">{chapter.title}</h1>
-          <div className="reader-chapter-metadata">
-            by {novel.author || 'Author Unknown'}
-            {chapter.wordCount && ` • ${chapter.wordCount.toLocaleString()} words`}
-          </div>
+        {/* Chapter Header */}
+        <header className="reader-title" style={{ textAlign: 'center', margin: '2.5rem 0 3rem' }}>
+          <p className="eyebrow" style={{ letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            {novel?.title} • Chapter {chapter.chapterNumber}
+          </p>
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 900, margin: '0.4rem 0 0', lineHeight: 1.25 }}>
+            {chapter.title}
+          </h1>
         </header>
 
-        {/* Paragraph Blocks */}
-        <article className="reader-article" style={{ fontSize: `${fontSize}px`, lineHeight: 1.8 }}>
-          {paragraphs.length > 0 ? (
-            paragraphs.map((p, idx) => (
-              <p key={idx} className="reader-paragraph">
-                {p}
+        {/* Sequential Blocks Body */}
+        <div
+          className="reader-content"
+          style={{
+            fontSize: `${fontSize}px`,
+            lineHeight: 1.8,
+            fontFamily: fontFamily === 'serif' ? 'Georgia, Cambria, "Times New Roman", serif' : 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          {blocks.map((block, idx) => {
+            // Illustration Block
+            if (block.type === 'ILLUSTRATION') {
+              return (
+                <figure key={block.id || idx} className="reader-illustration-block" style={{ margin: '2.5rem 0', textAlign: 'center' }}>
+                  <img
+                    src={block.imageUrl}
+                    alt={block.altText || block.caption || `Illustration for chapter ${chapter.chapterNumber}`}
+                    loading="lazy"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '75vh',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                      display: 'block',
+                      margin: '0 auto',
+                    }}
+                  />
+                  {block.caption && (
+                    <figcaption
+                      style={{
+                        marginTop: '0.75rem',
+                        fontSize: '0.88rem',
+                        fontStyle: 'italic',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      {block.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              );
+            }
+
+            // Quote / Callout Block (if prefixed with > or contains quote formatting)
+            const isQuote = block.text?.startsWith('>') || block.type === 'QUOTE';
+            if (isQuote) {
+              const cleanText = block.text?.replace(/^>\s*/, '');
+              return (
+                <blockquote
+                  key={block.id || idx}
+                  className="reader-quote-block"
+                  style={{
+                    margin: '2rem 0',
+                    padding: '1.25rem 1.5rem',
+                    borderLeft: '4px solid #f47521',
+                    background: 'rgba(244, 117, 33, 0.05)',
+                    borderRadius: '0 8px 8px 0',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  <p style={{ margin: 0 }}>"{cleanText}"</p>
+                  {block.caption && (
+                    <cite style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', notItalic: 'true' }}>
+                      — {block.caption}
+                    </cite>
+                  )}
+                </blockquote>
+              );
+            }
+
+            // Standard Prose Text Paragraph Block
+            return (
+              <p
+                key={block.id || idx}
+                className="reader-text-paragraph"
+                style={{
+                  marginBottom: '1.5rem',
+                  textIndent: '1.5rem',
+                  letterSpacing: '0.01em',
+                }}
+              >
+                {block.text}
               </p>
-            ))
-          ) : (
-            <p className="reader-paragraph">
-              No text content available for this chapter installment.
+            );
+          })}
+
+          {blocks.length === 0 && (
+            <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', textAlign: 'center', margin: '3rem 0' }}>
+              This chapter has no published content blocks yet.
             </p>
           )}
-        </article>
-
-        {/* Chapter Navigation Footer */}
-        <nav className="reader-nav-footer" aria-label="Chapter pagination">
-          {prevChapter ? (
-            <Link
-              to={`/read/${novelId}/${prevChapter.id || prevChapter.chapterNumber}`}
-              className="reader-nav-btn"
-              aria-label={`Go to previous chapter: ${prevChapter.title}`}
-            >
-              <span aria-hidden="true">←</span>
-              <span>Previous Chapter</span>
-            </Link>
-          ) : (
-            <button className="reader-nav-btn" disabled>
-              <span aria-hidden="true">←</span>
-              <span>First Chapter</span>
-            </button>
-          )}
-
-          {/* Chapter Quick Selector */}
-          <select
-            className="reader-chapter-select"
-            value={chapter.id || chapter.chapterNumber}
-            onChange={(e) => navigate(`/read/${novelId}/${e.target.value}`)}
-            aria-label="Jump to chapter"
-          >
-            {allChapters.map((c, idx) => (
-              <option key={c.id || idx} value={c.id || c.chapterNumber}>
-                {c.title || `Chapter ${c.chapterNumber || idx + 1}`}
-              </option>
-            ))}
-          </select>
-
-          {nextChapter ? (
-            <Link
-              to={`/read/${novelId}/${nextChapter.id || nextChapter.chapterNumber}`}
-              className="reader-nav-btn"
-              aria-label={`Go to next chapter: ${nextChapter.title}`}
-            >
-              <span>Next Chapter</span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          ) : (
-            <button className="reader-nav-btn" disabled>
-              <span>Latest Chapter</span>
-              <span aria-hidden="true">→</span>
-            </button>
-          )}
-        </nav>
-
-        <div className="reader-keyboard-hints" aria-hidden="true">
-          💡 Keyboard shortcut: Use <strong>← Left Arrow</strong> and{' '}
-          <strong>Right Arrow →</strong> to flip chapters.
         </div>
-      </main>
+
+        {/* Reader Footer Actions (Like, Discussion, Pagination) */}
+        <div className="reader-footer-actions" style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                className={`cr-btn-secondary ${liked ? 'liked' : ''}`}
+                onClick={handleToggleLike}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderColor: liked ? '#ef4444' : undefined }}
+              >
+                {liked ? '❤️' : '🤍'} {likesCount > 0 ? `${likesCount} Likes` : 'Like Chapter'}
+              </button>
+              <button
+                type="button"
+                className="cr-btn-secondary"
+                onClick={handleToggleComments}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                💬 {showComments ? 'Hide Comments' : `Discussion (${comments.length})`}
+              </button>
+            </div>
+
+            <Link to={`/novels/${novelId}`} className="text-link" style={{ fontSize: '0.9rem' }}>
+              📖 Table of Contents
+            </Link>
+          </div>
+
+          {/* Chapter Comments Section */}
+          {showComments && (
+            <section className="reader-comments-drawer" style={{ background: 'var(--card-bg, #1e293b)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem', fontSize: '1.15rem' }}>
+                Chapter Discussion ({comments.length})
+              </h3>
+
+              {isAuthenticated ? (
+                <form onSubmit={handlePostComment} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Share your thoughts on this chapter…"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    className="ig-comment-input"
+                    style={{ flex: 1 }}
+                    maxLength={1000}
+                    required
+                  />
+                  <button type="submit" className="cr-btn-primary" disabled={submittingComment || !commentText.trim()}>
+                    {submittingComment ? 'Posting…' : 'Comment'}
+                  </button>
+                </form>
+              ) : (
+                <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                  <Link to="/login" className="text-link">Sign in</Link> to leave a comment on this chapter.
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gap: '0.85rem' }}>
+                {comments.map((c) => (
+                  <div key={c.id} style={{ padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.35rem' }}>
+                      <strong style={{ color: 'var(--primary)' }}>Reader</strong>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Recently'}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.9rem' }}>{c.content}</p>
+                  </div>
+                ))}
+                {comments.length === 0 && (
+                  <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '1rem' }}>
+                    No comments on this chapter yet. Be the first to share your thoughts!
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Previous / Next Chapter Pagination */}
+          <nav className="reader-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+            {prevChapter ? (
+              <Link className="cr-btn-secondary" to={`/novels/${novelId}/read/${prevChapter.id}`} style={{ padding: '0.75rem 1.25rem' }}>
+                ← Previous Chapter
+              </Link>
+            ) : (
+              <span />
+            )}
+            {nextChapter ? (
+              <Link className="cr-btn-primary" to={`/novels/${novelId}/read/${nextChapter.id}`} style={{ padding: '0.75rem 1.25rem' }}>
+                Next Chapter →
+              </Link>
+            ) : (
+              <Link className="cr-btn-secondary" to={`/novels/${novelId}`} style={{ padding: '0.75rem 1.25rem' }}>
+                Finish Novel ✦
+              </Link>
+            )}
+          </nav>
+        </div>
+      </article>
     </div>
   );
-};
-
-export default Reader;
+}

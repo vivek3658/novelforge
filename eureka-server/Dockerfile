@@ -18,6 +18,6 @@ COPY --from=builder /app/target/*.jar app.jar
 ENV SERVER_PORT=8761
 EXPOSE 8761
 
-# Limit JVM memory for cloud/Render free tier (512MB RAM)
-ENV JAVA_OPTS="-Xmx350m -Xms200m"
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8761} -jar app.jar"]
+# Limit JVM memory for cloud/Render free tier (0.1 vCPU / 512MB RAM)
+ENV JAVA_OPTS="-Xms64m -Xmx160m -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8761} -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} -jar app.jar"]

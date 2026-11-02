@@ -1,0 +1,110 @@
+server:
+  port: ${PORT:8082}
+  tomcat:
+    threads:
+      max: 10
+      min-spare: 2
+    accept-count: 20
+    max-connections: 50
+
+spring:
+  application:
+    name: notification-service
+
+  main:
+    web-application-type: servlet
+
+  data:
+    redis:
+      url: ${REDIS_URL:}
+      host: ${SPRING_DATA_REDIS_HOST:novelforge-redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      username: ${SPRING_DATA_REDIS_USERNAME:}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 3000ms
+
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:${SPRING_RABBITMQ_ADDRESSES:}}
+    host: ${RABBITMQ_HOST:novelforge-rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:novelforge}
+    password: ${RABBITMQ_PASSWORD:}
+    connection-timeout: 5000ms
+    listener:
+      simple:
+        concurrency: 1
+        max-concurrency: 2
+        prefetch: 1
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 2000ms
+          max-attempts: 3
+          multiplier: 2
+          max-interval: 10000ms
+
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 3000
+          timeout: 5000
+          writetimeout: 5000
+
+identity:
+  service:
+    url: ${IDENTITY_SERVICE_URL:http://novelforge-identity-service:8081}
+  internal:
+    notification-client-secret: ${NOTIFICATION_IDENTITY_INTERNAL_SECRET:}
+
+brevo:
+  api:
+    key: ${BREVO_API_KEY:}
+  sender:
+    email: ${BREVO_SENDER_EMAIL:}
+
+notification:
+  email:
+    provider: ${NOTIFICATION_EMAIL_PROVIDER:brevo}
+    from: ${NOTIFICATION_EMAIL_FROM:${BREVO_SENDER_EMAIL:notifications@novelforge.com}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    mail:
+      enabled: false
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://novelforge-eureka-server:8761/eureka/}
+    registry-fetch-interval-seconds: 15
+  instance:
+    hostname: ${RENDER_EXTERNAL_HOSTNAME:${RENDER_SERVICE_NAME:localhost}}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    lease-renewal-interval-in-seconds: 15
+    lease-expiration-duration-in-seconds: 45
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN
+    org.springframework.amqp: INFO
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO

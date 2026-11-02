@@ -18,6 +18,6 @@ COPY --from=builder /app/target/*.jar app.jar
 ENV SERVER_PORT=8080
 EXPOSE 8080
 
-# Limit JVM memory for cloud/Render free tier (512MB RAM)
-ENV JAVA_OPTS="-Xmx350m -Xms200m"
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar"]
+# Limit JVM memory for cloud/Render free tier (0.1 vCPU / 512MB RAM)
+ENV JAVA_OPTS="-Xms96m -Xmx200m -XX:MaxMetaspaceSize=110m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=64m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Dio.netty.eventLoopThreads=2 -Dreactor.netty.ioWorkerCount=2 -Djava.security.egd=file:/dev/./urandom"
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} -jar app.jar"]

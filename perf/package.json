@@ -1,0 +1,24 @@
+{
+  "name": "novelforge-perf",
+  "version": "1.0.0",
+  "description": "NovelForge Performance & Load Testing Suite",
+  "type": "module",
+  "scripts": {
+    "seed": "node seed/seed.mjs",
+    "test:health": "node scenarios/health.mjs",
+    "test:read": "node scenarios/read-heavy.mjs",
+    "test:chapter": "node scenarios/chapter-read.mjs",
+    "test:auth-read": "node scenarios/auth-read.mjs",
+    "test:login": "node scenarios/login.mjs",
+    "test:write": "node scenarios/write-path.mjs",
+    "test:mixed": "node scenarios/mixed.mjs",
+    "run:all": "node runner.mjs",
+    "report": "node report/generate.mjs"
+  },
+  "dependencies": {
+    "autocannon": "^7.15.0",
+    "bcryptjs": "^2.4.3",
+    "pg": "^8.12.0",
+    "mongodb": "^6.8.0"
+  }
+}

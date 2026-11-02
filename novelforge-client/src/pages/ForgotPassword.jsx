@@ -1,28 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Logo from '../assets/logo.png';
-import { authApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import './AuthPages.css';
+import { authApi } from '../services/api';
+import { Button, Input } from '../components/ui';
+import Logo from '../assets/logo.png';
 
-const ForgotPassword = () => {
-  // Step: 1 = Email, 2 = Verify OTP, 3 = Reset Password, 4 = Success
+export default function ForgotPassword() {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
-  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const otpInputsRef = useRef([]);
-  const { success, error } = useToast();
+  const otpInputRefs = useRef([]);
+  const { success, error: toastError } = useToast();
   const navigate = useNavigate();
 
-  // Resend OTP Countdown
+  // Resend Countdown Timer
   useEffect(() => {
     let timer;
     if (resendCooldown > 0) {
@@ -33,93 +31,92 @@ const ForgotPassword = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  // Step 1: Send Password Reset OTP
-  const handleSendResetOtp = async (e) => {
+  // Step 1: Send Forgot Password OTP
+  const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setErrorMessage('Please enter a valid email address.');
       return;
     }
 
     setErrorMessage('');
-    setIsLoading(true);
-
+    setLoading(true);
     try {
-      await authApi.forgotPasswordSendOtp(email.trim().toLowerCase());
-      success(`If an account exists for ${email}, a reset code has been sent.`);
+      await authApi.forgotPasswordSendOtp(cleanEmail);
+      setEmail(cleanEmail);
+      success(`If an account exists for ${cleanEmail}, a reset code has been sent.`);
       setResendCooldown(60);
       setStep(2);
     } catch (err) {
-      const msg = err.message || 'Failed to send reset OTP. Please try again.';
+      const msg = err.message || 'Failed to send reset code. Please try again.';
       setErrorMessage(msg);
-      error(msg);
+      toastError(msg);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // OTP Input Handler
+  // Step 2: Handle OTP Digits
   const handleOtpChange = (index, value) => {
     if (value.length > 1) {
-      const pasted = value.replace(/\D/g, '').slice(0, 6);
-      if (pasted.length > 0) {
-        const newOtp = [...otpValues];
-        for (let i = 0; i < 6; i++) {
-          newOtp[i] = pasted[i] || '';
-        }
-        setOtpValues(newOtp);
-        const focusIndex = Math.min(pasted.length, 5);
-        otpInputsRef.current[focusIndex]?.focus();
+      const digits = value.replace(/\D/g, '').slice(0, 6).split('');
+      if (digits.length > 0) {
+        const nextDigits = [...otpDigits];
+        digits.forEach((d, i) => {
+          if (i < 6) nextDigits[i] = d;
+        });
+        setOtpDigits(nextDigits);
+        const nextFocus = Math.min(digits.length, 5);
+        otpInputRefs.current[nextFocus]?.focus();
       }
       return;
     }
 
-    const val = value.replace(/\D/g, '');
-    const newOtp = [...otpValues];
-    newOtp[index] = val;
-    setOtpValues(newOtp);
+    const sanitized = value.replace(/\D/g, '');
+    const nextDigits = [...otpDigits];
+    nextDigits[index] = sanitized;
+    setOtpDigits(nextDigits);
 
-    if (val && index < 5) {
-      otpInputsRef.current[index + 1]?.focus();
+    if (sanitized && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-      otpInputsRef.current[index - 1]?.focus();
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
     }
   };
 
-  // Step 2: Verify Reset OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    const otpCode = otpValues.join('');
-    if (otpCode.length !== 6) {
-      setErrorMessage('Please enter the complete 6-digit OTP code.');
+    const otp = otpDigits.join('');
+    if (otp.length < 6) {
+      setErrorMessage('Please enter the full 6-digit reset code.');
       return;
     }
 
     setErrorMessage('');
-    setIsLoading(true);
-
+    setLoading(true);
     try {
-      await authApi.forgotPasswordVerifyOtp(email.trim().toLowerCase(), otpCode);
-      success('OTP verified. Please enter your new password.');
+      await authApi.forgotPasswordVerifyOtp(email, otp);
+      success('Code verified. You can now set a new password.');
       setStep(3);
     } catch (err) {
-      const msg = err.message || 'Invalid or expired OTP code.';
+      const msg = err.message || 'Invalid or expired reset code.';
       setErrorMessage(msg);
-      error(msg);
+      toastError(msg);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Step 3: Reset Password
+  // Step 3: Set New Password
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (newPassword.length < 8) {
-      setErrorMessage('Password must be at least 8 characters long.');
+      setErrorMessage('New password must be at least 8 characters long.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -128,289 +125,199 @@ const ForgotPassword = () => {
     }
 
     setErrorMessage('');
-    setIsLoading(true);
-
+    setLoading(true);
     try {
-      await authApi.forgotPasswordReset(email.trim().toLowerCase(), newPassword);
-      success('Password reset successfully! Please sign in with your new password.');
-      setStep(4);
+      await authApi.forgotPasswordReset(email, newPassword);
+      success('Your password has been successfully reset! Please sign in.');
+      navigate('/login', { replace: true });
     } catch (err) {
-      const msg = err.message || 'Failed to reset password. Please try again.';
+      const msg = err.message || 'Password reset failed. Please try again.';
       setErrorMessage(msg);
-      error(msg);
+      toastError(msg);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <div className="auth-page-container">
       <div className="auth-card">
+        {/* Header */}
         <div className="auth-header">
           <div className="auth-logo-badge">
             <img src={Logo} alt="NovelForge Logo" />
           </div>
           <h1 className="auth-title">Reset Password</h1>
-          <p className="auth-subtitle">Recover access to your NovelForge account</p>
+          <p className="auth-subtitle">
+            {step === 1 && 'Enter your registered email address to receive a recovery code'}
+            {step === 2 && `Enter the 6-digit recovery code sent to ${email}`}
+            {step === 3 && 'Choose a new, secure password for your account'}
+          </p>
         </div>
 
         {/* Step Indicator */}
-        {step < 4 && (
-          <div className="step-indicator">
-            <div className={`step-item ${step === 1 ? 'active' : step > 1 ? 'completed' : ''}`}>
-              <div className="step-circle">{step > 1 ? '✓' : '1'}</div>
-              <span className="step-label">Email</span>
-            </div>
-            <div className={`step-line ${step > 1 ? 'completed' : ''}`} />
-            <div className={`step-item ${step === 2 ? 'active' : step > 2 ? 'completed' : ''}`}>
-              <div className="step-circle">{step > 2 ? '✓' : '2'}</div>
-              <span className="step-label">OTP</span>
-            </div>
-            <div className={`step-line ${step > 2 ? 'completed' : ''}`} />
-            <div className={`step-item ${step === 3 ? 'active' : ''}`}>
-              <div className="step-circle">3</div>
-              <span className="step-label">New Password</span>
-            </div>
+        <div className="step-indicator" aria-label="Password reset steps">
+          <div className={`step-item ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
+            <span className="step-circle">{step > 1 ? '✓' : '1'}</span>
+            <span className="step-label">Email</span>
           </div>
-        )}
+          <div className={`step-line ${step > 1 ? 'completed' : ''}`} />
+          <div className={`step-item ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
+            <span className="step-circle">{step > 2 ? '✓' : '2'}</span>
+            <span className="step-label">Verify</span>
+          </div>
+          <div className={`step-line ${step > 2 ? 'completed' : ''}`} />
+          <div className={`step-item ${step === 3 ? 'active' : ''}`}>
+            <span className="step-circle">3</span>
+            <span className="step-label">New Pass</span>
+          </div>
+        </div>
 
+        {/* Error Alert */}
         {errorMessage && (
-          <div className="auth-alert auth-alert-error">
-            <span>⚠</span>
+          <div className="auth-alert auth-alert-error" role="alert">
+            <span aria-hidden="true">⚠</span>
             <div>{errorMessage}</div>
           </div>
         )}
 
-        {/* STEP 1: Enter Email */}
+        {/* Step 1: Email Form */}
         {step === 1 && (
-          <form className="auth-form" onSubmit={handleSendResetOtp}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="reset-email">
-                Account Email
-              </label>
-              <div className="input-wrapper">
-                <svg
-                  className="input-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-                <input
-                  id="reset-email"
-                  type="email"
-                  className="form-input"
-                  placeholder="your.email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-            </div>
-
-            <button
+          <form className="auth-form" onSubmit={handleSendOtp}>
+            <Input
+              id="forgot-email"
+              label="Email Address"
+              type="email"
+              placeholder="you@domain.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              disabled={loading}
+              required
+            />
+            <Button
               type="submit"
-              className="auth-btn-primary"
-              disabled={isLoading || !email}
+              variant="primary"
+              loading={loading}
+              style={{ width: '100%', marginTop: '0.5rem' }}
             >
-              {isLoading ? (
-                <>
-                  <span className="spinner-sm"></span>
-                  <span>Sending Reset Code...</span>
-                </>
-              ) : (
-                'Send Password Reset OTP'
-              )}
-            </button>
+              Send Recovery Code →
+            </Button>
           </form>
         )}
 
-        {/* STEP 2: Verify Reset OTP */}
+        {/* Step 2: OTP Verification */}
         {step === 2 && (
           <form className="auth-form" onSubmit={handleVerifyOtp}>
-            <div className="auth-alert auth-alert-info">
-              <span>✉</span>
-              <div>
-                Verification code sent to <strong>{email}</strong>
-              </div>
+            <div className="otp-input-container">
+              {otpDigits.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => (otpInputRefs.current[i] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  className="otp-box"
+                  value={digit}
+                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                  disabled={loading}
+                  aria-label={`Digit ${i + 1}`}
+                  autoFocus={i === 0}
+                />
+              ))}
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Enter 6-Digit OTP</label>
-              <div className="otp-input-container">
-                {otpValues.map((val, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => (otpInputsRef.current[idx] = el)}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    className="otp-box"
-                    value={val}
-                    onChange={(e) => handleOtpChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    disabled={isLoading}
-                  />
-                ))}
-              </div>
+            <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
+              <button
+                type="button"
+                className="resend-btn"
+                onClick={handleSendOtp}
+                disabled={resendCooldown > 0 || loading}
+              >
+                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend verification code'}
+              </button>
             </div>
 
-            <button
+            <Button
               type="submit"
-              className="auth-btn-primary"
-              disabled={isLoading || otpValues.join('').length !== 6}
+              variant="primary"
+              loading={loading}
+              disabled={otpDigits.join('').length < 6}
+              style={{ width: '100%' }}
             >
-              {isLoading ? (
-                <>
-                  <span className="spinner-sm"></span>
-                  <span>Verifying Code...</span>
-                </>
-              ) : (
-                'Verify OTP'
-              )}
-            </button>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.88rem' }}>
-              <button
-                type="button"
-                className="resend-btn"
-                onClick={() => setStep(1)}
-              >
-                Change Email
-              </button>
-              <button
-                type="button"
-                className="resend-btn"
-                onClick={handleSendResetOtp}
-                disabled={resendCooldown > 0 || isLoading}
-              >
-                {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend Code'}
-              </button>
-            </div>
+              Verify Code & Continue →
+            </Button>
+            <Button
+              type="button"
+              variant="quiet"
+              onClick={() => setStep(1)}
+              disabled={loading}
+              style={{ width: '100%' }}
+            >
+              ← Change email
+            </Button>
           </form>
         )}
 
-        {/* STEP 3: Set New Password */}
+        {/* Step 3: New Password */}
         {step === 3 && (
           <form className="auth-form" onSubmit={handleResetPassword}>
             <div className="form-group">
               <label className="form-label" htmlFor="new-password">
-                New Password
+                New Password (min 8 characters)
               </label>
               <div className="input-wrapper">
-                <svg
-                  className="input-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
                 <input
                   id="new-password"
                   type={showPassword ? 'text' : 'password'}
-                  className="form-input"
-                  placeholder="At least 8 characters"
+                  className="form-input no-icon"
+                  placeholder="Create a new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={isLoading}
+                  autoComplete="new-password"
+                  disabled={loading}
                   required
                 />
                 <button
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
+                  {showPassword ? '👁' : '🔒'}
                 </button>
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="confirm-new-password">
-                Confirm New Password
-              </label>
-              <div className="input-wrapper">
-                <svg
-                  className="input-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <input
-                  id="confirm-new-password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-input"
-                  placeholder="Re-enter new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-            </div>
+            <Input
+              id="confirm-new-password"
+              label="Confirm New Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Re-enter your new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              disabled={loading}
+              required
+            />
 
-            <button
+            <Button
               type="submit"
-              className="auth-btn-primary"
-              disabled={isLoading || !newPassword || !confirmPassword}
+              variant="primary"
+              loading={loading}
+              style={{ width: '100%', marginTop: '0.5rem' }}
             >
-              {isLoading ? (
-                <>
-                  <span className="spinner-sm"></span>
-                  <span>Updating Password...</span>
-                </>
-              ) : (
-                'Save New Password'
-              )}
-            </button>
+              Reset Password & Sign In
+            </Button>
           </form>
         )}
 
-        {/* STEP 4: Success View */}
-        {step === 4 && (
-          <div className="success-view">
-            <div className="success-icon-circle">✓</div>
-            <h2 className="auth-title">Password Reset!</h2>
-            <p className="auth-subtitle">
-              Your password has been successfully updated. You can now log in with your new credentials.
-            </p>
-            <button
-              className="auth-btn-primary"
-              onClick={() => navigate('/login')}
-            >
-              Back to Sign In
-            </button>
-          </div>
-        )}
-
         <div className="auth-card-footer">
-          Remember your password?
-          <Link to="/login">Sign in here</Link>
+          Remembered your password?
+          <Link to="/login">Back to Sign In</Link>
         </div>
       </div>
     </div>
   );
-};
-
-export default ForgotPassword;
+}

@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: eureka-server
+
+server:
+  port: ${PORT:8761}
+  tomcat:
+    threads:
+      max: 15
+      min-spare: 2
+    accept-count: 50
+    max-connections: 100
+
+eureka:
+  instance:
+    hostname: ${RENDER_EXTERNAL_HOSTNAME:${RENDER_SERVICE_NAME:novelforge-eureka-server}}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 15
+    lease-expiration-duration-in-seconds: 45
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 10000
+    response-cache-update-interval-ms: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+logging:
+  level:
+    root: INFO
+    org.springframework: WARN
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
