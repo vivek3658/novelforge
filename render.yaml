@@ -361,3 +361,5 @@ services:
           name: novelforge-api-gateway
           type: web
           property: host
+      - key: API_GATEWAY_URL
+        value: https://novelforge-api-gateway.onrender.com
