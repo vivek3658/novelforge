@@ -34,7 +34,9 @@ export const AuthProvider = ({ children }) => {
         if (!activeToken) return null;
         const me = await authApi.getMe(activeToken);
         if (!me) return null;
-        const profile = await authApi.getProfile(activeToken).catch(() => null);
+        const refreshedToken = localStorage.getItem('novelforge_access_token');
+        if (refreshedToken) setToken(refreshedToken);
+        const profile = await authApi.getProfile(refreshedToken || activeToken).catch(() => null);
         const enriched = { ...me, ...(profile || {}) };
         if (enriched) saveUser(enriched);
         return enriched;
@@ -86,10 +88,11 @@ export const AuthProvider = ({ children }) => {
         try {
           const me = await authApi.getMe(storedToken);
           if (me) {
-            const profile = await authApi.getProfile(storedToken).catch(() => null);
+            const activeToken = localStorage.getItem('novelforge_access_token') || storedToken;
+            const profile = await authApi.getProfile(activeToken).catch(() => null);
             verifiedUser = { ...me, ...(profile || {}) };
             if (active) {
-              setToken(storedToken);
+              setToken(activeToken);
               saveUser(verifiedUser);
             }
           }

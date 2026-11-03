@@ -41,6 +41,9 @@ public class WebSecurityConfig {
         httpSecurity
                 .csrf(csrfConfig -> csrfConfig.disable())
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
+                        (request, response, exception) -> response.sendError(
+                                org.springframework.http.HttpStatus.UNAUTHORIZED.value())))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/login",

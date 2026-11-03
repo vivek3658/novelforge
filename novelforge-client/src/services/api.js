@@ -120,7 +120,8 @@ export async function apiRequest(endpoint, options = {}) {
     }
 
     if (
-      response.status === 401 &&
+      (response.status === 401 ||
+        (response.status === 403 && resolvedEndpoint === '/api/v1/identity/auth/me')) &&
       !isAuthFlow && !options.noAuth && !options._skipRefresh &&
       !options._isRetry
     ) {

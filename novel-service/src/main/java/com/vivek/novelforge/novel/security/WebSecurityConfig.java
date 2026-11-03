@@ -46,6 +46,9 @@ public class WebSecurityConfig {
                                 SessionCreationPolicy.STATELESS
                         )
                 )
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
+                        (request, response, exception) -> response.sendError(
+                                org.springframework.http.HttpStatus.UNAUTHORIZED.value())))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/novels/**").permitAll()
