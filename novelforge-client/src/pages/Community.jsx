@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { engagementApi, studioApi } from '../services/api';
 import PostCard from '../components/PostCard';
 import ImageUploader from '../components/ImageUploader';
+import TagInput from '../components/TagInput';
 import { Button, EmptyState } from '../components/ui';
 
 export default function Community() {
@@ -16,7 +17,7 @@ export default function Community() {
   const [selectedStudioAuthor, setSelectedStudioAuthor] = useState('');
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState([]);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [activeFeed, setActiveFeed] = useState('all');
   const [page, setPage] = useState(0);
@@ -73,15 +74,12 @@ export default function Community() {
         authorId: String(authorId),
         content: content.trim(),
         imageUrl: mediaUrl.trim() || null,
-        tags: tags
-          .split(',')
-          .map((t) => t.trim().replace(/^#/, ''))
-          .filter(Boolean),
+        tags,
       });
 
       setContent('');
       setMediaUrl('');
-      setTags('');
+      setTags([]);
       setIsComposerOpen(false);
       success('Your post is live on the community feed!');
       await loadPosts(0);
@@ -118,109 +116,9 @@ export default function Community() {
     <div className="cr-home community-page">
       {/* 1. Instagram-Style Stories / Active Creator Bubbles */}
       <header className="community-hero">
-        <div><p className="eyebrow">THE READER & CREATOR LOUNGE</p><h1>Stories start conversations.</h1><p>Meet the people behind your favorite worlds, share a first look, or join the discussion.</p></div>
+        <div><p className="eyebrow">COMMUNITY</p><h1>Updates from writers and studios</h1><p>Follow releases, artwork, and notes from the people creating your next read.</p></div>
         {isAuthenticated && <button type="button" className="cr-btn-primary" onClick={() => { setIsComposerOpen(true); document.querySelector('.ig-composer-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>＋ Write a post</button>}
       </header>
-      <section className="ig-stories-section" style={{ marginBottom: '1.5rem' }}>
-        <div
-          className="ig-stories-scroll"
-          style={{
-            display: 'flex',
-            gap: '1.25rem',
-            overflowX: 'auto',
-            padding: '0.5rem 0.25rem',
-            scrollbarWidth: 'none',
-          }}
-        >
-          {/* User's story bubble */}
-          <div style={{ textAlign: 'center', minWidth: '72px', cursor: 'pointer' }} onClick={() => setIsComposerOpen(true)}>
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                padding: '2px',
-                background: 'linear-gradient(45deg, #f47521, #ec4899)',
-                margin: '0 auto',
-                display: 'grid',
-                placeItems: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '50%',
-                  background: '#0b0f19',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontSize: '1.3rem',
-                  fontWeight: 900,
-                  color: '#fff',
-                }}
-              >
-                ＋
-              </div>
-            </div>
-            <span style={{ fontSize: '0.75rem', marginTop: '0.35rem', display: 'block', color: 'var(--text-muted)' }}>
-              New Post
-            </span>
-          </div>
-
-          {/* Studios / Channels bubbles */}
-          {studios.map((st) => (
-            <div key={st.id} style={{ textAlign: 'center', minWidth: '72px' }}>
-              <div
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  padding: '2px',
-                  background: 'linear-gradient(45deg, #f47521, #38bdf8)',
-                  margin: '0 auto',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    background: '#1e293b',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: '1.1rem',
-                    fontWeight: 800,
-                    color: '#fff',
-                  }}
-                >
-                  {(st.studioName || 'S').slice(0, 1).toUpperCase()}
-                </div>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  marginTop: '0.35rem',
-                  display: 'block',
-                  color: 'var(--text-primary)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: '72px',
-                }}
-              >
-                {st.studioName}
-              </span>
-            </div>
-          ))}
-
-          {/* Empty channel guidance */}
-          {studios.length === 0 && (
-            <p className="community-channel-empty">Follow a studio to see its updates here.</p>
-          )}
-        </div>
-      </section>
 
       {/* 2. Community Post Composer */}
       <div className="ig-feed-container">
@@ -315,12 +213,10 @@ export default function Community() {
                   hint="PNG, JPG, WEBP or GIF up to 5MB"
                 />
 
-                <input
-                  type="text"
-                  className="ig-comment-input"
-                  placeholder="Tags (Comma separated, e.g. fantasy, art, ch12)"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
+                <TagInput
+                  tags={tags}
+                  onChange={setTags}
+                  hint="Up to 20 hashtags. Press Enter or comma after each tag."
                 />
 
                 <div className="ig-composer-controls" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>

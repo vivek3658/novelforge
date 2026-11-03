@@ -14,7 +14,6 @@ export default function PostCard({ post, onDelete }) {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isAuthor =
@@ -130,9 +129,6 @@ export default function PostCard({ post, onDelete }) {
               <strong>
                 {post.authorType === 'STUDIO' ? 'Studio Broadcast' : 'Creator Update'}
               </strong>
-              <span className="ig-badge-verified" title="Verified Creator">
-                ●
-              </span>
             </div>
             <small>
               {post.authorType === 'STUDIO' ? 'Studio channel' : 'Creator'} · {formattedDate}
@@ -155,7 +151,7 @@ export default function PostCard({ post, onDelete }) {
             }}
             title="Delete this post"
           >
-            {isDeleting ? 'Deleting…' : '🗑️ Delete'}
+            {isDeleting ? 'Deleting…' : 'Delete'}
           </button>
         )}
       </header>
@@ -179,7 +175,8 @@ export default function PostCard({ post, onDelete }) {
             onClick={handleToggleLike}
             title={isLiked ? 'Unlike' : 'Like'}
           >
-            {isLiked ? '❤️' : '🤍'}
+            <span aria-hidden="true">{isLiked ? '♥' : '♡'}</span>
+            <span>{isLiked ? 'Liked' : 'Like'}</span>
           </button>
           <button
             type="button"
@@ -187,24 +184,14 @@ export default function PostCard({ post, onDelete }) {
             onClick={handleToggleComments}
             title="Comments"
           >
-            💬
+            <span aria-hidden="true">▤</span>
+            <span>Comments</span>
           </button>
           <button type="button" className="ig-icon-btn" onClick={handleShare} title="Share">
-            ✈️
+            <span aria-hidden="true">↗</span>
+            <span>Share</span>
           </button>
         </div>
-
-        <button
-          type="button"
-          className="ig-icon-btn"
-          onClick={() => {
-            setIsSaved(!isSaved);
-            success(isSaved ? 'Removed from saved' : 'Saved to collection');
-          }}
-          title="Save"
-        >
-          {isSaved ? '🔖' : '🏷️'}
-        </button>
       </div>
 
       <div className="ig-likes-count">

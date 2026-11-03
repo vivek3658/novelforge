@@ -6,6 +6,7 @@ import { studioApi, chaptersApi, engagementApi } from '../services/api';
 import ImageUploader from '../components/ImageUploader';
 import PostCard from '../components/PostCard';
 import StudioInviteCollaborator from '../components/StudioInviteCollaborator';
+import TagInput from '../components/TagInput';
 
 const INITIAL_STUDIO_FORM = {
   studioName: '',
@@ -46,6 +47,7 @@ export default function StudioEditor() {
   const [editingBlockId, setEditingBlockId] = useState(null);
   const [editingBlockText, setEditingBlockText] = useState('');
   const [chapterViewMode, setChapterViewMode] = useState('write');
+  const [chapterFocusMode, setChapterFocusMode] = useState(false);
 
   // Forms
   const [studioForm, setStudioForm] = useState(INITIAL_STUDIO_FORM);
@@ -61,7 +63,7 @@ export default function StudioEditor() {
   const [studioPosts, setStudioPosts] = useState([]);
   const [broadcastContent, setBroadcastContent] = useState('');
   const [broadcastMediaUrl, setBroadcastMediaUrl] = useState('');
-  const [broadcastTags, setBroadcastTags] = useState('');
+  const [broadcastTags, setBroadcastTags] = useState([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
 
   // Block Creator state
@@ -577,6 +579,18 @@ export default function StudioEditor() {
     );
   };
 
+  const handleCancelChapterSchedule = async () => {
+    if (!selectedChapter) return;
+    runAsync(
+      async () => await chaptersApi.cancelSchedule(selectedNovel.id, selectedChapter.id),
+      async (updated) => {
+        setSelectedChapter(updated);
+        setChapters((items) => items.map((item) => item.id === updated.id ? updated : item));
+        success('Scheduled release cancelled. The chapter is back in drafts.');
+      }
+    );
+  };
+
   // Handle Broadcasting Post to Community (YouTube Studio Style)
   const handleCreateBroadcast = async (e) => {
     e.preventDefault();
@@ -589,16 +603,13 @@ export default function StudioEditor() {
           authorId: String(currentStudio.id),
           content: broadcastContent.trim(),
           imageUrl: broadcastMediaUrl.trim() || null,
-          tags: broadcastTags
-            .split(',')
-            .map((t) => t.trim().replace(/^#/, ''))
-            .filter(Boolean),
+          tags: broadcastTags,
         }),
       async () => {
         success('Announcement broadcasted to readers and community feed!');
         setBroadcastContent('');
         setBroadcastMediaUrl('');
-        setBroadcastTags('');
+        setBroadcastTags([]);
         await loadStudioPosts(currentStudio.id);
       }
     );
@@ -612,6 +623,7 @@ export default function StudioEditor() {
   };
 
   const sortedBlocks = [...(selectedChapter?.blocks || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
+  const hasPublishableText = sortedBlocks.some((block) => block.type === 'TEXT' && block.text?.trim());
 
   return (
     <div className="product-page studio-page-container">
@@ -987,9 +999,9 @@ export default function StudioEditor() {
           {activeTab === 'chapters' && (
             <div>
               {selectedNovel ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+                <div className={`chapter-editor-layout${chapterFocusMode ? ' focus-mode' : ''}`}>
                   {/* Left Chapters List */}
-                  <div className="cr-card" style={{ padding: '1rem' }}>
+                  {!chapterFocusMode && <div className="cr-card chapter-list-panel" style={{ padding: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Chapters</h4>
                       <button
@@ -1043,56 +1055,107 @@ export default function StudioEditor() {
                         </p>
                       )}
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Right Chapter Blocks Sequencer */}
                   {selectedChapter ? (
                     <div className="cr-card chapter-workspace-card" style={{ padding: '1.75rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                      <div className="chapter-editor-heading">
                         <div>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 800 }}>
-                            Chapter {selectedChapter.chapterNumber} Editor
-                          </span>
-                          <h2 style={{ margin: '0.25rem 0 0', fontSize: '1.4rem' }}>
-                            {selectedChapter.title}
-                          </h2>
+                          <p className="eyebrow">CHAPTER {selectedChapter.chapterNumber}</p>
+                          <h2>{selectedChapter.title}</h2>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span
-                            style={{
-                              padding: '0.2rem 0.6rem',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              background: selectedChapter.publicationState === 'PUBLISHED' ? 'rgba(16,185,129,0.15)' : 'rgba(244,117,33,0.15)',
-                              color: selectedChapter.publicationState === 'PUBLISHED' ? '#10b981' : '#f47521',
-                            }}
-                          >
+                        <div className="chapter-heading-actions">
+                          <span className={`chapter-release-state state-${(selectedChapter.publicationState || 'DRAFT').toLowerCase()}`}>
                             {selectedChapter.publicationState || 'DRAFT'}
                           </span>
-                          {selectedChapter.publicationState !== 'PUBLISHED' && selectedNovel.publicationState === 'PUBLISHED' && (
-                            <button
-                              type="button"
-                              className="cr-btn-primary"
-                              style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }}
-                              onClick={handlePublishChapter}
-                              disabled={isSubmitting}
-                            >
-                              🚀 Publish Now
+                          {selectedChapter.publicationState === 'PUBLISHED' ? (
+                            <Link to={`/novels/${selectedNovel.id}/read/${selectedChapter.id}`} className="cr-btn-secondary">
+                              Open public chapter
+                            </Link>
+                          ) : (
+                            <button type="button" className="cr-btn-secondary" onClick={() => setChapterViewMode('preview')}>
+                              Preview draft
                             </button>
                           )}
-                          {selectedChapter.publicationState !== 'PUBLISHED' && selectedNovel.publicationState !== 'PUBLISHED' && <button type="button" className="cr-btn-primary" onClick={() => handlePublishNovel(selectedNovel.id)} disabled={isSubmitting}>Publish novel first to release chapters</button>}
-                          <Link
-                            to={`/novels/${selectedNovel.id}/read/${selectedChapter.id}`}
-                            className="cr-btn-secondary"
-                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }}
-                          >
-                            Preview in Reader ↗
-                          </Link>
                         </div>
                       </div>
 
-                      <div className="chapter-mode-toolbar"><div><strong>Chapter workspace</strong><span>Ctrl+T Text · Ctrl+I Illustration · Ctrl+Q Quote · Ctrl+Enter Add block</span></div><div role="tablist" aria-label="Chapter workspace mode"><button type="button" role="tab" aria-selected={chapterViewMode === 'write'} className={chapterViewMode === 'write' ? 'active' : ''} onClick={() => setChapterViewMode('write')}>Write</button><button type="button" role="tab" aria-selected={chapterViewMode === 'preview'} className={chapterViewMode === 'preview' ? 'active' : ''} onClick={() => setChapterViewMode('preview')}>Preview</button></div></div>
+                      <section className="chapter-release-panel" aria-labelledby="chapter-release-title">
+                        <div className="chapter-release-summary">
+                          <div>
+                            <p className="eyebrow">PUBLISHING</p>
+                            <h3 id="chapter-release-title">Release this chapter</h3>
+                            <p>Published chapters appear in the novel’s public table of contents.</p>
+                          </div>
+                          <span className={`chapter-release-state state-${(selectedChapter.publicationState || 'DRAFT').toLowerCase()}`}>
+                            {selectedChapter.publicationState || 'DRAFT'}
+                          </span>
+                        </div>
+                        <div className="chapter-release-checks">
+                          <span className={selectedNovel.publicationState === 'PUBLISHED' ? 'complete' : ''}>
+                            {selectedNovel.publicationState === 'PUBLISHED' ? 'Ready' : 'Needs attention'} · Novel is published
+                          </span>
+                          <span className={hasPublishableText ? 'complete' : ''}>
+                            {hasPublishableText ? 'Ready' : 'Needs attention'} · At least one text block is saved
+                          </span>
+                        </div>
+                        {selectedChapter.publicationState === 'PUBLISHED' ? (
+                          <p className="chapter-release-feedback">
+                            Live{selectedChapter.publishedAt ? ` since ${new Date(selectedChapter.publishedAt).toLocaleString()}` : ''}. Readers can open this chapter from the public novel page.
+                          </p>
+                        ) : selectedChapter.publicationState === 'SCHEDULED' ? (
+                          <div className="chapter-release-feedback">
+                            <p>Scheduled for {selectedChapter.scheduledAt ? new Date(selectedChapter.scheduledAt).toLocaleString() : 'publication'}.</p>
+                            <button type="button" className="cr-btn-secondary" onClick={handleCancelChapterSchedule} disabled={isSubmitting}>
+                              Cancel scheduled release
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="chapter-release-actions">
+                            {selectedNovel.publicationState !== 'PUBLISHED' && (
+                              <button type="button" className="cr-btn-secondary" onClick={() => handlePublishNovel(selectedNovel.id)} disabled={isSubmitting}>
+                                Publish novel first
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="cr-btn-primary"
+                              onClick={handlePublishChapter}
+                              disabled={isSubmitting || !hasPublishableText || selectedNovel.publicationState !== 'PUBLISHED'}
+                            >
+                              Publish now
+                            </button>
+                            <form onSubmit={handleScheduleChapter} className="chapter-schedule-form">
+                              <label htmlFor="chapter-publish-time">Schedule release</label>
+                              <input
+                                id="chapter-publish-time"
+                                type="datetime-local"
+                                className="ig-comment-input"
+                                value={scheduleTime}
+                                onChange={(e) => setScheduleTime(e.target.value)}
+                                required
+                              />
+                              <button type="submit" className="cr-btn-secondary" disabled={isSubmitting || !scheduleTime || !hasPublishableText || selectedNovel.publicationState !== 'PUBLISHED'}>
+                                Schedule
+                              </button>
+                            </form>
+                          </div>
+                        )}
+                      </section>
+
+                      <div className="chapter-mode-toolbar">
+                        <div><strong>Chapter workspace</strong><span>Ctrl+T Text · Ctrl+I Illustration · Ctrl+Q Quote · Ctrl+Enter Add block</span></div>
+                        <div className="chapter-toolbar-actions">
+                          <div role="tablist" aria-label="Chapter workspace mode">
+                            <button type="button" role="tab" aria-selected={chapterViewMode === 'write'} className={chapterViewMode === 'write' ? 'active' : ''} onClick={() => setChapterViewMode('write')}>Write</button>
+                            <button type="button" role="tab" aria-selected={chapterViewMode === 'preview'} className={chapterViewMode === 'preview' ? 'active' : ''} onClick={() => setChapterViewMode('preview')}>Preview</button>
+                          </div>
+                          <button type="button" className="cr-btn-secondary chapter-focus-toggle" aria-pressed={chapterFocusMode} onClick={() => setChapterFocusMode((focused) => !focused)}>
+                            {chapterFocusMode ? 'Exit focus' : 'Focus writing'}
+                          </button>
+                        </div>
+                      </div>
                       {chapterViewMode === 'preview' ? <article className="chapter-reader-preview"><p className="eyebrow">CHAPTER {selectedChapter.chapterNumber}</p><h2>{selectedChapter.title}</h2>{sortedBlocks.map((block, index) => block.type === 'ILLUSTRATION' ? <figure key={block.id || index}><img src={block.imageUrl} alt={block.altText || block.caption || 'Chapter illustration'}/>{block.caption && <figcaption>{block.caption}</figcaption>}</figure> : block.text?.startsWith('>') ? <blockquote key={block.id || index}>{block.text.replace(/^>\s*/, '')}{block.caption && <cite>— {block.caption}</cite>}</blockquote> : <p key={block.id || index}>{block.text}</p>)}{sortedBlocks.length === 0 && <p className="chapter-preview-empty">Your chapter is empty. Switch to Write to add the first block.</p>}</article> : <>
                       {/* Blocks Sequence List */}
                       <div className="chapter-blocks-sequence" style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
@@ -1267,11 +1330,13 @@ export default function StudioEditor() {
                             <label style={{ display: 'grid', gap: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>
                               Chapter text:
                               <textarea
-                                rows={16}
+                                rows={24}
                                 className="ig-composer-textarea chapter-manuscript"
                                 placeholder="Write or paste the next passage. Line breaks are preserved in the reader."
                                 value={passageText}
                                 onChange={(e) => setPassageText(e.target.value)}
+                                aria-label="Write chapter text"
+                                spellCheck="true"
                                 required
                               />
                             <div className="chapter-writing-meta"><span>{passageText.trim() ? passageText.trim().split(/\s+/).length : 0} words</span><span>Text block {sortedBlocks.length + 1} · saves into chapter sequence</span></div>
@@ -1357,22 +1422,6 @@ export default function StudioEditor() {
                         )}
                       </div>
 
-                      {/* Release Scheduling Bar */}
-                      <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Schedule Future Release:</span>
-                        <form onSubmit={handleScheduleChapter} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <input
-                            type="datetime-local"
-                            className="ig-comment-input"
-                            value={scheduleTime}
-                            onChange={(e) => setScheduleTime(e.target.value)}
-                            required
-                          />
-                          <button type="submit" className="cr-btn-secondary" disabled={isSubmitting || !scheduleTime}>
-                            📅 Set Schedule
-                          </button>
-                        </form>
-                      </div>
                       </>}
                     </div>
                   ) : (
@@ -1415,12 +1464,10 @@ export default function StudioEditor() {
                     hint="PNG or JPG image preview for your community post"
                   />
 
-                  <input
-                    type="text"
-                    className="ig-comment-input"
-                    placeholder="Add tags, separated by commas (fantasy, new chapter, artwork)"
-                    value={broadcastTags}
-                    onChange={(e) => setBroadcastTags(e.target.value)}
+                  <TagInput
+                    tags={broadcastTags}
+                    onChange={setBroadcastTags}
+                    hint="Up to 20 hashtags. Press Enter or comma after each tag."
                   />
 
                   <div className="studio-publish-footer">
@@ -1436,7 +1483,7 @@ export default function StudioEditor() {
                 </form>
               </section>
 
-              <aside className="studio-post-preview"><p className="eyebrow">LIVE PREVIEW</p><h3>How readers will see it</h3><article className="studio-preview-card"><div className="studio-preview-author"><span>{(currentStudio.studioName || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{currentStudio.studioName}</strong><small>Studio update · just now</small></div></div>{broadcastMediaUrl && <img src={broadcastMediaUrl} alt="Post preview"/>}<p>{broadcastContent || 'Your announcement preview will appear here as you write.'}</p>{broadcastTags && <small>#{broadcastTags.split(',').map((tag) => tag.trim()).filter(Boolean).join('  #')}</small>}</article><div className="studio-preview-tip">✨ <span>Short, personal updates help readers feel part of your story’s journey.</span></div></aside>
+              <aside className="studio-post-preview"><p className="eyebrow">LIVE PREVIEW</p><h3>How readers will see it</h3><article className="studio-preview-card"><div className="studio-preview-author"><span>{(currentStudio.studioName || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{currentStudio.studioName}</strong><small>Studio update · just now</small></div></div>{broadcastMediaUrl && <img src={broadcastMediaUrl} alt="Post preview"/>}<p>{broadcastContent || 'Your announcement preview will appear here as you write.'}</p>{broadcastTags.length > 0 && <div className="studio-preview-tags">{broadcastTags.map((tag) => <span key={tag}>#{tag}</span>)}</div>}</article></aside>
 
               {/* Studio's Live Broadcasts Feed */}
               <div>

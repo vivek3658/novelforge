@@ -23,3 +23,7 @@ The identity service now exposes authenticated `GET /api/v1/identity/profile/ima
 ## Moderation Enforcement
 
 The moderation resolve endpoint currently records the report status, action label, note, and resolver. It does not remove content, warn a creator, or suspend an account. The client exposes only resolve/dismiss triage choices to avoid implying enforcement. If enforcement is required, add explicit authorized operations across Identity, Novel, and Engagement, then connect a clearly scoped action contract to the report workflow.
+
+## Chapter Hashtags
+
+NovelForge currently supports tags on novels and creator/studio posts, but not on chapters. `CreateChapterRequestDto`, `UpdateChapterRequestDto`, and `ChapterResponseDto` have no chapter tag field, so the client must not send chapter hashtags or imply that readers can discover chapters by tag. To support this, add a validated tag collection to chapter persistence and authoring/read DTOs, define normalization and limits, and expose chapter-tag filtering in the public chapter contract.

@@ -175,6 +175,8 @@ export default function Reader() {
 
   // Sort blocks by position
   const blocks = [...(chapter.blocks || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
+  const wordCount = blocks.reduce((total, block) => total + (block.text?.trim().split(/\s+/).filter(Boolean).length || 0), 0);
+  const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 220));
 
   return (
     <div className={`reader-viewport reader-theme-${readingTheme}`}>
@@ -273,14 +275,22 @@ export default function Reader() {
           </div>
         </div>
 
-        {/* Chapter Header */}
-        <header className="reader-title" style={{ textAlign: 'center', margin: '2.5rem 0 3rem' }}>
-          <p className="eyebrow" style={{ letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            {novel?.title} • Chapter {chapter.chapterNumber}
+        {/* Public chapter identity and reading metadata */}
+        <header className="reader-chapter-heading">
+          <div className="reader-series-row">
+            <Link to={`/novels/${novelId}`} className="reader-series-cover" aria-label={`Open ${novel?.title || 'novel'} details`}>
+              {novel?.coverImageUrl ? <img src={novel.coverImageUrl} alt="" /> : <span>{(novel?.title || 'N').slice(0, 1)}</span>}
+            </Link>
+            <div className="reader-series-meta">
+              <small>NOW READING</small>
+              <strong>{novel?.title || 'Novel'}</strong>
+            </div>
+            <Link to={`/novels/${novelId}`} className="reader-series-link">Novel details</Link>
+          </div>
+          <p className="reader-chapter-meta">
+            Chapter {chapter.chapterNumber} · {readTimeMinutes} min read{chapter.publishedAt ? ` · Published ${new Date(chapter.publishedAt).toLocaleDateString()}` : ''}
           </p>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 900, margin: '0.4rem 0 0', lineHeight: 1.25 }}>
-            {chapter.title}
-          </h1>
+          <h1>{chapter.title}</h1>
         </header>
 
         {/* Sequential Blocks Body */}

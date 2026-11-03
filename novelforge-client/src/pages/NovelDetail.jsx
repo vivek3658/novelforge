@@ -221,15 +221,17 @@ export default function NovelDetail() {
 
           {chapters.length > 0 ? (
             chapters.map((ch) => (
-              <div key={ch.id} className="chapter-row">
-                <div>
-                  <small>Chapter {ch.chapterNumber}</small>
-                  <h3>{ch.title || `Chapter ${ch.chapterNumber}`}</h3>
-                </div>
-                <Link to={`/novels/${novelId}/read/${ch.id}`} className="text-link">
-                  Read chapter →
-                </Link>
-              </div>
+              <Link key={ch.id} to={`/novels/${novelId}/read/${ch.id}`} className="chapter-row-link">
+                <span className="chapter-row-cover">
+                  {novel.coverImageUrl && <img src={novel.coverImageUrl} alt="" loading="lazy" />}
+                </span>
+                <span className="chapter-row-meta">
+                  <small>CHAPTER {ch.chapterNumber}</small>
+                  <strong>{ch.title || `Chapter ${ch.chapterNumber}`}</strong>
+                  {ch.publishedAt && <small>Published {new Date(ch.publishedAt).toLocaleDateString()}</small>}
+                </span>
+                <span className="chapter-open-label">Read chapter</span>
+              </Link>
             ))
           ) : (
             <p className="small-muted" style={{ padding: '1rem 0' }}>
