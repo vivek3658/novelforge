@@ -22,6 +22,7 @@ export default function Reader() {
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('nf_reader_font_family') || 'serif');
   const [pageIndex, setPageIndex] = useState(0);
   const [pageCount, setPageCount] = useState(1);
+  const [pageWidth, setPageWidth] = useState(0);
   const pagesViewportRef = useRef(null);
   const touchStartX = useRef(null);
 
@@ -163,7 +164,9 @@ export default function Reader() {
 
     const measurePages = () => {
       const width = viewport.clientWidth || 1;
+      viewport.style.setProperty('--reader-page-width', `${width}px`);
       const nextPageCount = Math.max(1, Math.ceil(viewport.scrollWidth / width));
+      setPageWidth(width);
       setPageCount(nextPageCount);
       setPageIndex((currentPage) => Math.min(currentPage, nextPageCount - 1));
     };
@@ -363,7 +366,8 @@ export default function Reader() {
               fontSize: `${fontSize}px`,
               lineHeight: 1.8,
               fontFamily: fontFamily === 'serif' ? 'Georgia, Cambria, "Times New Roman", serif' : 'system-ui, -apple-system, sans-serif',
-              transform: `translateX(-${pageIndex * 100}cqi)`,
+              '--reader-page-width': pageWidth ? `${pageWidth}px` : '100cqi',
+              transform: `translateX(-${pageIndex * pageWidth}px)`,
             }}
           >
           {blocks.map((block, idx) => {
