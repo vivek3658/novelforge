@@ -173,8 +173,8 @@ public class StudioController {
                 safeRequestId(requestId), studioId);
         MyStudioMembershipDto membership = studioService.getMyMembership(studioId, authentication);
         log.info("studio_internal_membership_lookup_succeeded requestId={} studioId={} userId={} permissionCount={}",
-                safeRequestId(requestId), studioId, membership.userId(),
-                membership.permissions() == null ? 0 : membership.permissions().size());
+                safeRequestId(requestId), studioId, membership.getUserId(),
+                membership.getPermissions() == null ? 0 : membership.getPermissions().size());
         return ResponseEntity.ok(membership);
     }
 
