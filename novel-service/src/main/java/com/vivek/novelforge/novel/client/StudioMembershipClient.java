@@ -61,6 +61,8 @@ public class StudioMembershipClient {
             );
         }
         try {
+            log.info("studio_membership_check_started requestId={} studioId={} permission={}",
+                    safeRequestId, studioId, requiredPermission);
             var membershipRequest = restClient.get()
                     .uri("/studios/{studioId}/members/me", studioId)
                     .header(HttpHeaders.AUTHORIZATION, authorization)
@@ -70,6 +72,8 @@ public class StudioMembershipClient {
             }
             MyStudioMembershipDto membership = membershipRequest.retrieve()
                     .body(MyStudioMembershipDto.class);
+            log.info("studio_membership_check_response requestId={} studioId={} permission={} responsePresent={}",
+                    safeRequestId, studioId, requiredPermission, membership != null);
             if (membership == null || membership.userId() == null
                     || !membership.userId().equals(expectedUserId)
                     || !Objects.equals(membership.studioId(), studioId)
@@ -80,6 +84,8 @@ public class StudioMembershipClient {
                         membership == null ? null : membership.userId());
                 throw new AccessDeniedException("You do not have permission to perform this action.");
             }
+                        log.info("studio_membership_check_succeeded requestId={} studioId={} permission={}",
+                                        safeRequestId, studioId, requiredPermission);
         } catch (HttpClientErrorException.Forbidden exception) {
             log.warn("studio_membership_check_forbidden requestId={} studioId={} permission={} status={}",
                     safeRequestId, studioId, requiredPermission, exception.getStatusCode(), exception);

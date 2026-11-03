@@ -157,22 +157,25 @@ public class StudioController {
     public ResponseEntity<MyStudioMembershipDto> getMyMembership(
             @PathVariable UUID studioId,
             Authentication authentication,
-                        @RequestHeader(value = "X-Internal-Service-Key", required = false) String suppliedSecret,
-                        @RequestHeader(value = "X-Request-Id", required = false) String requestId
+            @RequestHeader(value = "X-Internal-Service-Key", required = false) String suppliedSecret,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId
     ) {
         if (!matchesSecret(novelClientSecret, suppliedSecret)
                 && !matchesSecret(engagementClientSecret, suppliedSecret)) {
-                        log.warn("studio_internal_membership_auth_failed requestId={} studioId={} suppliedKeyPresent={} novelKeyConfigured={} engagementKeyConfigured={}",
-                                        safeRequestId(requestId), studioId,
-                                        suppliedSecret != null && !suppliedSecret.isBlank(),
-                                        novelClientSecret != null && !novelClientSecret.isBlank(),
-                                        engagementClientSecret != null && !engagementClientSecret.isBlank());
+            log.warn("studio_internal_membership_auth_failed requestId={} studioId={} suppliedKeyPresent={} novelKeyConfigured={} engagementKeyConfigured={}",
+                    safeRequestId(requestId), studioId,
+                    suppliedSecret != null && !suppliedSecret.isBlank(),
+                    novelClientSecret != null && !novelClientSecret.isBlank(),
+                    engagementClientSecret != null && !engagementClientSecret.isBlank());
             return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
         }
-        log.debug("studio_internal_membership_auth_succeeded requestId={} studioId={}",
+        log.info("studio_internal_membership_auth_succeeded requestId={} studioId={}",
                 safeRequestId(requestId), studioId);
-        return ResponseEntity.ok(
-                studioService.getMyMembership(studioId, authentication));
+        MyStudioMembershipDto membership = studioService.getMyMembership(studioId, authentication);
+        log.info("studio_internal_membership_lookup_succeeded requestId={} studioId={} userId={} permissionCount={}",
+                safeRequestId(requestId), studioId, membership.userId(),
+                membership.permissions() == null ? 0 : membership.permissions().size());
+        return ResponseEntity.ok(membership);
     }
 
         private String safeRequestId(String requestId) {
