@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -20,6 +20,10 @@ export default function Reader() {
   const [readingTheme, setReadingTheme] = useState(() => localStorage.getItem('nf_reader_theme') || 'sepia');
   const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('nf_reader_font_size')) || 18);
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('nf_reader_font_family') || 'serif');
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const pagesViewportRef = useRef(null);
+  const touchStartX = useRef(null);
 
   // Chapter Comments & Engagement
   const [showComments, setShowComments] = useState(false);
@@ -135,24 +139,72 @@ export default function Reader() {
   const currentIndex = chapter ? chaptersList.findIndex((c) => c.id === chapter.id) : -1;
   const prevChapter = currentIndex > 0 ? chaptersList[currentIndex - 1] : undefined;
   const nextChapter = currentIndex >= 0 ? chaptersList[currentIndex + 1] : undefined;
+  const blocks = [...(chapter?.blocks || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
+
+  const turnPage = useCallback((direction) => {
+    const targetPage = pageIndex + direction;
+    if (targetPage >= 0 && targetPage < pageCount) {
+      setPageIndex(targetPage);
+    } else if (direction > 0 && nextChapter) {
+      navigate(`/novels/${novelId}/read/${nextChapter.id}`);
+    } else if (direction < 0 && prevChapter) {
+      navigate(`/novels/${novelId}/read/${prevChapter.id}`);
+    }
+  }, [pageIndex, pageCount, nextChapter, prevChapter, navigate, novelId]);
+
+  useEffect(() => {
+    setPageIndex(0);
+    setPageCount(1);
+  }, [novelId, chapterId]);
+
+  useEffect(() => {
+    const viewport = pagesViewportRef.current;
+    if (!viewport) return undefined;
+
+    const measurePages = () => {
+      const width = viewport.clientWidth || 1;
+      const nextPageCount = Math.max(1, Math.ceil(viewport.scrollWidth / width));
+      setPageCount(nextPageCount);
+      setPageIndex((currentPage) => Math.min(currentPage, nextPageCount - 1));
+    };
+
+    const resizeObserver = new ResizeObserver(measurePages);
+    resizeObserver.observe(viewport);
+    window.addEventListener('resize', measurePages);
+    const images = [...viewport.querySelectorAll('img')];
+    images.forEach((image) => image.addEventListener('load', measurePages));
+    const animationFrame = requestAnimationFrame(measurePages);
+    document.fonts?.ready.then(measurePages);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', measurePages);
+      images.forEach((image) => image.removeEventListener('load', measurePages));
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [chapter?.blocks, chapterId, fontSize, fontFamily]);
 
   useEffect(() => {
     const handleChapterKeys = (event) => {
       const target = event.target;
-      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
       if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName))) return;
-      if (event.key === 'ArrowLeft' && prevChapter) {
+
+      const nextPageKeys = ['ArrowRight', 'PageDown', ' ', 'AudioVolumeDown'];
+      const previousPageKeys = ['ArrowLeft', 'PageUp', 'Backspace', 'AudioVolumeUp'];
+      const isVolumeDown = event.key === 'AudioVolumeDown' || event.code === 'AudioVolumeDown';
+      const isVolumeUp = event.key === 'AudioVolumeUp' || event.code === 'AudioVolumeUp';
+      const direction = nextPageKeys.includes(event.key) || isVolumeDown ? 1
+        : previousPageKeys.includes(event.key) || isVolumeUp ? -1
+          : 0;
+      if (direction) {
         event.preventDefault();
-        navigate(`/novels/${novelId}/read/${prevChapter.id}`);
-      }
-      if (event.key === 'ArrowRight' && nextChapter) {
-        event.preventDefault();
-        navigate(`/novels/${novelId}/read/${nextChapter.id}`);
+        turnPage(direction);
       }
     };
     window.addEventListener('keydown', handleChapterKeys);
     return () => window.removeEventListener('keydown', handleChapterKeys);
-  }, [navigate, novelId, prevChapter, nextChapter]);
+  }, [turnPage]);
 
   if (loading) {
     return (
@@ -173,14 +225,12 @@ export default function Reader() {
     );
   }
 
-  // Sort blocks by position
-  const blocks = [...(chapter.blocks || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
   const wordCount = blocks.reduce((total, block) => total + (block.text?.trim().split(/\s+/).filter(Boolean).length || 0), 0);
   const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 220));
 
   return (
     <div className={`reader-viewport reader-theme-${readingTheme}`}>
-      <article className="reader-page" style={{ maxWidth: '820px', margin: '0 auto', padding: '1.5rem 1rem 6rem' }}>
+      <article className="reader-page reader-book">
         {/* Top Sticky Navigation Toolbar */}
         <div className="reader-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
           <Link to={`/novels/${novelId}`} className="back-link" style={{ fontWeight: 600 }}>
@@ -295,13 +345,27 @@ export default function Reader() {
 
         {/* Sequential Blocks Body */}
         <div
-          className="reader-content"
-          style={{
-            fontSize: `${fontSize}px`,
-            lineHeight: 1.8,
-            fontFamily: fontFamily === 'serif' ? 'Georgia, Cambria, "Times New Roman", serif' : 'system-ui, -apple-system, sans-serif',
+          className="reader-pages-viewport"
+          onTouchStart={(event) => { touchStartX.current = event.changedTouches[0]?.clientX ?? null; }}
+          onTouchEnd={(event) => {
+            if (touchStartX.current === null) return;
+            const distance = touchStartX.current - event.changedTouches[0].clientX;
+            if (Math.abs(distance) > 48) turnPage(distance > 0 ? 1 : -1);
+            touchStartX.current = null;
           }}
+          aria-label="Chapter pages"
+          tabIndex={0}
         >
+          <div
+            className="reader-content"
+            ref={pagesViewportRef}
+            style={{
+              fontSize: `${fontSize}px`,
+              lineHeight: 1.8,
+              fontFamily: fontFamily === 'serif' ? 'Georgia, Cambria, "Times New Roman", serif' : 'system-ui, -apple-system, sans-serif',
+              transform: `translateX(-${pageIndex * 100}cqi)`,
+            }}
+          >
           {blocks.map((block, idx) => {
             // Illustration Block
             if (block.type === 'ILLUSTRATION') {
@@ -380,12 +444,27 @@ export default function Reader() {
             );
           })}
 
-          {blocks.length === 0 && (
-            <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', textAlign: 'center', margin: '3rem 0' }}>
-              This chapter has no published content blocks yet.
-            </p>
-          )}
+            {blocks.length === 0 && (
+              <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', textAlign: 'center', margin: '3rem 0' }}>
+                This chapter has no published content blocks yet.
+              </p>
+            )}
+          </div>
         </div>
+
+        <nav className="reader-page-turner" aria-label="Page navigation">
+          <button type="button" className="cr-btn-secondary" onClick={() => turnPage(-1)} disabled={pageIndex === 0 && !prevChapter} aria-label="Previous page">
+            Previous
+          </button>
+          <div className="reader-page-progress" aria-live="polite">
+            <span>Page {pageIndex + 1} of {pageCount}</span>
+            <progress value={pageIndex + 1} max={pageCount} aria-label="Reading progress" />
+            <small>← / → or swipe</small>
+          </div>
+          <button type="button" className="cr-btn-secondary" onClick={() => turnPage(1)} aria-label={pageIndex === pageCount - 1 && nextChapter ? 'Next chapter' : 'Next page'}>
+            {pageIndex === pageCount - 1 && nextChapter ? 'Next chapter' : 'Next'}
+          </button>
+        </nav>
 
         {/* Reader Footer Actions (Like, Discussion, Pagination) */}
         <div className="reader-footer-actions" style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>

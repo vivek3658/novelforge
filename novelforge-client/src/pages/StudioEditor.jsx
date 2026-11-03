@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -47,7 +47,8 @@ export default function StudioEditor() {
   const [editingBlockId, setEditingBlockId] = useState(null);
   const [editingBlockText, setEditingBlockText] = useState('');
   const [chapterViewMode, setChapterViewMode] = useState('write');
-  const [chapterFocusMode, setChapterFocusMode] = useState(false);
+  const [chapterFocusMode, setChapterFocusMode] = useState(true);
+  const manuscriptRef = useRef(null);
 
   // Forms
   const [studioForm, setStudioForm] = useState(INITIAL_STUDIO_FORM);
@@ -236,14 +237,27 @@ export default function StudioEditor() {
 
   useEffect(() => {
     const handleChapterShortcuts = (event) => {
-      if (!(event.ctrlKey || event.metaKey) || !event.target.closest?.('.chapter-workspace-card')) return;
-      const key = event.key.toLowerCase();
-      if (key === 't' || key === 'i' || key === 'q') {
+      if (activeTab !== 'chapters') return;
+      if (event.key === 'Escape') {
         event.preventDefault();
-        setChapterViewMode('write');
-        setBlockTypeToAdd(key === 't' ? 'TEXT' : key === 'i' ? 'ILLUSTRATION' : 'QUOTE');
-      } else if (key === 'enter') {
-        const form = document.querySelector('.chapter-block-adder-form');
+        setActiveTab('dashboard');
+        return;
+      }
+
+      if (event.altKey && !event.ctrlKey && !event.metaKey) {
+        if (event.key === '1') {
+          event.preventDefault();
+          setChapterViewMode('write');
+          manuscriptRef.current?.focus();
+        } else if (event.key === '2') {
+          event.preventDefault();
+          setChapterViewMode('preview');
+        }
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && event.target.closest?.('.chapter-workspace-card')) {
+        const form = document.querySelector('.chapter-writing-form');
         if (form) {
           event.preventDefault();
           form.requestSubmit();
@@ -252,7 +266,13 @@ export default function StudioEditor() {
     };
     window.addEventListener('keydown', handleChapterShortcuts);
     return () => window.removeEventListener('keydown', handleChapterShortcuts);
-  }, []);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'chapters' && selectedChapter && chapterViewMode === 'write' && blockTypeToAdd === 'TEXT') {
+      manuscriptRef.current?.focus();
+    }
+  }, [activeTab, selectedChapter, chapterViewMode, blockTypeToAdd]);
 
   // Handle Studio Creation
   const handleCreateStudio = async (e) => {
@@ -626,7 +646,7 @@ export default function StudioEditor() {
   const hasPublishableText = sortedBlocks.some((block) => block.type === 'TEXT' && block.text?.trim());
 
   return (
-    <div className="product-page studio-page-container">
+    <div className={`product-page studio-page-container${activeTab === 'chapters' ? ' chapter-editor-fullscreen' : ''}`}>
         <div className="yt-studio-layout yt-studio-root">
         {/* Left Creator Studio Sidebar (YouTube Studio Style) */}
         <aside className="yt-studio-sidebar yt-sidebar">
@@ -768,7 +788,11 @@ export default function StudioEditor() {
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {currentStudio && activeTab !== 'content' && (
+              {activeTab === 'chapters' ? (
+                <button type="button" className="cr-btn-secondary chapter-exit-editor" onClick={() => setActiveTab('dashboard')} aria-keyshortcuts="Escape">
+                  Exit editor <kbd>Esc</kbd>
+                </button>
+              ) : currentStudio && activeTab !== 'content' && (
                 <button
                   type="button"
                   className="cr-btn-primary"
@@ -1145,7 +1169,7 @@ export default function StudioEditor() {
                       </section>
 
                       <div className="chapter-mode-toolbar">
-                        <div><strong>Chapter workspace</strong><span>Ctrl+T Text · Ctrl+I Illustration · Ctrl+Q Quote · Ctrl+Enter Add block</span></div>
+                        <div><strong>Chapter workspace</strong><span><kbd>Alt+1</kbd> Write · <kbd>Alt+2</kbd> Preview · <kbd>Ctrl+Enter</kbd> Save passage · <kbd>Esc</kbd> Exit editor</span></div>
                         <div className="chapter-toolbar-actions">
                           <div role="tablist" aria-label="Chapter workspace mode">
                             <button type="button" role="tab" aria-selected={chapterViewMode === 'write'} className={chapterViewMode === 'write' ? 'active' : ''} onClick={() => setChapterViewMode('write')}>Write</button>
@@ -1157,8 +1181,12 @@ export default function StudioEditor() {
                         </div>
                       </div>
                       {chapterViewMode === 'preview' ? <article className="chapter-reader-preview"><p className="eyebrow">CHAPTER {selectedChapter.chapterNumber}</p><h2>{selectedChapter.title}</h2>{sortedBlocks.map((block, index) => block.type === 'ILLUSTRATION' ? <figure key={block.id || index}><img src={block.imageUrl} alt={block.altText || block.caption || 'Chapter illustration'}/>{block.caption && <figcaption>{block.caption}</figcaption>}</figure> : block.text?.startsWith('>') ? <blockquote key={block.id || index}>{block.text.replace(/^>\s*/, '')}{block.caption && <cite>— {block.caption}</cite>}</blockquote> : <p key={block.id || index}>{block.text}</p>)}{sortedBlocks.length === 0 && <p className="chapter-preview-empty">Your chapter is empty. Switch to Write to add the first block.</p>}</article> : <>
-                      {/* Blocks Sequence List */}
-                      <div className="chapter-blocks-sequence" style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
+                      <details className="chapter-structure-details">
+                        <summary>
+                          <span>Chapter structure</span>
+                          <span>{sortedBlocks.length} content blocks · reorder, edit, or remove</span>
+                        </summary>
+                        <div className="chapter-blocks-sequence" style={{ display: 'grid', gap: '1rem', marginBottom: '2rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <strong style={{ fontSize: '0.95rem' }}>
                             Chapter Blocks ({sortedBlocks.length})
@@ -1293,10 +1321,11 @@ export default function StudioEditor() {
                             No content blocks yet. Choose a block type below to add to the sequence!
                           </div>
                         )}
-                      </div>
+                        </div>
+                      </details>
 
                       {/* Sequential Block Adder */}
-                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                      <div className="chapter-block-adder" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
                         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
                           <button
                             type="button"
@@ -1326,29 +1355,36 @@ export default function StudioEditor() {
 
                         {/* Form for TEXT block */}
                         {blockTypeToAdd === 'TEXT' && (
-                          <form className="chapter-block-adder-form" onSubmit={handleAddTextBlock}>
-                            <label style={{ display: 'grid', gap: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>
-                              Chapter text:
+                          <form className="chapter-block-adder-form chapter-writing-form" onSubmit={handleAddTextBlock}>
+                            <div className="chapter-writing-paper">
+                              <div className="chapter-writing-page-heading">
+                                <span>CHAPTER {selectedChapter.chapterNumber}</span>
+                                <strong>{selectedChapter.title}</strong>
+                              </div>
+                              <label htmlFor="chapter-manuscript-input">Continue your manuscript</label>
                               <textarea
+                                id="chapter-manuscript-input"
                                 rows={24}
                                 className="ig-composer-textarea chapter-manuscript"
-                                placeholder="Write or paste the next passage. Line breaks are preserved in the reader."
+                                placeholder="Write the next passage here. Your line breaks are preserved for readers."
                                 value={passageText}
                                 onChange={(e) => setPassageText(e.target.value)}
+                                ref={manuscriptRef}
                                 aria-label="Write chapter text"
                                 spellCheck="true"
                                 required
                               />
-                            <div className="chapter-writing-meta"><span>{passageText.trim() ? passageText.trim().split(/\s+/).length : 0} words</span><span>Text block {sortedBlocks.length + 1} · saves into chapter sequence</span></div>
-                            </label>
-                            <button
-                              type="submit"
-                              className="cr-btn-primary"
-                              style={{ marginTop: '0.75rem', padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
-                              disabled={isSubmitting || !passageText.trim()}
-                            >
-                              {isSubmitting ? 'Saving…' : '＋ Add to Chapter'}
-                            </button>
+                              <div className="chapter-writing-meta">
+                                <span>{passageText.trim() ? passageText.trim().split(/\s+/).length : 0} words</span>
+                                <span>Saved as text block {sortedBlocks.length + 1} in chapter order</span>
+                              </div>
+                            </div>
+                            <div className="chapter-writing-actions">
+                              <span>Text saves to your chapter when you add it.</span>
+                              <button type="submit" className="cr-btn-primary" disabled={isSubmitting || !passageText.trim()}>
+                                {isSubmitting ? 'Saving…' : 'Add passage to chapter'}
+                              </button>
+                            </div>
                           </form>
                         )}
 
@@ -1432,7 +1468,10 @@ export default function StudioEditor() {
                 </div>
               ) : (
                 <div className="cr-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Please select or draft a novel in the "Novel Catalog" tab first.
+                    <p>Select a novel to open its chapter manuscript.</p>
+                    <button type="button" className="cr-btn-secondary" onClick={() => setActiveTab('content')}>
+                      Open novel catalog
+                    </button>
                 </div>
               )}
             </div>
