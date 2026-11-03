@@ -6,6 +6,7 @@ import com.vivek.novelforge.novel.service.NovelService;
 import com.vivek.novelforge.novel.types.CategoryType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,6 +22,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping
 @RequiredArgsConstructor
+@Slf4j
 public class NovelController {
     private final NovelService novelService;
 
@@ -60,9 +62,16 @@ public class NovelController {
             @PathVariable Long novelId,
             @Valid @RequestBody NovelRequestDto request,
             Authentication authentication,
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId
     ) {
-        return novelService.updateNovel(novelId, request, authentication, authorization);
+        try {
+            return novelService.updateNovel(novelId, request, authentication, authorization, requestId);
+        } catch (RuntimeException exception) {
+            log.error("novel_update_request_failed requestId={} novelId={}",
+                    safeRequestId(requestId), novelId, exception);
+            throw exception;
+        }
     }
 
     @GetMapping("/novels/{novelId}")
@@ -107,5 +116,11 @@ public class NovelController {
             @PageableDefault(size = 20, sort = "publishedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return novelService.searchPublicNovels(query, category, genre, tag, pageable);
+    }
+
+    private String safeRequestId(String requestId) {
+        if (requestId == null || requestId.isBlank()) return "missing";
+        String safeRequestId = requestId.replaceAll("[^A-Za-z0-9._-]", "_");
+        return safeRequestId.length() > 80 ? safeRequestId.substring(0, 80) : safeRequestId;
     }
 }

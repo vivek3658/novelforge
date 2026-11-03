@@ -10,6 +10,7 @@ import com.vivek.novelforge.studio.dto.response.StudioResponseDto;
 import com.vivek.novelforge.studio.service.StudioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import java.security.MessageDigest;
 @RestController
 @RequestMapping("/studios")
 @RequiredArgsConstructor
+@Slf4j
 public class StudioController {
 
     private final StudioService studioService;
@@ -155,15 +157,29 @@ public class StudioController {
     public ResponseEntity<MyStudioMembershipDto> getMyMembership(
             @PathVariable UUID studioId,
             Authentication authentication,
-            @RequestHeader(value = "X-Internal-Service-Key", required = false) String suppliedSecret
+                        @RequestHeader(value = "X-Internal-Service-Key", required = false) String suppliedSecret,
+                        @RequestHeader(value = "X-Request-Id", required = false) String requestId
     ) {
         if (!matchesSecret(novelClientSecret, suppliedSecret)
                 && !matchesSecret(engagementClientSecret, suppliedSecret)) {
+                        log.warn("studio_internal_membership_auth_failed requestId={} studioId={} suppliedKeyPresent={} novelKeyConfigured={} engagementKeyConfigured={}",
+                                        safeRequestId(requestId), studioId,
+                                        suppliedSecret != null && !suppliedSecret.isBlank(),
+                                        novelClientSecret != null && !novelClientSecret.isBlank(),
+                                        engagementClientSecret != null && !engagementClientSecret.isBlank());
             return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
         }
+        log.debug("studio_internal_membership_auth_succeeded requestId={} studioId={}",
+                safeRequestId(requestId), studioId);
         return ResponseEntity.ok(
                 studioService.getMyMembership(studioId, authentication));
     }
+
+        private String safeRequestId(String requestId) {
+                if (requestId == null || requestId.isBlank()) return "missing";
+                String safeRequestId = requestId.replaceAll("[^A-Za-z0-9._-]", "_");
+                return safeRequestId.length() > 80 ? safeRequestId.substring(0, 80) : safeRequestId;
+        }
 
     private boolean matchesSecret(String expected, String supplied) {
         return expected != null && !expected.isBlank() && supplied != null

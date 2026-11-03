@@ -22,6 +22,7 @@ import com.vivek.novelforge.studio.type.StudioRoleType;
 import com.vivek.novelforge.studio.type.StudioStatus;
 import com.vivek.novelforge.studio.type.VisibilityType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -35,6 +36,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional
 public class StudioServiceImpl implements StudioService {
 
@@ -113,23 +115,31 @@ public class StudioServiceImpl implements StudioService {
             Authentication authentication
     ) {
         Long userId = authenticatedUserId(authentication);
-        Studio studio = requireActiveStudio(studioId);
-        requireOwner(studioId, userId);
+        log.info("studio_update_started studioId={} userId={}", studioId, userId);
+        try {
+                        Studio studio = requireActiveStudio(studioId);
+                        requireOwner(studioId, userId);
 
-        String handle = request.getStudioHandle().trim().toLowerCase();
-        if (studioRepository.existsByStudioHandleIgnoreCaseAndIdNotAndDeletedAtIsNull(
-                handle, studioId)) {
-            throw new BadRequestException("Studio handle is already in use.");
-        }
+                        String handle = request.getStudioHandle().trim().toLowerCase();
+                        if (studioRepository.existsByStudioHandleIgnoreCaseAndIdNotAndDeletedAtIsNull(
+                                        handle, studioId)) {
+                                throw new BadRequestException("Studio handle is already in use.");
+                        }
 
-        studio.setStudioName(request.getStudioName().trim());
-        studio.setStudioHandle(handle);
-        studio.setProfileImageName(request.getProfileImageName());
-        studio.setBannerImageName(request.getBannerImageName());
-        studio.setDescription(request.getDescription());
-        studio.setVisibilityType(request.getVisibilityType());
+                        studio.setStudioName(request.getStudioName().trim());
+                        studio.setStudioHandle(handle);
+                        studio.setProfileImageName(request.getProfileImageName());
+                        studio.setBannerImageName(request.getBannerImageName());
+                        studio.setDescription(request.getDescription());
+                        studio.setVisibilityType(request.getVisibilityType());
 
-        return toStudioResponse(studioRepository.save(studio));
+                        StudioResponseDto updated = toStudioResponse(studioRepository.save(studio));
+                        log.info("studio_update_succeeded studioId={} userId={}", studioId, userId);
+                        return updated;
+                } catch (RuntimeException exception) {
+                        log.error("studio_update_failed studioId={} userId={}", studioId, userId, exception);
+                        throw exception;
+                }
     }
 
     @Override
@@ -368,13 +378,19 @@ public class StudioServiceImpl implements StudioService {
             Authentication authentication
     ) {
         Long userId = authenticatedUserId(authentication);
-        requireActiveStudio(studioId);
-        StudioMembership membership = requireActiveMembership(studioId, userId);
-        return MyStudioMembershipDto.builder()
+                try {
+                        requireActiveStudio(studioId);
+                        StudioMembership membership = requireActiveMembership(studioId, userId);
+                        MyStudioMembershipDto response = MyStudioMembershipDto.builder()
                 .studioId(membership.getStudioId())
                 .userId(membership.getUserId())
                 .permissions(permissionsFor(membership.getRole()))
                 .build();
+                        return response;
+                } catch (RuntimeException exception) {
+                        log.error("studio_membership_lookup_failed studioId={} userId={}", studioId, userId, exception);
+                        throw exception;
+                }
     }
 
     private java.util.Set<String> permissionsFor(StudioRoleType role) {

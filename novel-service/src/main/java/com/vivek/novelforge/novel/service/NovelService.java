@@ -22,7 +22,8 @@ public interface NovelService {
             Long novelId,
             NovelRequestDto request,
             Authentication authentication,
-            String authorization
+            String authorization,
+            String requestId
     );
 
     NovelResponseDto getNovel(Long novelId);

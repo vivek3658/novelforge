@@ -13,6 +13,7 @@ import com.vivek.novelforge.novel.types.PublicationState;
 import com.vivek.novelforge.novel.types.StudioPermission;
 import com.vivek.novelforge.security.authentication.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NovelServiceImpl implements NovelService {
     private static final int MAX_PAGE_SIZE = 100;
 
@@ -69,9 +71,12 @@ public class NovelServiceImpl implements NovelService {
             @CacheEvict(cacheNames = "publicChapterPages", allEntries = true)
     })
     public NovelResponseDto updateNovel(Long novelId, NovelRequestDto request,
-                                        Authentication authentication, String authorization) {
+                        Authentication authentication, String authorization,
+                        String requestId) {
         Novel novel = requireNovel(novelId);
-        requireNovelEditPermission(novel, authentication, authorization);
+        log.info("novel_update_started requestId={} novelId={} studioId={} publicationState={}",
+            safeRequestId(requestId), novelId, novel.getStudioId(), novel.getPublicationState());
+        requireNovelEditPermission(novel, authentication, authorization, requestId);
         if (novel.getPublicationState() == PublicationState.PENDING_DELETION) {
             throw new BadRequestException("A novel pending deletion cannot be edited.");
         }
@@ -81,7 +86,10 @@ public class NovelServiceImpl implements NovelService {
         novel.setCategoryType(request.getCategoryType());
         novel.setGenres(normalizeSlugs(request.getGenres(), 5));
         novel.setTags(normalizeSlugs(request.getTags(), 20));
-        return toResponse(novelRepository.save(novel));
+        NovelResponseDto updated = toResponse(novelRepository.save(novel));
+        log.info("novel_update_succeeded requestId={} novelId={} studioId={} publicationState={}",
+            safeRequestId(requestId), novelId, novel.getStudioId(), novel.getPublicationState());
+        return updated;
     }
 
     @Override
@@ -209,9 +217,16 @@ public class NovelServiceImpl implements NovelService {
                 .orElseThrow(() -> new ResourceNotFoundException("Novel not found."));
     }
 
-    private void requireNovelEditPermission(Novel novel, Authentication authentication, String authorization) {
+    private void requireNovelEditPermission(Novel novel, Authentication authentication,
+                                            String authorization, String requestId) {
         studioMembershipClient.requirePermission(novel.getStudioId(), userId(authentication),
-                authorization, StudioPermission.NOVEL_EDIT);
+                authorization, StudioPermission.NOVEL_EDIT, requestId);
+    }
+
+    private String safeRequestId(String requestId) {
+        if (requestId == null || requestId.isBlank()) return "missing";
+        String safeRequestId = requestId.replaceAll("[^A-Za-z0-9._-]", "_");
+        return safeRequestId.length() > 80 ? safeRequestId.substring(0, 80) : safeRequestId;
     }
 
     private Long userId(Authentication authentication) {
