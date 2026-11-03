@@ -17,12 +17,15 @@ import java.util.UUID;
 @Component
 public class StudioMembershipClient {
     private final RestClient restClient;
+    private final String secret;
 
     public StudioMembershipClient(
             RestClient.Builder builder,
-            @Value("${studio.service.base-url:http://localhost:8087}") String baseUrl
+            @Value("${studio.service.base-url:http://localhost:8087}") String baseUrl,
+            @Value("${studio.service.client-secret:}") String secret
     ) {
         this.restClient = builder.baseUrl(baseUrl).build();
+        this.secret = secret;
     }
 
     public void requirePermission(
@@ -34,10 +37,17 @@ public class StudioMembershipClient {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             throw new AccessDeniedException("An active Studio membership is required.");
         }
+        if (secret == null || secret.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Studio service credentials are missing."
+            );
+        }
         try {
             MyStudioMembershipDto membership = restClient.get()
-                    .uri("/studios/{studioId}/membership", studioId)
+                    .uri("/studios/{studioId}/members/me", studioId)
                     .header(HttpHeaders.AUTHORIZATION, authorization)
+                    .header("X-Internal-Service-Key", secret)
                     .retrieve()
                     .body(MyStudioMembershipDto.class);
             if (membership == null || membership.userId() == null
@@ -50,7 +60,11 @@ public class StudioMembershipClient {
         } catch (HttpClientErrorException.Forbidden exception) {
             throw new AccessDeniedException("An active Studio membership is required.", exception);
         } catch (HttpClientErrorException.Unauthorized exception) {
-            throw new AccessDeniedException("The access token was rejected by Studio service.", exception);
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Could not verify Studio service credentials or access token.",
+                    exception
+            );
         } catch (AccessDeniedException exception) {
             throw exception;
         } catch (RestClientException exception) {

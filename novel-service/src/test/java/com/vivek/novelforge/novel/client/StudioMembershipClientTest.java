@@ -28,14 +28,15 @@ class StudioMembershipClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new StudioMembershipClient(builder, "http://studio-service");
+        client = new StudioMembershipClient(builder, "http://studio-service", "studio-secret");
     }
 
     @Test
-    void permissionCheckUsesAuthenticatedMembershipEndpoint() {
-        server.expect(requestTo("http://studio-service/studios/" + STUDIO_ID + "/membership"))
+    void permissionCheckUsesInternalMembershipEndpoint() {
+        server.expect(requestTo("http://studio-service/studios/" + STUDIO_ID + "/members/me"))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer access-token"))
+                .andExpect(header("X-Internal-Service-Key", "studio-secret"))
                 .andRespond(withSuccess("""
                         {"studioId":"%s","userId":42,"permissions":["NOVEL_EDIT"]}
                         """.formatted(STUDIO_ID), MediaType.APPLICATION_JSON));
@@ -47,7 +48,7 @@ class StudioMembershipClientTest {
 
     @Test
     void permissionCheckRejectsMembershipWithoutRequiredPermission() {
-        server.expect(requestTo("http://studio-service/studios/" + STUDIO_ID + "/membership"))
+        server.expect(requestTo("http://studio-service/studios/" + STUDIO_ID + "/members/me"))
                 .andRespond(withSuccess("""
                         {"studioId":"%s","userId":42,"permissions":["NOVEL_READ"]}
                         """.formatted(STUDIO_ID), MediaType.APPLICATION_JSON));
