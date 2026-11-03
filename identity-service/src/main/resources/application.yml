@@ -81,6 +81,9 @@ identity:
   cookies:
     secure: ${COOKIE_SECURE:true}
 
+imagekit:
+  private-key: ${IMAGEKIT_PRIVATE_KEY:}
+
 novelforge:
   security:
     jwt:

@@ -86,6 +86,9 @@ identity:
   cookies:
     secure: ${COOKIE_SECURE:true}
 
+imagekit:
+  private-key: ${IMAGEKIT_PRIVATE_KEY:}
+
 eureka:
   client:
     enabled: ${EUREKA_CLIENT_ENABLED:true}
