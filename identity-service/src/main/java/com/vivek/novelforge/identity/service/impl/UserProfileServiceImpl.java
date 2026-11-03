@@ -11,6 +11,7 @@ import com.vivek.novelforge.identity.type.CreatorStatus;
 import com.vivek.novelforge.identity.repository.UserProfileRepository;
 import com.vivek.novelforge.identity.repository.UserRepository;
 import com.vivek.novelforge.identity.service.UserProfileService;
+import com.vivek.novelforge.security.authentication.AuthenticatedUser;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -82,13 +83,14 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     private User getAuthenticatedUser(Authentication authentication) {
+        String username = AuthenticatedUser.usernameFrom(authentication);
         if (authentication == null
                 || !authentication.isAuthenticated()
-                || authentication.getName() == null) {
+                || username == null) {
             throw new AccessDeniedException("Authentication is required.");
         }
 
-        User user = userRepository.findByUsername(authentication.getName())
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() ->
                         new EntityNotFoundException("User not found.")
                 );

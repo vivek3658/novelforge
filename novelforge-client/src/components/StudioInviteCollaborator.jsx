@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Select, Avatar, Badge } from './ui';
-import { studioApi } from '../services/api';
+import { authApi, studioApi } from '../services/api';
 
 const STUDIO_ROLES = [
   { value: 'WRITER', label: 'Writer (Create & edit novel drafts)' },
@@ -29,12 +29,15 @@ export default function StudioInviteCollaborator({ studioId, currentMembers = []
     setSearching(true);
     const timer = setTimeout(async () => {
       try {
-        // Safe search endpoint proposition (GET /api/v1/identity/users/search?q=)
-        // Since backend does not yet provide this endpoint (documented in BACKEND_GAPS.md),
-        // we simulate graceful empty response rather than falling back to exposing raw IDs.
+        const response = await authApi.searchUsers(searchQuery, 10);
+        const normalizedResults = Array.isArray(response) ? response : [];
+        setSearchResults(normalizedResults.filter((person) => person && person.id));
+      } catch (error) {
         setSearchResults([]);
-      } catch {
-        setSearchResults([]);
+        setStatusMessage({
+          type: 'error',
+          text: error?.message || 'Could not search collaborators right now.',
+        });
       } finally {
         setSearching(false);
       }

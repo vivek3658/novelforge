@@ -2,13 +2,9 @@
 
 ## Studio collaborator invitations
 
-The current studio invitation operation requires an `inviteeUserId`. The available identity API does not provide an authenticated, privacy-safe way for a studio owner to find a person by username or email. The client therefore does not request or display internal account IDs, and invitation creation is temporarily unavailable in the Studio team panel.
+This capability is now implemented in the identity service through `GET /api/v1/identity/users/search?q=&limit=10`.
 
-### Needed capability
-
-Add an authenticated directory search scoped to eligible invitees, for example `GET /api/v1/identity/users/search?q=...`, with rate limiting and authorization checks. Return only fields needed to identify a result (for example display name, username, and a non-sensitive avatar URL). Keep the account ID as an opaque value used internally after a user selects a result. The invitation operation should verify the caller's studio permission and the selected account server-side.
-
-This is a proposed contract shape, not an endpoint implemented or assumed by the client. The client must be updated only after the backend contract is available and documented.
+The endpoint is authenticated, returns only public-safe identity fields (`id`, `username`, `displayName`, `avatarUrl`), and is used by the Studio invite panel after the user selects a match. The Studio membership server-side check still validates the inviter's permission and the selected user before creating an invite.
 
 ## Studio collaboration discovery and membership
 
@@ -19,3 +15,11 @@ The studio search query returns only `PUBLIC` studios. `UNLISTED` and `PRIVATE` 
 ## Comment Author Public Profiles
 
 The engagement service comment endpoint (`GET /targets/{type}/{targetId}/comments`) returns records containing `userId` (`Long`), but does not return author metadata such as `username`, `displayName`, or `avatarUrl`. To avoid displaying raw numeric account IDs or generic "Reader" labels across comments on novels, chapters, and community posts, either the comment payload should embed public author summary objects, or a batch profile resolution endpoint should be provided by `identity-service`.
+
+## ImageKit Upload Authorization
+
+The identity service now exposes authenticated `GET /api/v1/identity/profile/imagekit-auth`, returning non-cacheable one-time `token`, `expire`, and `signature` values. Configure `IMAGEKIT_PRIVATE_KEY` only in the identity-service deployment environment. The client must keep only the ImageKit public key and URL endpoint; files upload directly to ImageKit and only the returned URL is sent to NovelForge.
+
+## Moderation Enforcement
+
+The moderation resolve endpoint currently records the report status, action label, note, and resolver. It does not remove content, warn a creator, or suspend an account. The client exposes only resolve/dismiss triage choices to avoid implying enforcement. If enforcement is required, add explicit authorized operations across Identity, Novel, and Engagement, then connect a clearly scoped action contract to the report workflow.

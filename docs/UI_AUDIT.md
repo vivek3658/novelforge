@@ -1,8 +1,16 @@
 # NovelForge Client UI & API Audit
 
-Audit Date: 2026-10-31  
+Audit Date: 2026-11-03 (follow-up to initial audit)
 Target: `novelforge-client` React application  
 Reference: `AGENTS.md`, `API.md`, `BACKEND_GAPS.md`, and microservice controllers (`identity-service`, `novel-service`, `studio-service`, `engagement-service`).
+
+Follow-up verification:
+- Profile/creator/account/moderation account lookup now resolves the JWT `AuthenticatedUser` principal's username explicitly.
+- Admin role/status values and moderation counters now match backend enums and DTO fields; moderator controls expose report triage only.
+- Image uploads now use authenticated server signatures and upload directly to ImageKit; NovelForge receives only the hosted URL.
+- Chapter comments/likes use `novelId:chapterId`, Reader pagination respects the 100-item limit, and authoring supports automatic chapter numbering and inline text-block edits.
+- The shared client API layer uses a 60-second default timeout and retries safe GETs at most twice for transient network or 502/503/504 responses.
+- Live deployment calls were not exercised in this workspace; `IMAGEKIT_PRIVATE_KEY` must be configured in identity-service before uploads can succeed.
 
 ---
 

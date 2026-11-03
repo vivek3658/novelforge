@@ -5,6 +5,7 @@ import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.repository.UserRepository;
 import com.vivek.novelforge.identity.service.AccountService;
+import com.vivek.novelforge.security.authentication.AuthenticatedUser;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -60,13 +61,14 @@ public class AccountServiceImpl implements AccountService {
 
     @Transactional(readOnly = true)
     private User getAuthenticatedUser(Authentication authentication) {
+        String username = AuthenticatedUser.usernameFrom(authentication);
         if (authentication == null
                 || !authentication.isAuthenticated()
-                || authentication.getName() == null) {
+                || username == null) {
             throw new IllegalStateException("User is not authenticated.");
         }
 
-        return userRepository.findByUsername(authentication.getName())
+        return userRepository.findByUsername(username)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Authenticated user not found.")
                 );

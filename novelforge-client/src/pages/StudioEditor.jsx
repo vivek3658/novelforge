@@ -43,6 +43,8 @@ export default function StudioEditor() {
   const [selectedNovel, setSelectedNovel] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [selectedChapter, setSelectedChapter] = useState(null);
+  const [editingBlockId, setEditingBlockId] = useState(null);
+  const [editingBlockText, setEditingBlockText] = useState('');
   const [chapterViewMode, setChapterViewMode] = useState('write');
 
   // Forms
@@ -453,6 +455,29 @@ export default function StudioEditor() {
         const updated = await chaptersApi.getForStudio(currentStudio.id, selectedNovel.id, selectedChapter.id);
         setSelectedChapter(updated);
         success('Quote block added!');
+      }
+    );
+  };
+
+  const handleSaveTextBlock = (block) => {
+    const text = editingBlockText.trim();
+    if (!selectedChapter || !text) return;
+
+    runAsync(
+      async () =>
+        await chaptersApi.updateBlock(selectedNovel.id, selectedChapter.id, block.id, {
+          position: block.position,
+          type: block.type,
+          text,
+          imageUrl: block.imageUrl,
+          caption: block.caption,
+          altText: block.altText,
+        }),
+      async () => {
+        const updated = await chaptersApi.getForStudio(currentStudio.id, selectedNovel.id, selectedChapter.id);
+        setSelectedChapter(updated);
+        setEditingBlockId(null);
+        success('Chapter text updated.');
       }
     );
   };
@@ -971,7 +996,14 @@ export default function StudioEditor() {
                         type="button"
                         className="cr-btn-primary"
                         style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
-                        onClick={() => setShowChapterModal(true)}
+                        onClick={() => {
+                          const nextChapterNumber = chapters.reduce(
+                            (max, chapter) => Math.max(max, Number(chapter.chapterNumber) || 0),
+                            0
+                          ) + 1;
+                          setChapterMeta({ chapterNumber: nextChapterNumber, title: '' });
+                          setShowChapterModal(true);
+                        }}
                       >
                         ＋ New Ch.
                       </button>
@@ -1091,6 +1123,20 @@ export default function StudioEditor() {
 
                               {/* Block Reorder & Delete Controls */}
                               <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                {block.type === 'TEXT' && editingBlockId !== block.id && (
+                                  <button
+                                    type="button"
+                                    className="cr-btn-secondary"
+                                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                                    disabled={isSubmitting}
+                                    onClick={() => {
+                                      setEditingBlockId(block.id);
+                                      setEditingBlockText(block.text || '');
+                                    }}
+                                  >
+                                    Edit text
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   className="cr-btn-secondary"
@@ -1125,7 +1171,36 @@ export default function StudioEditor() {
                             </div>
 
                             {/* Block Content Display */}
-                            {block.type === 'ILLUSTRATION' ? (
+                            {editingBlockId === block.id ? (
+                              <div style={{ display: 'grid', gap: '0.65rem' }}>
+                                <textarea
+                                  rows={10}
+                                  className="ig-composer-textarea chapter-manuscript"
+                                  value={editingBlockText}
+                                  onChange={(event) => setEditingBlockText(event.target.value)}
+                                  aria-label={`Edit text block ${idx + 1}`}
+                                  autoFocus
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                  <button
+                                    type="button"
+                                    className="cr-btn-secondary"
+                                    disabled={isSubmitting}
+                                    onClick={() => setEditingBlockId(null)}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="cr-btn-primary"
+                                    disabled={isSubmitting || !editingBlockText.trim()}
+                                    onClick={() => handleSaveTextBlock(block)}
+                                  >
+                                    {isSubmitting ? 'Saving…' : 'Save text'}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : block.type === 'ILLUSTRATION' ? (
                               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                 <img
                                   src={block.imageUrl}
@@ -1190,16 +1265,16 @@ export default function StudioEditor() {
                         {blockTypeToAdd === 'TEXT' && (
                           <form className="chapter-block-adder-form" onSubmit={handleAddTextBlock}>
                             <label style={{ display: 'grid', gap: '0.4rem', fontWeight: 700, fontSize: '0.88rem' }}>
-                              Story Paragraph:
+                              Chapter text:
                               <textarea
                                 rows={16}
                                 className="ig-composer-textarea chapter-manuscript"
-                                placeholder="Type or paste the next narrative passage or dialogue…"
+                                placeholder="Write or paste the next passage. Line breaks are preserved in the reader."
                                 value={passageText}
                                 onChange={(e) => setPassageText(e.target.value)}
                                 required
                               />
-                            <div className="chapter-writing-meta"><span>{passageText.trim() ? passageText.trim().split(/\s+/).length : 0} words</span><span>Paragraph {sortedBlocks.length + 1} · saves into chapter sequence</span></div>
+                            <div className="chapter-writing-meta"><span>{passageText.trim() ? passageText.trim().split(/\s+/).length : 0} words</span><span>Text block {sortedBlocks.length + 1} · saves into chapter sequence</span></div>
                             </label>
                             <button
                               type="submit"
@@ -1207,7 +1282,7 @@ export default function StudioEditor() {
                               style={{ marginTop: '0.75rem', padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
                               disabled={isSubmitting || !passageText.trim()}
                             >
-                              {isSubmitting ? 'Saving…' : '＋ Append Paragraph Block'}
+                              {isSubmitting ? 'Saving…' : '＋ Add to Chapter'}
                             </button>
                           </form>
                         )}

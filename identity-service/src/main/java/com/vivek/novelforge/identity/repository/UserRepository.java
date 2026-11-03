@@ -4,6 +4,7 @@ import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.type.CreatorStatus;
 import com.vivek.novelforge.identity.type.RoleType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -35,4 +36,14 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE r = :role")
     long countByRole(@Param("role") RoleType role);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.userProfile up " +
+            "WHERE u.accountStatus = :accountStatus " +
+            "AND (LOWER(u.username) LIKE LOWER(:query) OR LOWER(u.email) LIKE LOWER(:query)) " +
+            "ORDER BY u.username ASC")
+    List<User> searchActiveMatching(
+            @Param("query") String query,
+            @Param("accountStatus") AccountStatus accountStatus,
+            Pageable pageable
+    );
 }

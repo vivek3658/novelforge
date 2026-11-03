@@ -28,6 +28,7 @@ export default function Reader() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const chapterTargetId = `${novelId}:${chapterId}`;
 
   useEffect(() => {
     localStorage.setItem('nf_reader_theme', readingTheme);
@@ -49,7 +50,7 @@ export default function Reader() {
     Promise.all([
       novelApi.getNovelById(novelId),
       chaptersApi.getPublic(novelId, chapterId),
-      chaptersApi.listPublic(novelId, 0, 200),
+      chaptersApi.listPublic(novelId, 0, 100),
     ])
       .then(([novelRes, chapterRes, listRes]) => {
         if (!active) return;
@@ -74,7 +75,7 @@ export default function Reader() {
   const loadComments = async () => {
     if (!chapterId) return;
     try {
-      const res = await engagementApi.comments('CHAPTER', chapterId, 0);
+      const res = await engagementApi.comments('CHAPTER', chapterTargetId, 0);
       setComments(res?.content || []);
     } catch {
       // quiet fail
@@ -117,11 +118,11 @@ export default function Reader() {
     }
     try {
       if (liked) {
-        await engagementApi.unlike('CHAPTER', chapterId);
+        await engagementApi.unlike('CHAPTER', chapterTargetId);
         setLiked(false);
         setLikesCount((prev) => Math.max(0, prev - 1));
       } else {
-        await engagementApi.like('CHAPTER', chapterId);
+        await engagementApi.like('CHAPTER', chapterTargetId);
         setLiked(true);
         setLikesCount((prev) => prev + 1);
         success('Chapter liked!');
@@ -361,6 +362,7 @@ export default function Reader() {
                   marginBottom: '1.5rem',
                   textIndent: '1.5rem',
                   letterSpacing: '0.01em',
+                  whiteSpace: 'pre-wrap',
                 }}
               >
                 {block.text}

@@ -25,7 +25,8 @@ export const resolveEndpoint = (endpoint) => {
     endpoint.startsWith('/register') ||
     endpoint.startsWith('/user-profile') ||
     endpoint.startsWith('/profile') ||
-    endpoint.startsWith('/account')
+    endpoint.startsWith('/account') ||
+    endpoint.startsWith('/users')
   ) {
     return `/api/v1/identity${endpoint}`;
   }
@@ -83,23 +84,39 @@ export async function apiRequest(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const timeoutMs = options.timeoutMs || 20000;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  const config = {
-    ...options,
-    headers,
-    signal: options.signal || controller.signal,
-    credentials: 'include',
-  };
+  const timeoutMs = options.timeoutMs || 60000;
+  const method = (options.method || 'GET').toUpperCase();
+  const canRetry = method === 'GET' && !options.noRetry;
+  const maxRetries = canRetry ? (options.maxRetries ?? 2) : 0;
+  const config = { ...options, headers, credentials: 'include' };
 
   try {
     let response;
-    try {
-      response = await fetch(url, config);
-    } finally {
-      clearTimeout(timer);
+    for (let attempt = 0; ; attempt += 1) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const signal = options.signal
+        ? AbortSignal.any([options.signal, controller.signal])
+        : controller.signal;
+
+      try {
+        response = await fetch(url, { ...config, signal });
+      } catch (fetchError) {
+        if (canRetry && fetchError.name === 'TypeError' && attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+          continue;
+        }
+        throw fetchError;
+      } finally {
+        clearTimeout(timer);
+      }
+
+      if ([502, 503, 504].includes(response.status) && attempt < maxRetries) {
+        await response.body?.cancel();
+        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+        continue;
+      }
+      break;
     }
 
     if (
@@ -200,6 +217,15 @@ export const authApi = {
       method: 'GET',
       ...(token ? { token } : {}),
     }),
+
+  getImageKitUploadAuth: () =>
+    apiRequest('/profile/imagekit-auth', { method: 'GET' }),
+
+  searchUsers: (query = '', limit = 10) => {
+    const safeQuery = (query || '').trim();
+    const params = new URLSearchParams({ q: safeQuery, limit: String(limit) });
+    return apiRequest(`/users/search?${params.toString()}`, { method: 'GET' });
+  },
 
   updateProfile: (profileData) =>
     apiRequest('/profile/me', {

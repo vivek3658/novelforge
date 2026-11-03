@@ -11,6 +11,7 @@ import com.vivek.novelforge.identity.repository.UserRepository;
 import com.vivek.novelforge.identity.service.ModerationService;
 import com.vivek.novelforge.identity.type.ReportStatus;
 import com.vivek.novelforge.identity.type.ReportTargetType;
+import com.vivek.novelforge.security.authentication.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -119,7 +120,11 @@ public class ModerationServiceImpl implements ModerationService {
     }
 
     private User getAuthenticatedUser(Authentication auth) {
-        return userRepository.findByUsername(auth.getName())
+        String username = AuthenticatedUser.usernameFrom(auth);
+        if (username == null || username.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required.");
+        }
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
     }
 

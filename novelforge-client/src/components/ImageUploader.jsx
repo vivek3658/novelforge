@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { authApi } from '../services/api';
 
 export default function ImageUploader({
   value,
@@ -12,9 +13,11 @@ export default function ImageUploader({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     setError('');
     if (!file) return;
 
@@ -28,17 +31,62 @@ export default function ImageUploader({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target.result;
-      if (typeof result === 'string') {
-        onChange(result);
+    const publicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
+    const urlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT?.replace(/\/+$/, '');
+    if (!publicKey || !urlEndpoint) {
+      setError('Image uploads are not configured.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const auth = await authApi.getImageKitUploadAuth();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', file.name);
+      formData.append('publicKey', publicKey);
+      formData.append('token', auth.token);
+      formData.append('expire', String(auth.expire));
+      formData.append('signature', auth.signature);
+
+      const result = await new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open('POST', 'https://upload.imagekit.io/api/v1/files/upload');
+        request.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            setUploadProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        });
+        request.addEventListener('load', () => {
+          let response;
+          try {
+            response = JSON.parse(request.responseText || '{}');
+          } catch {
+            reject(new Error('ImageKit returned an unreadable response.'));
+            return;
+          }
+          if (request.status >= 200 && request.status < 300) {
+            resolve(response);
+          } else {
+            reject(new Error(response.message || response.help || 'Image upload failed.'));
+          }
+        });
+        request.addEventListener('error', () => reject(new Error('Could not reach ImageKit.')));
+        request.addEventListener('timeout', () => reject(new Error('ImageKit upload timed out.')));
+        request.timeout = 120000;
+        request.send(formData);
+      });
+
+      if (typeof result.url !== 'string' || !result.url.startsWith(`${urlEndpoint}/`)) {
+        throw new Error('ImageKit returned a URL outside the configured endpoint.');
       }
-    };
-    reader.onerror = () => {
-      setError('Failed to read image file.');
-    };
-    reader.readAsDataURL(file);
+      onChange(result.url);
+    } catch (uploadError) {
+      setError(uploadError.message || 'Image upload failed.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDragOver = (e) => {
@@ -55,14 +103,20 @@ export default function ImageUploader({
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFile(e.dataTransfer.files[0]);
+      void handleFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleUrlSubmit = (e) => {
     e.preventDefault();
     if (urlInput.trim()) {
+      const urlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT?.replace(/\/+$/, '');
+      if (!urlEndpoint || !urlInput.trim().startsWith(`${urlEndpoint}/`)) {
+        setError('Use an image URL from the configured ImageKit endpoint.');
+        return;
+      }
       onChange(urlInput.trim());
+      setError('');
       setUrlInput('');
       setShowUrlInput(false);
     }
@@ -80,6 +134,7 @@ export default function ImageUploader({
               <button
                 type="button"
                 className="image-overlay-btn"
+                disabled={uploading}
                 onClick={() => fileInputRef.current?.click()}
                 title="Change image"
               >
@@ -88,6 +143,7 @@ export default function ImageUploader({
               <button
                 type="button"
                 className="image-overlay-btn remove"
+                disabled={uploading}
                 onClick={() => onChange('')}
                 title="Remove image"
               >
@@ -102,19 +158,23 @@ export default function ImageUploader({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => !uploading && fileInputRef.current?.click()}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
+            if (!uploading && (e.key === 'Enter' || e.key === ' ')) fileInputRef.current?.click();
           }}
+          aria-disabled={uploading}
         >
           <div className="image-dropzone-content">
             <span className="image-dropzone-icon">🖼️</span>
             <p className="image-dropzone-text">
-              <strong>Click to upload</strong> or drag & drop
+              <strong>{uploading ? `Uploading ${uploadProgress}%` : 'Click to upload'}</strong>
+              {!uploading && ' or drag & drop'}
             </p>
-            {hint && <span className="image-dropzone-hint">{hint}</span>}
+            {uploading ? (
+              <progress value={uploadProgress} max="100" aria-label="Image upload progress" />
+            ) : hint && <span className="image-dropzone-hint">{hint}</span>}
           </div>
         </div>
       )}
@@ -124,10 +184,12 @@ export default function ImageUploader({
         type="file"
         accept="image/*"
         style={{ display: 'none' }}
+        disabled={uploading}
         onChange={(e) => {
           if (e.target.files && e.target.files.length > 0) {
-            handleFile(e.target.files[0]);
+            void handleFile(e.target.files[0]);
           }
+          e.target.value = '';
         }}
       />
 

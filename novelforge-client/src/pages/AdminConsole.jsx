@@ -36,7 +36,7 @@ export default function AdminConsole() {
   const [reportPage, setReportPage] = useState(0);
   const [totalReportPages, setTotalReportPages] = useState(1);
   const [selectedReport, setSelectedReport] = useState(null);
-  const [resolveAction, setResolveAction] = useState('CONTENT_REMOVED');
+  const [resolveAction, setResolveAction] = useState('RESOLVE');
   const [resolutionNote, setResolutionNote] = useState('');
   const [isResolving, setIsResolving] = useState(false);
 
@@ -151,7 +151,7 @@ export default function AdminConsole() {
         action: resolveAction,
         resolutionNote: resolutionNote.trim(),
       });
-      success(`Report #${selectedReport.id} resolved (${resolveAction}).`);
+      success(resolveAction === 'DISMISS' ? 'Report dismissed.' : 'Report resolved.');
       setSelectedReport(null);
       setResolutionNote('');
       loadReports();
@@ -206,9 +206,9 @@ export default function AdminConsole() {
               onClick={() => setActiveTab('moderation')}
             >
               🛡️ Moderation Center
-              {modStats?.pendingReports > 0 && (
+              {modStats?.pendingCount > 0 && (
                 <span className="cr-badge-orange" style={{ marginLeft: '0.5rem', padding: '0.1rem 0.45rem', fontSize: '0.75rem' }}>
-                  {modStats.pendingReports}
+                  {modStats.pendingCount}
                 </span>
               )}
             </button>
@@ -235,13 +235,13 @@ export default function AdminConsole() {
             <div className="cr-card" style={{ padding: '1.5rem', borderLeft: '4px solid #ef4444' }}>
               <span style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Pending Reports</span>
               <h2 style={{ fontSize: '2.2rem', fontWeight: 900, margin: '0.4rem 0 0', color: '#ef4444' }}>
-                {modStats?.pendingReports ?? 0}
+                {modStats?.pendingCount ?? 0}
               </h2>
             </div>
             <div className="cr-card" style={{ padding: '1.5rem', borderLeft: '4px solid #10b981' }}>
               <span style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>Resolved Reports</span>
               <h2 style={{ fontSize: '2.2rem', fontWeight: 900, margin: '0.4rem 0 0', color: '#10b981' }}>
-                {modStats?.resolvedReports ?? 0}
+                {modStats?.resolvedCount ?? 0}
               </h2>
             </div>
           </div>
@@ -291,8 +291,7 @@ export default function AdminConsole() {
               style={{ minWidth: '150px' }}
             >
               <option value="">All Roles</option>
-              <option value="READER">Readers</option>
-              <option value="CREATOR">Creators</option>
+              <option value="USER">Users</option>
               <option value="MODERATOR">Moderators</option>
               <option value="ADMIN">Administrators</option>
             </select>
@@ -307,8 +306,9 @@ export default function AdminConsole() {
             >
               <option value="">All Account Statuses</option>
               <option value="ACTIVE">Active</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="BANNED">Banned</option>
+              <option value="BLOCKED">Blocked</option>
+              <option value="PENDING_DELETION">Pending deletion</option>
+              <option value="DELETED">Deleted</option>
             </select>
             <button type="button" className="cr-btn-secondary" onClick={loadUsers} style={{ padding: '0.5rem 1rem' }}>
               Refresh
@@ -319,7 +319,6 @@ export default function AdminConsole() {
             <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
-                  <th style={{ padding: '0.85rem 1rem' }}>ID</th>
                   <th style={{ padding: '0.85rem 1rem' }}>User</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Email</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Roles</th>
@@ -331,7 +330,6 @@ export default function AdminConsole() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>#{u.id}</td>
                     <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>{u.username}</td>
                     <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{u.email}</td>
                     <td style={{ padding: '0.85rem 1rem' }}>
@@ -382,7 +380,7 @@ export default function AdminConsole() {
                             type="button"
                             className="cr-btn-secondary"
                             style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', color: '#ef4444', borderColor: '#ef4444' }}
-                            onClick={() => handleUpdateStatus(u.id, 'SUSPENDED')}
+                            onClick={() => handleUpdateStatus(u.id, 'BLOCKED')}
                           >
                             Suspend
                           </button>
@@ -402,7 +400,7 @@ export default function AdminConsole() {
                 ))}
                 {users.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                       No users match the search criteria.
                     </td>
                   </tr>
@@ -449,7 +447,7 @@ export default function AdminConsole() {
                   Select the permissions and roles to assign to this user:
                 </p>
                 <div style={{ display: 'grid', gap: '0.65rem', marginBottom: '1.5rem' }}>
-                  {['READER', 'CREATOR', 'MODERATOR', 'ADMIN'].map((r) => {
+                  {['USER', 'MODERATOR', 'ADMIN'].map((r) => {
                     const checked = editingRoles.includes(r);
                     return (
                       <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', background: checked ? 'rgba(244,117,33,0.1)' : 'transparent' }}>
@@ -588,7 +586,7 @@ export default function AdminConsole() {
                       style={{ padding: '0.35rem 0.85rem', fontSize: '0.82rem' }}
                       onClick={() => {
                         setSelectedReport(rep);
-                        setResolveAction('CONTENT_REMOVED');
+                        setResolveAction('RESOLVE');
                         setResolutionNote('');
                       }}
                     >
@@ -638,10 +636,10 @@ export default function AdminConsole() {
             <div className="cr-modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'grid', placeItems: 'center', zIndex: 1000 }}>
               <div className="cr-card" style={{ width: '90%', maxWidth: '520px', padding: '1.75rem' }}>
                 <h3 style={{ margin: '0 0 1rem', fontSize: '1.25rem' }}>
-                  Resolve Moderation Report #{selectedReport.id}
+                  Review Moderation Report
                 </h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '1.25rem' }}>
-                  Target: <strong>{selectedReport.targetType}</strong> ({selectedReport.targetTitle || selectedReport.targetId})
+                  Target: <strong>{selectedReport.targetType}</strong> ({selectedReport.targetTitle || 'Reported content'})
                   <br />
                   Reported for: <em>{selectedReport.reason}</em>
                 </p>
@@ -649,7 +647,7 @@ export default function AdminConsole() {
                 <form onSubmit={handleResolveReport}>
                   <label style={{ display: 'block', marginBottom: '1rem' }}>
                     <span style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.4rem' }}>
-                      Enforcement Action:
+                      Resolution:
                     </span>
                     <select
                       className="ig-comment-input"
@@ -657,9 +655,7 @@ export default function AdminConsole() {
                       onChange={(e) => setResolveAction(e.target.value)}
                       style={{ width: '100%' }}
                     >
-                      <option value="CONTENT_REMOVED">Remove Content (Takedown)</option>
-                      <option value="USER_WARNED">Warn Content Creator</option>
-                      <option value="USER_SUSPENDED">Suspend Creator Account</option>
+                      <option value="RESOLVE">Resolve report</option>
                       <option value="DISMISS">Dismiss Report (No Violation)</option>
                     </select>
                   </label>

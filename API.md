@@ -34,13 +34,36 @@ All paths below start with `/api/v1/identity`.
 | POST | `/auth/forgot-password/reset` | Public | Set a new password after verification |
 | GET | `/profile/me` | Bearer token | Current profile |
 | GET | `/profile/{userId}` | Bearer token | Read a profile subject to profile visibility |
+| GET | `/users/search?q=&limit=10` | Bearer token | Search active users by username or email; returns safe identity fields for invite lookup |
 | PATCH | `/profile/me` | Bearer token | Update display name, bio, or visibility |
+| GET | `/profile/imagekit-auth` | Bearer token | Generate one-time ImageKit upload auth parameters; the file uploads directly from the browser |
 | POST | `/profile/creator` | Bearer token | Activate creator status |
 | POST | `/profile/creator/deactivate` | Bearer token | Deactivate creator status |
 | DELETE | `/account` | Bearer token | Request account deletion |
 | POST | `/account/cancel-deletion` | Bearer token | Cancel pending deletion |
 
 Internal Identity endpoints are not for browser clients. Creator eligibility requires `X-Internal-Service-Key`; OTP challenge validation requires `X-Internal-Client-Secret`. Each caller has its own configured credential.
+
+### Administration and moderation
+
+All paths below start with `/api/v1/identity`.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/admin/users?query=&role=&accountStatus=&creatorStatus=&page=0&size=20` | Admin or `USER_READ` | Search and filter accounts |
+| GET | `/admin/users/{userId}` | Admin or `USER_READ` | Read one account |
+| PUT | `/admin/users/{userId}/roles` | Admin or `USER_UPDATE`/`MODERATOR_UPDATE` | Set roles with `{ "roles": ["USER", "MODERATOR", "ADMIN"] }` |
+| PATCH | `/admin/users/{userId}/status` | Admin or `USER_UPDATE` | Update `accountStatus` and/or `creatorStatus` |
+| GET | `/admin/stats` | Admin or `USER_READ` | Platform account counts |
+| POST | `/moderation/reports` | Bearer token | Submit `{ "targetType", "targetId", "targetTitle", "reason", "details" }` |
+| GET | `/moderation/reports?status=&targetType=&page=0&size=20` | Moderator or Admin | Search the moderation queue |
+| GET | `/moderation/reports/{reportId}` | Moderator or Admin | Read a report |
+| POST | `/moderation/reports/{reportId}/resolve` | Moderator or Admin | Resolve or dismiss with `{ "action": "RESOLVE" or "DISMISS", "resolutionNote": "..." }` |
+| GET | `/moderation/stats` | Moderator or Admin | Report counts (`pendingCount`, `resolvedCount`, `dismissedCount`, `totalCount`) |
+
+Role values are `USER`, `MODERATOR`, and `ADMIN`. Account status values are `ACTIVE`, `BLOCKED`, `PENDING_DELETION`, and `DELETED`; creator status is a separate `NONE`, `ACTIVE`, `SUSPENDED`, or `DEACTIVATED` field. Report resolution currently records triage status/action/note only; it does not remove content or change account status.
+
+ImageKit's private key must be configured as `IMAGEKIT_PRIVATE_KEY` in the identity-service environment only. The endpoint returns `{ "token", "expire", "signature" }` and is non-cacheable. The browser sends the file directly to ImageKit and persists only ImageKit's returned URL.
 
 ## Studio
 

@@ -325,17 +325,17 @@ Returned on unauthorized or missing permission.
 
 ---
 
-## 7. Scaffolded Services & Mocked Endpoints
+## 7. Service and Contract Status
 
 The following modules remain scaffolded or mocked:
 
 1. **ImageKit Upload Authentication:**
-   - `GET /api/v1/media/imagekit-auth` (`token`, `expire`, `signature`).
-   - Handled in `src/lib/imagekit.ts` using client-side fallback/signature generator.
+   - `GET /api/v1/identity/profile/imagekit-auth` returns one-time `token`, `expire`, and `signature` values.
+   - The identity service signs with server-only `IMAGEKIT_PRIVATE_KEY`; the browser uploads directly to ImageKit and sends only the resulting URL to NovelForge APIs.
 2. **Moderation Queue & Actions (`MODERATOR` area):**
-   - Implemented and live on `identity-service` (`/api/v1/moderation/**`) with cross-service privileged takedown overrides on `novel-service` and `engagement-service`.
+   - Report create/list/resolve/stats endpoints are implemented on `identity-service` (`/api/v1/identity/moderation/**`). Resolution currently records `RESOLVE` or `DISMISS` plus a note. Content takedown, creator warning, and account suspension are not performed by report resolution.
 3. **Admin User Management & Platform Analytics (`ADMIN` area):**
-   - Implemented and live on `identity-service` (`/api/v1/admin/**`) with automated system bootstrap runner.
+   - Implemented on `identity-service` (`/api/v1/identity/admin/**`) with automated system bootstrap runner.
 4. **Studio Analytics (`/analytics`):**
    - `analytics-service` is an empty Spring Boot scaffold with 0 endpoints.
    - Handled in `src/features/studio/StudioDashboard.tsx` with fallback overview metrics.
