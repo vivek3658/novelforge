@@ -17,15 +17,12 @@ import java.util.UUID;
 @Component
 public class StudioMembershipClient {
     private final RestClient restClient;
-    private final String serviceSecret;
 
     public StudioMembershipClient(
             RestClient.Builder builder,
-            @Value("${studio.service.base-url:http://localhost:8087}") String baseUrl,
-            @Value("${studio.service.client-secret:}") String serviceSecret
+            @Value("${studio.service.base-url:http://localhost:8087}") String baseUrl
     ) {
         this.restClient = builder.baseUrl(baseUrl).build();
-        this.serviceSecret = serviceSecret;
     }
 
     public void requirePermission(
@@ -39,9 +36,8 @@ public class StudioMembershipClient {
         }
         try {
             MyStudioMembershipDto membership = restClient.get()
-                    .uri("/studios/{studioId}/members/me", studioId)
+                    .uri("/studios/{studioId}/membership", studioId)
                     .header(HttpHeaders.AUTHORIZATION, authorization)
-                    .header("X-Internal-Service-Key", serviceSecret)
                     .retrieve()
                     .body(MyStudioMembershipDto.class);
             if (membership == null || membership.userId() == null
