@@ -38,7 +38,7 @@ Studio invitations are persisted as membership records and listed in the protect
 
 `docker-compose.yml` runs one instance of each service by default. Its gateway uses direct Docker service URLs. `docker-compose.perf.yml` changes supported gateway destinations to Eureka `lb://` routes, removes fixed container names where replicas are measured, and applies benchmark resource limits. Checked-in measurements cover selected workloads and 1-3 local service instances; they are not a production capacity guarantee or a universal maximum.
 
-See [README.md](README.md), [API.md](API.md), [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md), and [docs/performance/CAPACITY_PROFILE.md](docs/performance/CAPACITY_PROFILE.md) for setup, contracts, deployment and measured capacity.
+See [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md), [API.md](API.md), [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md), and [docs/performance/CAPACITY_PROFILE.md](docs/performance/CAPACITY_PROFILE.md) for architecture, setup, contracts, deployment and measured capacity.
 
 ## Current follow-up
 

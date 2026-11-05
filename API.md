@@ -46,7 +46,7 @@ Internal Identity endpoints are not for browser clients. Creator eligibility req
 
 ### Administration and moderation
 
-All paths below start with `/api/v1/identity`.
+Admin paths start with `/api/v1/admin`; moderation paths start with `/api/v1/moderation`. The gateway routes both prefixes to Identity.
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|

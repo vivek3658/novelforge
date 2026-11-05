@@ -37,7 +37,7 @@ Admin and moderation are Identity API areas. There are no separate Admin or Mode
 
 ## 🐳 Docker Deployment Guide
 
-For the detailed system map, see [docs/performance/ARCHITECTURE.md](docs/performance/ARCHITECTURE.md). The older [novelforge-architecture.html](novelforge-architecture.html) is explicitly a focused request-path illustration, not the full runtime inventory.
+For the current system guide, start with [ARCHITECTURE.md](ARCHITECTURE.md). The [performance architecture notes](docs/performance/ARCHITECTURE.md) cover discovery and benchmark topology; [novelforge-architecture.html](novelforge-architecture.html) is a focused request-path illustration.
 
 ### Prerequisites
 - [Docker Engine & Docker Compose](https://www.docker.com/) installed.
