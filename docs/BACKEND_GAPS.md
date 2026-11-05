@@ -1,5 +1,9 @@
 # Backend gaps affecting the client
 
+## Studio invitation inbox
+
+Implemented using the existing persisted `INVITED` membership record; no standalone notification store or new notification microservice was added. `GET /api/v1/studios/invitations/me` returns pending invitations for the authenticated recipient with safe studio display fields, role, and nullable `readAt`. `PATCH /api/v1/studios/invitations/{membershipId}/read` marks only the recipient's pending invitation as read; re-inviting a removed member resets the marker. The protected client `/inbox` lists, marks read, and accepts invitations. The notification service remains responsible for OTP email only; a general-purpose notification feed is not implemented.
+
 ## Studio collaborator invitations
 
 This capability is now implemented in the identity service through `GET /api/v1/identity/users/search?q=&limit=10`.

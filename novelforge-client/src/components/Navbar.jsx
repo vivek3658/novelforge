@@ -63,6 +63,9 @@ export default function Navbar() {
               <Link className="nav-library" to="/library">
                 My library
               </Link>
+              <NavLink className="nav-library" to="/inbox">
+                Inbox
+              </NavLink>
               <Link className="nav-studio" to="/studio">
                 Studio
               </Link>
@@ -124,6 +127,9 @@ export default function Navbar() {
                 </Link>
                 <Link to="/library" onClick={() => setIsMenuOpen(false)}>
                   My library
+                </Link>
+                <Link to="/inbox" onClick={() => setIsMenuOpen(false)}>
+                  Inbox
                 </Link>
                 <Link to="/studio" onClick={() => setIsMenuOpen(false)}>
                   Creator Studio

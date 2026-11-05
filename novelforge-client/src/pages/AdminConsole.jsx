@@ -28,6 +28,7 @@ export default function AdminConsole() {
   const [totalUserPages, setTotalUserPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
   const [editingRoles, setEditingRoles] = useState([]);
+  const [updatingRoleUserId, setUpdatingRoleUserId] = useState(null);
 
   // Moderation State
   const [reports, setReports] = useState([]);
@@ -127,6 +128,23 @@ export default function AdminConsole() {
       loadUsers();
     } catch (err) {
       error(err.message || 'Failed to update user roles');
+    }
+  };
+
+  const handleGrantModerator = async (targetUser) => {
+    if (targetUser.roles?.includes('MODERATOR')) return;
+    setUpdatingRoleUserId(targetUser.id);
+    const rolesToSave = [...new Set([...(targetUser.roles || []), 'MODERATOR'])];
+    try {
+      await adminApi.updateRoles(targetUser.id, rolesToSave);
+      setUsers((current) => current.map((userRecord) =>
+        userRecord.id === targetUser.id ? { ...userRecord, roles: rolesToSave } : userRecord
+      ));
+      success(`Moderator access granted to @${targetUser.username}.`);
+    } catch (err) {
+      error(err.message || 'Failed to grant moderator access.');
+    } finally {
+      setUpdatingRoleUserId(null);
     }
   };
 
@@ -269,6 +287,9 @@ export default function AdminConsole() {
       {/* TAB 2: User Management */}
       {activeTab === 'users' && isAdmin && (
         <section className="admin-users-view">
+          <p role="note" style={{ margin: '0 0 1rem', color: 'var(--text-secondary)' }}>
+            Moderators are existing active accounts with review permissions. Search for an account, then grant moderator access; no new account is created here.
+          </p>
           <div className="admin-filter-bar" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             <input
               type="text"
@@ -364,6 +385,17 @@ export default function AdminConsole() {
                     </td>
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                        {u.accountStatus === 'ACTIVE' && !u.roles?.includes('MODERATOR') && (
+                          <button
+                            type="button"
+                            className="cr-btn-primary"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                            disabled={updatingRoleUserId !== null}
+                            onClick={() => handleGrantModerator(u)}
+                          >
+                            {updatingRoleUserId === u.id ? 'Granting…' : 'Grant moderator'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="cr-btn-secondary"

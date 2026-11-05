@@ -4,21 +4,19 @@ NovelForge is a modern digital novel and storytelling platform built with a dist
 
 ---
 
-## 🏛 Architecture & Port Overview
+## Architecture & Port Overview
 
-| Service | Technology | Port (Host) | Description |
+| Component | Technology | Port | Description |
 |---|---|---|---|
-| **`eureka-server`** | Spring Cloud Netflix Eureka | `8761` | Central Service Discovery & Registry |
-| **`api-gateway`** | Spring Cloud Gateway (WebFlux) | `8080` | Unified Edge Router & Reverse Proxy |
-| **`identity-service`** | Spring Boot / JPA / Redis / JWT | `8081` | Authentication, Authorization & User Management |
-| **`notification-service`** | Spring Boot / JavaMail | `8082` | Email & Notifications (OTP delivery) |
-| **`novel-service`** | Spring Boot / JPA / PostgreSQL | `8083` | Novel Metadata, Chapters & Content Management |
-| **`engagement-service`** | Spring Boot / JPA | `8084` | User Engagement, Likes, Bookmarks & Comments |
-| **`ai-service`** | Spring Boot | `8085` | AI-assisted writing & content generation |
-| **`analytics-service`** | Spring Boot | `8086` | Reading analytics & telemetry |
-| **`novelforge-client`** | React 19 + Vite + Nginx | `3000` (`:80`) | Frontend Web Application |
-| **`postgres`** | PostgreSQL 16 Alpine | `5432` | Relational Databases (`userDB`, `novelDB`) |
-| **`redis`** | Redis 7 Alpine | `6379` | Token caching & session management |
+| `novelforge-client` | React 19 JSX + Vite + Nginx | Host `3000`, container `80` | Reader, creator studio and Inbox UI |
+| `api-gateway` | Spring Cloud Gateway / WebFlux | Host `8080` | Public API edge and route rewriting |
+| `eureka-server` | Spring Cloud Netflix Eureka | Host `8761` | Service registry |
+| `identity-service` | Spring Boot / JPA / Redis / JWT | Container `8081` | Auth, accounts, profiles, admin and moderation APIs |
+| `notification-service` | Spring Boot / RabbitMQ / email adapter | Container `8082` | OTP email consumer; no browser notification route |
+| `novel-service` | Spring Boot / JPA / MongoDB | Container `8083` | Novel metadata and chapter documents |
+| `engagement-service` | Spring Boot / JPA / RabbitMQ | Container `8084` | Likes, comments, posts, follows, feeds and collections |
+| `studio-service` | Spring Boot / JPA | Container `8087` | Studios, permissions, memberships and invitations |
+| `postgres`, `mongodb`, `redis`, `rabbitmq`, `mailpit` | Docker infrastructure | Compose network; selected ports exposed locally | Persistence, cache, event broker and local email sink |
 
 ---
 
@@ -26,18 +24,20 @@ NovelForge is a modern digital novel and storytelling platform built with a dist
 
 | Component | Status | Description |
 |---|---|---|
-| **`identity-service`** | ✅ Implemented | User registration, login, JWT issuance, OTP verification, password reset, creator eligibility |
-| **`novel-service`** | ✅ Implemented | Novel CRUD, chapter management in MongoDB, public catalog search, Redis caching |
-| **`engagement-service`** | ✅ Implemented | Social likes, comments, library collections, follower relationships |
-| **`notification-service`** | ✅ Implemented | Email delivery stubbed locally through Mailpit mock for local testing |
-| **`studio-service`** | ✅ Implemented | Creator studio, workspace collaboration, chapter drafting |
-| **`moderation-service`** | ⏳ Planned | Content moderation pipeline (no endpoints implemented yet) |
-| **`admin-service`** | ⏳ Planned | System administration & user ban enforcement (no endpoints implemented yet) |
-| **`novelforge-client`** | 🚧 In Progress | React 19 UI with TailwindCSS; core pages functional, client-service links in progress |
+| `identity-service` | Implemented | Registration, login, profiles, creator status, admin and moderation APIs |
+| `novel-service` | Implemented | Novel metadata, chapter lifecycle and MongoDB chapter blocks |
+| `engagement-service` | Implemented | Social interactions, feed and reading collections |
+| `studio-service` | Implemented | Studio membership, invitations and authoring permissions |
+| `notification-service` | Implemented, narrow scope | Asynchronous OTP email only; not a general in-app notification system |
+| `novelforge-client` | Implemented, ongoing polish | React/Vite JSX client; lint and production build are configured |
+
+Admin and moderation are Identity API areas. There are no separate Admin or Moderation services in the deployed topology.
 
 ---
 
 ## 🐳 Docker Deployment Guide
+
+For the detailed system map, see [docs/performance/ARCHITECTURE.md](docs/performance/ARCHITECTURE.md). The older [novelforge-architecture.html](novelforge-architecture.html) is explicitly a focused request-path illustration, not the full runtime inventory.
 
 ### Prerequisites
 - [Docker Engine & Docker Compose](https://www.docker.com/) installed.
@@ -47,21 +47,12 @@ NovelForge is a modern digital novel and storytelling platform built with a dist
 
 ### Quick Start (Build & Run All Services)
 
-#### Step 1: Build all service packages
-Before spinning up the containers, package the shared security module and all microservices:
+#### Step 1: Configure local secrets
+Copy `.env.example` to `.env` and replace the example values with local random secrets. Do not commit `.env`.
 
-- **Windows**:
-  ```cmd
-  build-all.bat
-  ```
-- **Linux / macOS**:
-  ```bash
-  chmod +x build-all.sh
-  ./build-all.sh
-  ```
+For a first local admin account, set `NOVELFORGE_ADMIN_DEFAULT_PASSWORD` in the ignored `.env` before starting `identity-service`. The bootstrap creates username `admin` only if no admin exists and the username/email are unused; Spring hashes the password with BCrypt. Remove the bootstrap secret after the account is created. If an admin already exists, use User Management to promote an existing account to Moderator instead of inserting rows directly.
 
 #### Step 2: Launch with Docker Compose
-Start all databases, cache, service discovery, microservices, gateway, and frontend:
 
 ```bash
 docker compose up -d --build
@@ -86,18 +77,10 @@ docker compose down
 
 ## 🚀 Individual Service Docker Build
 
-Each service contains its own optimized Dockerfile and `.dockerignore`. To build and run any individual service:
+Use Docker Compose for the complete stack. If you build an individual Java service that depends on `novelforge-common` or `novelforge-security`, keep the repository root as the build context:
 
 ```bash
-# 1. Package the service
-cd <service-name>
-./mvnw clean package -DskipTests
-
-# 2. Build the Docker image
-docker build -t novelforge/<service-name>:latest .
-
-# 3. Run the container
-docker run -p <PORT>:<PORT> novelforge/<service-name>:latest
+docker build -f ./<service-name>/Dockerfile -t novelforge/<service-name>:local .
 ```
 
 For `novelforge-client` (Frontend):
@@ -109,17 +92,13 @@ docker run -p 3000:80 novelforge/novelforge-client:latest
 
 ---
 
-## ☁️ Render Cloud Deployment
+## Render Deployment
 
-NovelForge includes a turnkey [Render Blueprint](file:///C:/Users/vivek/Desktop/novelforge-server/render.yaml) (`render.yaml`) for 1-click cloud deployment on [Render](https://render.com).
+The repository includes a Render Blueprint at [render.yaml](render.yaml). It describes a deployment configuration; it is not proof of an active or production-ready deployment. Check current Render plans, limits, and pricing before applying it.
 
-- **Blueprint File**: [`render.yaml`](file:///C:/Users/vivek/Desktop/novelforge-server/render.yaml)
-- **Comprehensive Guide**: [`RENDER_DEPLOYMENT.md`](file:///C:/Users/vivek/Desktop/novelforge-server/RENDER_DEPLOYMENT.md)
+- **Deployment guide**: [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md)
 
-### Highlights:
-- **Free-Tier Optimized**: Configured with `-Xmx350m -Xms200m` JVM memory limits to run smoothly within 512MB RAM free-tier instances.
-- **Dynamic Port & URL Binding**: Automatically maps Render's dynamic `$PORT` and transforms Render PostgreSQL URLs to Spring JDBC format.
-- **Fully Automated**: Provisions managed PostgreSQL, Redis (Key Value), Eureka Server, API Gateway, all microservices, and Nginx frontend in a single step.
+All Blueprint secrets are declared as secret inputs. Configure matching JWT signing keys and the service-specific internal credentials in the dashboard; rotate any values that may have appeared in earlier repository revisions.
 
 ---
 
@@ -127,17 +106,24 @@ NovelForge includes a turnkey [Render Blueprint](file:///C:/Users/vivek/Desktop/
 
 | Route Pattern | Target Service |
 |---|---|
-| `/api/v1/identity/**` | `identity-service` |
+| `/api/v1/identity/**`, `/api/v1/admin/**`, `/api/v1/moderation/**` | `identity-service` |
 | `/api/v1/novels/**` | `novel-service` |
-| `/api/v1/notifications/**` | `notification-service` |
-| `/` | `eureka-server` dashboard at `http://localhost:8761` |
-| `http://localhost:3000` | Frontend Client (React) |
+| `/api/v1/studios/**` | `studio-service` |
+| `/api/v1/engagement/**` | `engagement-service` |
+| `http://localhost:8761` | Eureka dashboard |
+| `http://localhost:3000` | Frontend client |
+
+`notification-service` has no browser API route; it consumes OTP email events from RabbitMQ. Studio invitations are listed through the Studio API and client `/inbox`.
 
 ---
 
 ## ⚡ Performance & Scalability (1x vs 2x vs 3x Benchmark)
 
-NovelForge microservices were rigorously benchmarked under Docker Desktop across 1, 2, and 3 container instances per service (1.0 vCPU / 768 MB limit per container) using Autocannon with strict statistical controls (60s warm-up, 1 discarded run, 5 repetitions per cell, validated with a Little's Law cross-check):
+The checked-in load tests benchmark selected services locally under Docker Desktop. Default Compose runs one instance and uses direct service URLs. Horizontal tests use `docker-compose.perf.yml`, which switches gateway routes to Eureka `lb://` destinations and removes fixed container names where replicas are measured. Results cover specific workloads and 1-3 local instances with the resource limits described in the performance report; they do not establish production capacity or a universal maximum.
+
+For measured throughput, methodology, bottlenecks, and test limits, see [docs/performance/CAPACITY_PROFILE.md](docs/performance/CAPACITY_PROFILE.md) and [docs/performance/PERFORMANCE_REPORT.md](docs/performance/PERFORMANCE_REPORT.md).
+
+The existing benchmark results include:
 
 - **Relational Write Path (Verified Persistent Social Likes)**: Tested with dynamically unique `(user, targetId)` pairs per request, verifying 100% database persistence (1 HTTP 2xx == 1 SQL `INSERT` in `engagement_likes`). Throughput scaled from **57.0 writes/s** at 10 conns ($p50 = 192\text{ ms}$) to **95.4 writes/s** at 50 conns ($p50 = 494\text{ ms}$), **101.8 writes/s** at 100 conns ($p50 = 808\text{ ms}$), and **122.0 writes/s** at 200 conns ($p50 = 1,487\text{ ms}$) with zero socket errors or timeouts.
 - **Public Novel Read Scaling**: Throughput increased from **222.3 req/s** (1 instance) to **543.3 req/s** (2 instances, **2.44× speedup**) and **423.7 req/s** (3 instances, **1.91× speedup**) at 50 connections with sub-70ms $p50$. Peak throughput reached **669.0 req/s** at 200 connections.

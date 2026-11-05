@@ -5,6 +5,7 @@ import com.vivek.novelforge.identity.dto.request.UpdateUserProfileRequestDto;
 import com.vivek.novelforge.identity.dto.response.UserProfileResponseDto;
 import com.vivek.novelforge.identity.entity.User;
 import com.vivek.novelforge.identity.entity.UserProfile;
+import com.vivek.novelforge.identity.exception.UsernameAlreadyExistsException;
 import com.vivek.novelforge.identity.type.AccountStatus;
 import com.vivek.novelforge.identity.type.ProfileVisibility;
 import com.vivek.novelforge.identity.type.CreatorStatus;
@@ -70,8 +71,25 @@ public class UserProfileServiceImpl implements UserProfileService {
         User user = getAuthenticatedUser(authentication);
         UserProfile profile = getProfile(user.getId());
 
-        profile.setDisplayName(request.getDisplayName().trim());
+        if (request.getUsername() != null) {
+            String username = request.getUsername().trim();
+            if (!username.equals(user.getUsername()) && userRepository.existsByUsername(username)) {
+                throw new UsernameAlreadyExistsException("Username is already in use.");
+            }
+            if (!username.equals(user.getUsername())) {
+                user.setUsername(username);
+                userRepository.save(user);
+            }
+        }
+
+        if (request.getDisplayName() != null) {
+            profile.setDisplayName(request.getDisplayName().trim());
+        }
         profile.setBio(request.getBio());
+        if (request.getProfileImageName() != null) {
+            String profileImageName = request.getProfileImageName().trim();
+            profile.setProfileImageName(profileImageName.isEmpty() ? null : profileImageName);
+        }
 
         if (request.getVisibility() != null) {
             profile.setVisibility(request.getVisibility());

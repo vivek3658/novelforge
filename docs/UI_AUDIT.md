@@ -138,3 +138,17 @@ De-minify and clean up all 9 obfuscated files into idiomatic, semantic React com
 - **Studio Team**: User-friendly collaborator invitation panel respecting `BACKEND_GAPS.md`.
 - **Destructive Actions**: Use `ConfirmDialog` for deleting novels, chapters, or collections.
 - **Fast Refresh Cleanups**: Move exported hooks or separate contexts so `eslint .` produces 0 errors and 0 warnings.
+
+## 8. Follow-up Audit (2026-11-05)
+
+The current `StudioEditor.jsx` contains both the novel metadata update form and chapter create/select controls. The novel update uses `PUT /api/v1/novels/novels/{novelId}` through the gateway's `/api/v1/novels/**` rewrite; the backend accepts the submitted title, synopsis, cover URL, category, genres, and tags. The route and payload shape match the controller and DTO, so a runtime update failure is not established by static inspection alone. The client build and lint pass; a browser Network response is needed to diagnose any remaining update error.
+
+The chapter picker and “New Chapter” control were hidden on entry because chapter focus mode defaulted to enabled. This made the existing selection and creation flows appear unavailable. The default has been changed so the chapter list is visible when opening the chapter workspace.
+
+Studio invitations are persisted as `INVITED` studio memberships and can already be accepted by membership ID, but the service had no authenticated endpoint to list invitations for the signed-in recipient and the client had no Inbox route. The separate notification service currently handles OTP email only; it has no user inbox API, and the gateway has no notification route.
+
+### Follow-up Fix Order
+1. Keep the chapter list and new-chapter action visible on entry to the writer workspace.
+2. Add a recipient-scoped studio-invitation inbox endpoint and a protected client Inbox with loading, error, empty, and accept states.
+3. Correct API, architecture, Docker/setup, and project-status documents to match the currently implemented services; remove references to dropped moderation/admin services and other abandoned plans.
+4. Describe scalability only with the checked-in 1–3 instance benchmark evidence and state its local resource limits and bottlenecks; do not imply unmeasured production capacity.

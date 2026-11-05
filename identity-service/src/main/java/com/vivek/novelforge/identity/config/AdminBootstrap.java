@@ -34,13 +34,17 @@ public class AdminBootstrap implements CommandLineRunner {
     @Value("${novelforge.admin.default-email:admin@novelforge.com}")
     private String defaultEmail;
 
-    @Value("${novelforge.admin.default-password:AdminPassword123!}")
+    @Value("${novelforge.admin.default-password:}")
     private String defaultPassword;
 
     @Override
     @Transactional
     public void run(String... args) {
         if (userRepository.countByRole(RoleType.ADMIN) == 0) {
+            if (defaultPassword == null || defaultPassword.isBlank()) {
+                log.warn("Skipping default admin seed: NOVELFORGE_ADMIN_DEFAULT_PASSWORD is not configured.");
+                return;
+            }
             log.info("No ADMIN user found in system. Seeding default platform admin account: {}", defaultUsername);
 
             if (userRepository.existsByUsername(defaultUsername) || userRepository.existsByEmail(defaultEmail)) {

@@ -1,14 +1,14 @@
 # NovelForge — Full Architecture, Scalability & Performance Context for Claude
 
-> **Purpose**: This document provides a complete, authoritative reference for Claude (or any AI assistant) to understand the entire architecture, implementation details, performance engineering methodology, empirical benchmark results, resilience tests, and deployment setup for the **NovelForge** distributed microservices platform.
+> **Purpose**: Repository-backed architecture and local benchmark notes. Source code and deployment files are authoritative; this document is a convenience summary, not proof of a live or production deployment.
 
 ---
 
 ## 1. System & Architecture Overview
 
-NovelForge is a production-grade, distributed digital novel and storytelling platform built with:
+NovelForge is a multi-service digital novel and creator platform built with:
 - **Language / Runtime**: Java 21, Spring Boot 3.x, Spring Cloud (2023.x release train)
-- **Frontend**: React 19, Vite, TailwindCSS, TypeScript, Nginx reverse proxy
+- **Frontend**: React 19 JSX, Vite, React Router, Nginx reverse proxy
 - **Datastores**: PostgreSQL 16 (Relational DBs), MongoDB 7 (Unstructured BSON Chapter Content), Redis 7 (Token Blacklist & Session Cache), RabbitMQ 4 (AMQP Event Bus), Mailpit (Local SMTP Mock)
 - **Service Discovery**: Netflix Eureka (`eureka-server:8761`)
 - **API Gateway**: Spring Cloud Gateway Netty WebFlux (`api-gateway:8080`)
@@ -18,18 +18,20 @@ NovelForge is a production-grade, distributed digital novel and storytelling pla
 | Service | Technology | Internal Port | Host Port | Database / Broker | Key Responsibilities |
 | :--- | :--- | :---: | :---: | :--- | :--- |
 | **`eureka-server`** | Spring Cloud Netflix Eureka | `8761` | `8761` | In-Memory Registry | Central service registration, heartbeat monitoring, dynamic lease management |
-| **`api-gateway`** | Spring Cloud Gateway (Netty) | `8080` | `8080` | None | Edge reverse proxy, JWT authentication filter, route load balancing (`lb://`) |
-| **`identity-service`** | Spring Boot / JPA / Spring Security | `8081` | Dynamic / `8081` | PostgreSQL (`userDB`), Redis | User registration, 10-round BCrypt authentication, JWT minting/revocation |
-| **`notification-service`** | Spring Boot / JavaMail / AMQP | `8082` | Dynamic | RabbitMQ, Mailpit (`:1025`) | Asynchronous email dispatch, OTP delivery (stubbed locally via Mailpit) |
+| **`api-gateway`** | Spring Cloud Gateway (Netty) | `8080` | `8080` | Redis | Edge routing and path rewriting; `lb://` routing is enabled by the performance override, not default Compose |
+| **`identity-service`** | Spring Boot / JPA / Spring Security | `8081` | Internal / `8081` | PostgreSQL (`userDB`), Redis | Auth, accounts, profiles, creator status, admin and moderation APIs |
+| **`notification-service`** | Spring Boot / JavaMail / AMQP | `8082` | Internal | RabbitMQ, configured SMTP or Brevo | Asynchronous OTP email only; no browser notification API |
 | **`novel-service`** | Spring Boot / JPA / Spring Data Mongo | `8083` | Dynamic / `8083` | PostgreSQL (`novelDB`), MongoDB | Novel catalog, search queries, chapter metadata & BSON content blocks |
-| **`engagement-service`** | Spring Boot / JPA / AMQP | `8084` | Dynamic / `8084` | PostgreSQL (`engagementDB`) | Social likes, bookmarks, ratings, comments, community feed |
-| **`studio-service`** | Spring Boot / JPA / Multipart | `8087` | Dynamic | PostgreSQL (`novelDB`) | Author publishing studio, novel/chapter drafts, cover uploads |
-| **`novelforge-client`** | React 19 + Vite + Nginx | `80` | `3000` | Gateway (`:8080`) | Single Page Application (Reader UI, Catalog, Author Studio) |
-| **`novelforge-postgres`** | PostgreSQL 16 Alpine | `5432` | `5433` | Multiple Databases | `userDB`, `novelDB`, `engagementDB` |
+| **`engagement-service`** | Spring Boot / JPA / AMQP | `8084` | Internal / `8084` | PostgreSQL (`engagementDB`), RabbitMQ | Likes, comments, posts, follows, feeds, collections |
+| **`studio-service`** | Spring Boot / JPA | `8087` | Internal | PostgreSQL (`studioDB`) | Studios, permissions, memberships, invitations |
+| **`novelforge-client`** | React 19 JSX + Vite + Nginx | `80` | `3000` | Gateway (`:8080`) | Reader UI, catalog, authoring workspace, invitation Inbox |
+| **`novelforge-postgres`** | PostgreSQL 16 Alpine | `5432` | `5433` | Multiple Databases | `userDB`, `novelDB`, `studioDB`, `engagementDB` |
 | **`novelforge-mongodb`** | MongoDB 7 | `27017` | `27018` | `novelforge_chapters` | Scalable BSON chapter text storage |
 | **`novelforge-redis`** | Redis 7 Alpine | `6379` | `6379` | Memory Store | JWT blacklist, rate limiting tokens |
-| **`novelforge-rabbitmq`** | RabbitMQ 4 Management | `5672` | `5672`, `15672` | AMQP 0-9-1 | Asynchronous domain events (`novel.published`, `user.registered`) |
+| **`novelforge-rabbitmq`** | RabbitMQ 4 Management | `5672` | `5672`, `15672` | AMQP 0-9-1 | Asynchronous OTP email and engagement feed fanout |
 | **`novelforge-mailpit`** | Axllent Mailpit | `1025`, `8025` | `8025` | Local SQLite | SMTP test server & web UI for email inspection |
+
+Admin and moderation are API areas in Identity, not standalone services. Studio invitations are persisted membership records and shown in the client Inbox; Notification remains an OTP email consumer.
 
 ---
 

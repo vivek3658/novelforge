@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { authApi, studioApi, engagementApi, novelApi } from '../services/api';
 import NovelCard from '../components/NovelCard';
+import ImageUploader from '../components/ImageUploader';
 import { Button, Input, Textarea, Select, Avatar, EmptyState, Skeleton, Badge } from '../components/ui';
 
 export default function Profile() {
@@ -12,8 +13,10 @@ export default function Profile() {
 
   const [activeTab, setActiveTab] = useState('novels');
   const [profileForm, setProfileForm] = useState({
+    username: user?.username || '',
     displayName: user?.displayName || '',
     bio: user?.bio || '',
+    profileImageName: user?.profileImageName || '',
     visibility: user?.visibility || 'PUBLIC',
   });
 
@@ -36,8 +39,10 @@ export default function Profile() {
       const profile = await authApi.getProfile().catch(() => null);
       if (profile) {
         setProfileForm({
+          username: profile.username || user?.username || '',
           displayName: profile.displayName || '',
           bio: profile.bio || '',
+          profileImageName: profile.profileImageName || '',
           visibility: profile.visibility || 'PUBLIC',
         });
       }
@@ -110,7 +115,12 @@ export default function Profile() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await authApi.updateProfile(profileForm);
+      const updatedProfile = await authApi.updateProfile(profileForm);
+      if (updatedProfile?.username && updatedProfile.username !== user?.username) {
+        success('Username changed. Please sign in again with your new username.');
+        await logout();
+        return;
+      }
       await fetchMe();
       success('Profile updated successfully!');
     } catch (err) {
@@ -142,7 +152,7 @@ export default function Profile() {
         {/* Profile Header */}
         <header className="ig-profile-header">
           <div className="ig-profile-avatar-wrap">
-            <Avatar name={displayName} size="xl" />
+            <Avatar src={profileForm.profileImageName} name={displayName} alt={`${displayName} profile picture`} size="xl" />
           </div>
 
           <div className="ig-profile-details">
@@ -334,6 +344,24 @@ export default function Profile() {
             <h2 style={{ margin: '0 0 1.5rem', fontSize: '1.3rem' }}>Profile & Account Settings</h2>
 
             <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <ImageUploader
+                value={profileForm.profileImageName}
+                onChange={(profileImageName) => setProfileForm((current) => ({ ...current, profileImageName }))}
+                label="Profile picture"
+                hint="Upload a square JPG, PNG, or WebP image up to 5MB."
+                aspectRatio="1 / 1"
+              />
+
+              <Input
+                label="Username"
+                minLength={3}
+                maxLength={30}
+                autoComplete="username"
+                value={profileForm.username}
+                onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+                required
+              />
+
               <Input
                 label="Display Name"
                 maxLength={50}

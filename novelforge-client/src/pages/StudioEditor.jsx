@@ -47,7 +47,7 @@ export default function StudioEditor() {
   const [editingBlockId, setEditingBlockId] = useState(null);
   const [editingBlockText, setEditingBlockText] = useState('');
   const [chapterViewMode, setChapterViewMode] = useState('write');
-  const [chapterFocusMode, setChapterFocusMode] = useState(true);
+  const [chapterFocusMode, setChapterFocusMode] = useState(false);
   const manuscriptRef = useRef(null);
 
   // Forms

@@ -378,6 +378,11 @@ export const studioApi = {
 
   acceptInvitation: (membershipId) => apiRequest(`/studios/invitations/${membershipId}/accept`, { method: 'POST' }),
 
+  myInvitations: () => apiRequest('/studios/invitations/me', { method: 'GET' }),
+
+  markInvitationRead: (membershipId) =>
+    apiRequest(`/studios/invitations/${membershipId}/read`, { method: 'PATCH' }),
+
   updateMemberRole: (studioId, userId, role) => apiRequest(`/studios/${studioId}/members/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
 
   removeMember: (studioId, userId) => apiRequest(`/studios/${studioId}/members/${userId}`, { method: 'DELETE' }),

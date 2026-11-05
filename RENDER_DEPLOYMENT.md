@@ -1,12 +1,12 @@
-# NovelForge Render Deployment Guide (0.1 vCPU / 512MB RAM Specification)
+# NovelForge Render Deployment Guide
 
-This guide details how to deploy the entire NovelForge microservices stack to [Render](https://render.com) using the provided **`render.yaml` Blueprint** or as individual Web Services under the **0.1 vCPU and 512MB RAM** free/starter tier constraints.
+This guide documents the repository's `render.yaml` Blueprint configuration. It is not evidence that the full stack is currently deployed or production-ready. Render plan availability, resource limits, pricing, and managed-service behavior can change; verify them in the Render dashboard before deploying.
 
 ---
 
 ## 🌟 Architecture & Services
 
-NovelForge is fully configured for zero-effort Infrastructure-as-Code (IaC) deployment on Render:
+The Blueprint describes these services and managed resources:
 
 1. **Managed PostgreSQL**: Relational database for `identity-service`, `novel-service`, `studio-service`, and `engagement-service`.
 2. **Managed Key-Value Store (Redis)**: Cache, token blacklist, and rate limiter storage.
@@ -16,18 +16,20 @@ NovelForge is fully configured for zero-effort Infrastructure-as-Code (IaC) depl
    - `identity-service` (Port: `8081`): Authentication, user accounts, JWT issuance, password reset, and session state.
    - `notification-service` (Port: `8082`): Email OTP verification via Brevo / SMTP with actuator health check.
    - `novel-service` (Port: `8083`): Novels, chapters, metadata (PostgreSQL) and chapter content blocks (MongoDB).
-   - `engagement-service` (Port: `8084`): Likes, comments, ratings, follows, bookmarks, and user feeds.
+   - `engagement-service` (Port: `8084`): Likes, comments, posts, follows, feeds, and collections.
    - `studio-service` (Port: `8087`): Creator studios, collaborator invites, permissions, and novel authoring studio.
 6. **Frontend Web App (`novelforge-client`)**: React 19 + Vite served through high-performance Nginx on port `80`.
 
+Admin and moderation APIs are hosted by `identity-service`; they are not separate deployables. `notification-service` handles asynchronous OTP email only. Studio invitations are listed from persisted studio memberships through the Studio API and client Inbox.
+
 ---
 
-## ⚡ 0.1 vCPU & 512MB RAM Stability Specifications
+## JVM and Resource Settings in the Blueprint
 
-Running Java Spring Boot microservices on 512MB RAM with 0.1 vCPU requires strict resource constraints to prevent container `OOMKilled` (exit code 137) and CPU throttling freezes. NovelForge includes deep optimizations for this spec:
+The production profiles and Blueprint declare JVM memory, thread, and connection limits. These are configuration values, not measured RSS guarantees; verify container memory and CPU in the target environment before selecting plans.
 
-### 1. Mathematical Breakdown of JVM Memory Footprint
-By default, Java 21 with G1GC allocates ~240MB CodeCache, 1MB per thread stack, and large G1GC remembered sets, causing total resident memory (RSS) to exceed 580MB and get killed by Render's cgroup memory killer.
+### 1. Configured JVM Limits
+Default JVM limits can exceed small container budgets when combined with native memory, thread stacks, and framework overhead. The values below are the repository's configured caps, not a guarantee of safe memory use for every workload.
 
 NovelForge enforces the following calibrated `JAVA_OPTS`:
 ```bash
@@ -43,7 +45,7 @@ NovelForge enforces the following calibrated `JAVA_OPTS`:
 | **Thread Stacks (`-Xss`)** | `1024KB` (1MB) per thread | `256KB` per thread | Reduces 50 threads from 50MB down to 12.5MB |
 | **Garbage Collector** | G1GC (Multi-threaded) | **Serial GC (`-XX:+UseSerialGC`)** | Eliminates 50MB of RSet metadata & prevents CPU thrashing on 0.1 vCPU |
 | **Direct Memory** | Unlimited | `64MB` (`MaxDirectMemorySize` on Gateway) | Caps Netty byte buffer allocations |
-| **Total Max RSS Footprint** | ~590MB (OOM Crash) | **~395MB - 410MB** | **Safe ~115MB buffer** under Render's 512MB limit! |
+| **Total RSS** | Workload-dependent | Not measured by this configuration table | Measure on the selected plan |
 
 ### 2. Thread Pool & Connection Limits (`application-prod.yml` / `.yaml`)
 - **HikariCP Database Connections**: Capped at `maximum-pool-size: 3`, `minimum-idle: 1`. Prevents pool exhaustion on Render free tier PostgreSQL and reduces memory buffers.
@@ -55,7 +57,7 @@ NovelForge enforces the following calibrated `JAVA_OPTS`:
 
 ---
 
-## 🚀 One-Click Blueprint Deployment
+## Apply the Blueprint
 
 ### Step 1: Push Repository to GitHub / GitLab
 Ensure all changes, including `render.yaml`, `application-prod.*`, and `.env.production` files, are pushed to your repository.
@@ -67,18 +69,21 @@ Ensure all changes, including `render.yaml`, `application-prod.*`, and `.env.pro
 4. Render will automatically detect and parse [`render.yaml`](./render.yaml).
 
 ### Step 3: Configure Secrets in Render Dashboard
-Render will prompt for environment variables marked `sync: false`:
+Render will prompt for environment variables marked `sync: false`. Supply unique high-entropy secrets; `JWT_SECRET_KEY` and `NOVELFORGE_SECURITY_JWT_SECRET_KEY` must be configured consistently across services that validate the same tokens:
 - **`SPRING_MONGODB_URI`**: Your MongoDB connection string (e.g., from MongoDB Atlas Free M0).
 - **`BREVO_API_KEY`**: Your Brevo API key for OTP delivery.
 - **`BREVO_SENDER_EMAIL`**: Your verified Brevo sender email.
-- **Internal secrets** (optional, defaults provided): `GATEWAY_INTERNAL_SECRET`, `OTP_HMAC_SECRET`, `STUDIO_IDENTITY_INTERNAL_SECRET`, etc.
+- **JWT and internal secrets**: `JWT_SECRET_KEY`, `NOVELFORGE_SECURITY_JWT_SECRET_KEY`, `GATEWAY_INTERNAL_SECRET`, `OTP_HMAC_SECRET`, and the service-specific internal keys. No committed defaults should be used.
+- **Optional first-admin bootstrap**: `NOVELFORGE_ADMIN_DEFAULT_PASSWORD`. Set it only for initial provisioning when no admin exists; Identity BCrypt-hashes it. Remove the variable after the account is created. For an existing installation, use the authorized admin role-management flow.
 
 ### Step 4: Deploy
-Click **Apply**. Render will automatically provision:
+Click **Apply**. Render will attempt to provision the configured resources and services:
 - Managed PostgreSQL and Redis Key-Value store
-- Build all 8 services using multi-stage Docker builds
-- Activate the `prod` profile with 512MB RAM constraints
+- Build the configured app services using their Dockerfiles
+- Activate the `prod` profile and the JVM limits declared in the repository
 - Connect internal private network hostnames and launch all containers
+
+The Blueprint does not define an autoscaling policy or a validated production capacity target. The checked-in 1-3 instance measurements are local Docker benchmarks; see [docs/performance/CAPACITY_PROFILE.md](docs/performance/CAPACITY_PROFILE.md) and do not extrapolate them directly to Render.
 
 ---
 
@@ -101,16 +106,15 @@ If deploying services individually as Web Services instead of a Blueprint:
 
 ---
 
-## 📁 Production Configuration Files Reference
+## Deployment Configuration References
 
-Every service contains dedicated production configuration files:
+The checked-in deployment inputs are the root `render.yaml` and the following example files. Secret-bearing `.env` files are intentionally not committed:
 
-- **Root Production Env**: `.env.production` and `.env.production.example`
-- **Eureka Server**: `eureka-server/src/main/resources/application-prod.yml`, `.env.production`, `.env.production.example`
-- **API Gateway**: `api-gateway/src/main/resources/application-prod.yml`, `.env.production`, `.env.production.example`
-- **Identity Service**: `identity-service/src/main/resources/application-prod.yml`, `.env.production`, `.env.production.example`
-- **Notification Service**: `notification-service/src/main/resources/application-prod.yml`, `.env.production`, `.env.production.example`
-- **Novel Service**: `novel-service/src/main/resources/application-prod.yaml`, `.env.production`, `.env.production.example`
-- **Studio Service**: `studio-service/src/main/resources/application-prod.yaml`, `.env.production`, `.env.production.example`
-- **Engagement Service**: `engagement-service/src/main/resources/application-prod.yaml`, `.env.production`, `.env.production.example`
-- **Client Web App**: `novelforge-client/.env.production`, `.env.production.example`
+- `eureka-server/.env.production.example`
+- `api-gateway/.env.production.example`
+- `identity-service/.env.production.example`
+- `notification-service/.env.production.example`
+- `novel-service/.env.production.example`
+- `studio-service/.env.production.example`
+- `engagement-service/.env.production.example`
+- `novelforge-client/.env.production.example`

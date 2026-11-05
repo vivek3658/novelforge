@@ -10,6 +10,7 @@ import com.vivek.novelforge.studio.dto.request.UpdateStudioMemberRoleRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioRequestDto;
 import com.vivek.novelforge.studio.dto.response.StudioMembershipResponseDto;
 import com.vivek.novelforge.studio.dto.response.MyStudioMembershipDto;
+import com.vivek.novelforge.studio.dto.response.StudioInvitationResponseDto;
 import com.vivek.novelforge.studio.dto.response.StudioResponseDto;
 import com.vivek.novelforge.studio.entity.Studio;
 import com.vivek.novelforge.studio.entity.StudioMembership;
@@ -267,6 +268,7 @@ public class StudioServiceImpl implements StudioService {
         membership.setRole(request.getRole());
         membership.setStatus(StudioMembershipStatus.INVITED);
         membership.setInvitedAt(now);
+        membership.setReadAt(null);
         membership.setJoinedAt(null);
         membership.setDeletedAt(null);
 
@@ -305,6 +307,51 @@ public class StudioServiceImpl implements StudioService {
 
         return toMembershipResponse(membershipRepository.save(membership));
     }
+
+        @Override
+        @Transactional(readOnly = true)
+        public java.util.List<StudioInvitationResponseDto> myInvitations(
+                        Authentication authentication
+        ) {
+                Long userId = authenticatedUserId(authentication);
+                return membershipRepository.findByUserIdAndStatusAndDeletedAtIsNull(
+                                                userId, StudioMembershipStatus.INVITED).stream()
+                                .map(membership -> {
+                                        Studio studio = studioRepository
+                                                        .findByIdAndDeletedAtIsNull(membership.getStudioId())
+                                                        .orElse(null);
+                                        if (studio == null || studio.getStatus() != StudioStatus.ACTIVE) {
+                                                return null;
+                                        }
+                                        return toStudioInvitationResponse(membership, studio);
+                                })
+                                .filter(java.util.Objects::nonNull)
+                                .toList();
+        }
+
+        @Override
+        public StudioInvitationResponseDto markInvitationRead(
+                        Long membershipId,
+                        Authentication authentication
+        ) {
+                Long userId = authenticatedUserId(authentication);
+                StudioMembership membership = membershipRepository.findById(membershipId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Invitation not found."));
+                if (!membership.getUserId().equals(userId)) {
+                        throw new AccessDeniedException("This invitation belongs to another user.");
+                }
+                if (membership.getStatus() != StudioMembershipStatus.INVITED
+                                || membership.getDeletedAt() != null) {
+                        throw new BadRequestException("Invitation is no longer pending.");
+                }
+
+                Studio studio = requireActiveStudio(membership.getStudioId());
+                if (membership.getReadAt() == null) {
+                        membership.setReadAt(Instant.now());
+                        membership = membershipRepository.save(membership);
+                }
+                return toStudioInvitationResponse(membership, studio);
+        }
 
     @Override
     public StudioMembershipResponseDto updateMemberRole(
@@ -493,4 +540,18 @@ public class StudioServiceImpl implements StudioService {
                 .joinedAt(membership.getJoinedAt())
                 .build();
     }
+
+        private StudioInvitationResponseDto toStudioInvitationResponse(
+                        StudioMembership membership,
+                        Studio studio
+        ) {
+                return StudioInvitationResponseDto.builder()
+                                .membershipId(membership.getId())
+                                .studioName(studio.getStudioName())
+                                .studioHandle(studio.getStudioHandle())
+                                .role(membership.getRole())
+                                .invitedAt(membership.getInvitedAt())
+                                .readAt(membership.getReadAt())
+                                .build();
+        }
 }

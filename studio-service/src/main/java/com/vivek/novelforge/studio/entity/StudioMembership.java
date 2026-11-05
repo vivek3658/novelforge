@@ -50,5 +50,8 @@ public class StudioMembership extends BaseEntity {
     @Column(nullable = false)
     private Instant invitedAt;
 
+        @Column(name = "read_at")
+        private Instant readAt;
+
     private Instant joinedAt;
 }

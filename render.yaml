@@ -125,9 +125,9 @@ services:
       - key: EUREKA_INSTANCE_PREFER_IP_ADDRESS
         value: "true"
       - key: JWT_SECRET_KEY
-        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        sync: false
       - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
-        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        sync: false
       - key: OTP_HMAC_SECRET
         sync: false
       - key: GATEWAY_INTERNAL_SECRET
@@ -137,6 +137,8 @@ services:
       - key: ENGAGEMENT_IDENTITY_INTERNAL_SECRET
         sync: false
       - key: NOTIFICATION_IDENTITY_INTERNAL_SECRET
+        sync: false
+      - key: NOVELFORGE_ADMIN_DEFAULT_PASSWORD
         sync: false
       - key: NOTIFICATION_SERVICE_URL
         value: http://novelforge-notification-service:8082
@@ -189,9 +191,9 @@ services:
       - key: NOVEL_STUDIO_INTERNAL_SECRET
         sync: false
       - key: JWT_SECRET_KEY
-        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        sync: false
       - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
-        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        sync: false
 
   # -------------------------------------------------------------
   # Studio Service (Creator Studios & Memberships)
@@ -235,7 +237,7 @@ services:
       - key: IDENTITY_SERVICE_BASE_URL
         value: http://novelforge-identity-service:8081
       - key: JWT_SECRET_KEY
-        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        sync: false
       - key: STUDIO_IDENTITY_INTERNAL_SECRET
         sync: false
       - key: NOVEL_STUDIO_INTERNAL_SECRET
@@ -293,9 +295,9 @@ services:
       - key: ENGAGEMENT_IDENTITY_INTERNAL_SECRET
         sync: false
       - key: JWT_SECRET_KEY
-        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        sync: false
       - key: NOVELFORGE_SECURITY_JWT_SECRET_KEY
-        value: wilhelm.theresia.nasa.tsukasa.ayanokoji.subaru
+        sync: false
 
   # -------------------------------------------------------------
   # Notification Service (Email, OTPs)

@@ -356,7 +356,7 @@ A hard safety invariant was enforced throughout all benchmark suites to guarante
 
 ## 8. Key Architecture Metrics for Engineering Resumes & Technical Interviews
 
-For technical portfolio review, engineering resumes, and Big Tech system design interviews (Meta, Google, Amazon, Netflix), the following metrics demonstrate production-grade distributed systems rigor:
+For portfolio review and system-design interviews, the following are useful examples of measured local engineering work. They do not establish production readiness or production-scale capacity:
 
 1. **Little's Law Empirical Validation**:
    - *Resume Bullet*: *"Validated system scalability and load generator fidelity by benchmarking 6 microservice workloads across 3 topologies, proving empirical throughput matches Little's Law ($X \approx N / R$) within 3.5% variance."*

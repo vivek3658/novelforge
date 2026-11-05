@@ -6,6 +6,7 @@ import com.vivek.novelforge.studio.dto.request.UpdateStudioMemberRoleRequestDto;
 import com.vivek.novelforge.studio.dto.request.UpdateStudioRequestDto;
 import com.vivek.novelforge.studio.dto.response.StudioMembershipResponseDto;
 import com.vivek.novelforge.studio.dto.response.MyStudioMembershipDto;
+import com.vivek.novelforge.studio.dto.response.StudioInvitationResponseDto;
 import com.vivek.novelforge.studio.dto.response.StudioResponseDto;
 import com.vivek.novelforge.studio.service.StudioService;
 import jakarta.validation.Valid;
@@ -111,6 +112,22 @@ public class StudioController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(studioService.inviteMember(
                         studioId, request, authentication));
+    }
+
+        @GetMapping("/invitations/me")
+        public ResponseEntity<java.util.List<StudioInvitationResponseDto>> myInvitations(
+                        Authentication authentication
+        ) {
+                return ResponseEntity.ok(studioService.myInvitations(authentication));
+        }
+
+    @PatchMapping("/invitations/{membershipId}/read")
+    public ResponseEntity<StudioInvitationResponseDto> markInvitationRead(
+            @PathVariable Long membershipId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                studioService.markInvitationRead(membershipId, authentication));
     }
 
     @PostMapping("/invitations/{membershipId}/accept")

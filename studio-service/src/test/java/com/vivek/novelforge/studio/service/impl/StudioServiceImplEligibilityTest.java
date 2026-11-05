@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -129,4 +130,80 @@ class StudioServiceImplEligibilityTest {
         assertTrue(membership.getPermissions().contains("STUDIO_POST_CREATE"));
         assertFalse(membership.getPermissions().contains("NOVEL_DELETE"));
     }
+
+        @Test
+        void returnsTheAuthenticatedUsersActiveStudioInvitations() {
+                UUID studioId = UUID.randomUUID();
+                StudioMembership invitation = StudioMembership.builder()
+                                .id(17L)
+                                .studioId(studioId)
+                                .userId(42L)
+                                .role(StudioRoleType.EDITOR)
+                                .status(StudioMembershipStatus.INVITED)
+                                .build();
+                when(membershipRepository.findByUserIdAndStatusAndDeletedAtIsNull(
+                                42L, StudioMembershipStatus.INVITED)).thenReturn(List.of(invitation));
+                when(studioRepository.findByIdAndDeletedAtIsNull(studioId)).thenReturn(
+                                java.util.Optional.of(Studio.builder()
+                                                .id(studioId)
+                                                .studioName("North Star Writers")
+                                                .studioHandle("north-star")
+                                                .status(StudioStatus.ACTIVE)
+                                                .build()));
+
+                var invitations = studioService.myInvitations(authentication);
+
+                assertEquals(1, invitations.size());
+                assertEquals("North Star Writers", invitations.get(0).getStudioName());
+                assertEquals("north-star", invitations.get(0).getStudioHandle());
+                assertEquals(StudioRoleType.EDITOR, invitations.get(0).getRole());
+                assertEquals(17L, invitations.get(0).getMembershipId());
+                org.mockito.Mockito.verifyNoInteractions(creatorEligibilityClient);
+            }
+
+            @Test
+            void marksOnlyTheInviteesPendingInvitationAsRead() {
+                UUID studioId = UUID.randomUUID();
+                StudioMembership invitation = StudioMembership.builder()
+                        .id(17L)
+                        .studioId(studioId)
+                        .userId(42L)
+                        .role(StudioRoleType.EDITOR)
+                        .status(StudioMembershipStatus.INVITED)
+                        .build();
+                when(membershipRepository.findById(17L)).thenReturn(java.util.Optional.of(invitation));
+                when(membershipRepository.save(any(StudioMembership.class))).thenAnswer(
+                        invocationCall -> invocationCall.getArgument(0));
+                when(studioRepository.findByIdAndDeletedAtIsNull(studioId)).thenReturn(
+                        java.util.Optional.of(Studio.builder()
+                                .id(studioId)
+                                .studioName("North Star Writers")
+                                .studioHandle("north-star")
+                                .status(StudioStatus.ACTIVE)
+                                .build()));
+
+                var response = studioService.markInvitationRead(17L, authentication);
+
+                assertNotNull(response.getReadAt());
+                assertEquals("North Star Writers", response.getStudioName());
+                verify(membershipRepository).save(org.mockito.ArgumentMatchers.argThat(
+                        saved -> saved.getUserId().equals(42L) && saved.getReadAt() != null));
+        }
+
+        @Test
+        void doesNotAllowAnotherUserToMarkAnInvitationAsRead() {
+                StudioMembership invitation = StudioMembership.builder()
+                                .id(17L)
+                                .studioId(UUID.randomUUID())
+                                .userId(99L)
+                                .role(StudioRoleType.EDITOR)
+                                .status(StudioMembershipStatus.INVITED)
+                                .build();
+                when(membershipRepository.findById(17L)).thenReturn(java.util.Optional.of(invitation));
+
+                assertThrows(
+                                AccessDeniedException.class,
+                                () -> studioService.markInvitationRead(17L, authentication));
+                verify(membershipRepository, never()).save(any());
+        }
 }

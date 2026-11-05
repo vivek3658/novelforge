@@ -29,9 +29,11 @@ public class UserProfile extends BaseEntity {
 
     @Column(length = 2000)
     private String bio;
-    @Size(max = 200)
+    @Column(length = 1000)
+    @Size(max = 1000)
     private String profileImageName;
-    @Size(max = 200)
+    @Column(length = 1000)
+    @Size(max = 1000)
     private String bannerImageName;
 
     @Enumerated(EnumType.STRING)

@@ -1,6 +1,6 @@
 # NovelForge Microservices Architecture & Discovery Analysis
 
-This document provides a comprehensive technical breakdown of the **NovelForge** backend architecture, service interdependencies, runtime configurations, discovery/load-balancing dynamics, and performance test baseline prior to local load testing.
+This document records the repository-backed backend topology, service dependencies, and the local performance-test configuration. It describes measured local test scenarios, not a production deployment or capacity guarantee.
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TD
 ### Current Route Configuration
 Spring Cloud Gateway routes in `api-gateway/src/main/resources/application.yml` define route destinations as dynamic expressions:
 - `IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:http://localhost:8081}`
-- `NOVEL_SERVICE_URL: ${NOVEL_SERVICE_URL:https://novel-service.onrender.com}`
+- `NOVEL_SERVICE_URL: ${NOVEL_SERVICE_URL:http://localhost:8083}`
 - `STUDIO_SERVICE_URL: ${STUDIO_SERVICE_URL:http://localhost:8087}`
 - `ENGAGEMENT_SERVICE_URL: ${ENGAGEMENT_SERVICE_URL:http://localhost:8084}`
 
@@ -106,6 +106,8 @@ NOVEL_SERVICE_URL: http://novel-service:8083
 STUDIO_SERVICE_URL: http://studio-service:8087
 ENGAGEMENT_SERVICE_URL: http://engagement-service:8084
 ```
+
+Default Compose runs one instance of each service and uses direct Docker hostnames. The performance override changes gateway destinations to `lb://` Eureka routes and removes fixed container names where replicas are measured. Do not expect horizontal balancing from the default Compose URLs.
 
 ### Can the Gateway Spread Traffic Across Multiple Instances?
 1. **With Static HTTP URIs (`http://novel-service:8083`)**:
@@ -210,7 +212,9 @@ ENGAGEMENT_SERVICE_URL: http://engagement-service:8084
 
 ---
 
-## 8. Scaling Blockers Identified & Proposed Solutions
+## 8. Default Compose Limits and Performance Override
+
+The following are limitations of the default local topology and the corresponding settings already present in `docker-compose.perf.yml`:
 
 | Blocker | Root Cause | Impact | Solution in `docker-compose.perf.yml` |
 | :--- | :--- | :--- | :--- |

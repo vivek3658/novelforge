@@ -21,6 +21,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/Profile';
 import Library from './pages/Library';
 import StudioEditor from './pages/StudioEditor';
+import Inbox from './pages/Inbox';
 import AdminConsole from './pages/AdminConsole';
 import NotFound from './pages/NotFound';
 import './App.css';
@@ -94,6 +95,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <StudioEditor />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/inbox"
+                  element={
+                    <ProtectedRoute>
+                      <Inbox />
                     </ProtectedRoute>
                   }
                 />

@@ -9,7 +9,7 @@ Paginated endpoints use zero-based `page` and `size` query parameters. Most list
 | Service | Gateway prefix | Container port |
 |---|---|---:|
 | Identity | `/api/v1/identity` | 8081 |
-| Notification | `/api/v1/notifications` | 8082 |
+| Notification | Internal RabbitMQ consumer; no browser route | 8082 |
 | Novel | `/api/v1/novels` | 8083 |
 | Engagement | `/api/v1/engagement` | 8084 |
 | Studio | `/api/v1/studios` | 8087 |
@@ -35,7 +35,7 @@ All paths below start with `/api/v1/identity`.
 | GET | `/profile/me` | Bearer token | Current profile |
 | GET | `/profile/{userId}` | Bearer token | Read a profile subject to profile visibility |
 | GET | `/users/search?q=&limit=10` | Bearer token | Search active users by username or email; returns safe identity fields for invite lookup |
-| PATCH | `/profile/me` | Bearer token | Update display name, bio, or visibility |
+| PATCH | `/profile/me` | Bearer token | Update username, display name, bio, profile/banner ImageKit URL, or visibility |
 | GET | `/profile/imagekit-auth` | Bearer token | Generate one-time ImageKit upload auth parameters; the file uploads directly from the browser |
 | POST | `/profile/creator` | Bearer token | Activate creator status |
 | POST | `/profile/creator/deactivate` | Bearer token | Deactivate creator status |
@@ -78,6 +78,8 @@ All paths start with `/api/v1/studios` and require a bearer token for user actio
 | DELETE | `/studios/{studioId}` | Soft-delete a studio |
 | POST | `/studios/{studioId}/deletion/cancel` | Cancel studio deletion |
 | POST | `/studios/{studioId}/members` | Invite/add a studio member |
+| GET | `/studios/invitations/me` | List the authenticated user's pending invitations to active studios |
+| PATCH | `/studios/invitations/{membershipId}/read` | Mark the authenticated recipient's pending invitation as read |
 | POST | `/studios/invitations/{membershipId}/accept` | Accept a membership invitation |
 | PATCH | `/studios/{studioId}/members/{memberUserId}/role` | Change a member's role/permission set |
 | DELETE | `/studios/{studioId}/members/{memberUserId}` | Remove a member |
@@ -158,7 +160,7 @@ Feed fanout is delivered asynchronously through RabbitMQ and made idempotent by 
 
 ## Notification
 
-Browser clients should use Identity's OTP routes. Notification's email endpoint and Identity challenge-validation endpoint are service-to-service APIs and are protected with internal credentials. RabbitMQ uses broker credentials; email delivery is asynchronous.
+There is no general `/api/v1/notifications` browser API. The `notification-service` consumes OTP email events from RabbitMQ and delivers email through its configured SMTP or Brevo adapter. Studio collaboration invitations are persisted as studio membership records and shown in the client's `/inbox`; the recipient-only list includes studio display fields, role, invitation time, and nullable `readAt`. `PATCH /api/v1/studios/invitations/{membershipId}/read` marks a pending invitation as read, while `POST /api/v1/studios/invitations/{membershipId}/accept` changes its membership to `ACTIVE`.
 
 ## Internal service authentication
 
